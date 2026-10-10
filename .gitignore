@@ -43,6 +43,7 @@ yarn-error.*
 # Rust and generated bridge binaries
 /target/
 /modules/islamic-core/android/src/main/jniLibs/
+/modules/islamic-core/android/build/
 /modules/islamic-core/ios/Frameworks/
 
 # Credentials and local configuration
