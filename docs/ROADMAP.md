@@ -7,7 +7,9 @@
 - [x] Rust Qibla calculation, validation, reference tests, and C ABI.
 - [x] Swift/Kotlin bridge source and native build scripts.
 - [x] Open-source license and automated host/bundle checks.
-- [ ] Compile native development builds and verify the bridge on both platforms.
+- [x] Compile an Android APK containing ARM64/x86_64 Rust libraries and bundled JavaScript.
+- [ ] Verify the Android Rust bridge on a device or emulator.
+- [ ] Compile the iOS native app and verify its Rust bridge on a device or simulator.
 - [ ] Check RTL, accessibility, and large text on real devices.
 - [ ] Resolve inherited Expo/Metro/Xcode dependency audit advisories as compatible upstream fixes become available.
 

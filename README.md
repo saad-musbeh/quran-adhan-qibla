@@ -28,7 +28,15 @@ Open the app in the compatible Expo Go version. Expo Go previews the UI but does
 
 ## Android development build
 
-Install Rust through [rustup](https://rustup.rs/), Android Studio with its SDK/NDK, and the JDK required by the generated Expo Android project. Make sure `cargo` is on your PATH.
+Install Rust through [rustup](https://rustup.rs/), Android Studio or the [Android command-line tools](https://developer.android.com/studio), and JDK 17. Set `JAVA_HOME` to your JDK 17 installation; Java 25 causes the Android native configuration step to fail with the current toolchain. The current project uses Android SDK 36, Build Tools 36.0.0, NDK 27.1.12297006, and CMake 3.22.1. Make sure `cargo` is on your PATH.
+
+For a Linux SDK installed at the usual location, configure your terminal before building:
+
+```sh
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.1.12297006"
+export PATH="$HOME/.cargo/bin:$ANDROID_HOME/platform-tools:$PATH"
+```
 
 ```sh
 rustup target add aarch64-linux-android x86_64-linux-android
@@ -37,7 +45,18 @@ npm ci
 npm run android
 ```
 
-The command builds Rust for ARM64 devices and x86_64 emulators, then generates and builds the Android app. Set `ANDROID_NDK_HOME` if cargo-ndk cannot find your NDK. Other Android ABIs are not included in this starter.
+The command builds Rust for ARM64 devices and x86_64 emulators, then generates and builds the Android app. Expo's build-properties plugin limits the app to these same two ABIs so it always includes the Rust library. Set `ANDROID_NDK_HOME` if cargo-ndk cannot find your NDK.
+
+To create an APK without a connected device or running development server:
+
+```sh
+npm run rust:android
+npx expo prebuild --platform android --no-install
+cd android
+NODE_ENV=production ./gradlew :app:assembleRelease --max-workers=2
+```
+
+The APK is written to `android/app/build/outputs/apk/release/app-release.apk`. It includes the JavaScript bundle and uses Expo's generated debug signing key for local testing. Configure your own release signing before store distribution.
 
 ## iOS development build
 
@@ -58,7 +77,9 @@ npm run check
 npm run export:mobile
 ```
 
-`check` runs TypeScript, coordinate parsing tests, Rust formatting/lint checks, and Rust tests. The export builds the JavaScript bundles for both mobile platforms; it does **not** compile Swift, Kotlin, or an installable app. Initial host checks cover the Rust core and C ABI. Full native builds and real-device bridge/RTL checks remain to be completed on hosts with the platform SDKs.
+`check` runs TypeScript, coordinate parsing tests, Rust formatting/lint checks, and Rust tests. The export builds the JavaScript bundles for both mobile platforms; it does **not** compile Swift, Kotlin, or an installable app. Host checks cover the Rust core and C ABI.
+
+An Android APK was compiled on Linux with JDK 17 on 10 October 2026. Its ARM64/x86_64 Rust libraries, JNI exports, bundled JavaScript, APK signature, and 16 KB packaging/library alignment were checked. Android runtime bridge/RTL checks on a device and the iOS native build remain to be completed; compilation does not verify device behavior.
 
 The initial npm audit (10 October 2026) also reports inherited dependency advisories through Expo/Metro/Xcode tooling (`braces`, `node-forge`, and `uuid`). Compatible automatic updates did not resolve them. Updating upstream packages is follow-up work; functional checks do not imply a clean dependency audit.
 
