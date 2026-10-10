@@ -1,0 +1,10 @@
+[package]
+name = "islamic-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared offline calculations for the Quran, Adhan, and Qibla mobile app"
+
+[lib]
+crate-type = ["rlib", "staticlib", "cdylib"]

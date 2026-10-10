@@ -1,0 +1,4 @@
+module IslamicCoreFFI {
+  header "islamic_core.h"
+  export *
+}

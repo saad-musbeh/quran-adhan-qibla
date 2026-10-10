@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "apple"],
+  "apple": {
+    "modules": ["IslamicCoreModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.islamiccore.IslamicCoreModule"]
+  }
+}

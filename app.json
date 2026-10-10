@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Quran Adhan Qibla",
+    "slug": "quran-adhan-qibla",
+    "version": "0.1.0",
+    "scheme": "quranadhanqibla",
+    "platforms": ["ios", "android"],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.saadmusbeh.quranadhanqibla"
+    },
+    "android": {
+      "package": "org.saadmusbeh.quranadhanqibla",
+      "adaptiveIcon": {
+        "backgroundColor": "#102A25",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
