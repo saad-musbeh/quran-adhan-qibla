@@ -15,5 +15,16 @@ public class IslamicCoreModule: Module {
       }
       return bearing
     }
+
+    Function("prayerTimes") { (latitude: Double, longitude: Double, year: Int32, month: Int32, day: Int32, flags: Int32) -> [Double] in
+      try (0..<6).map { prayer in
+        let time = islamic_core_prayer_time(latitude, longitude, year, month, day, flags, Int32(prayer))
+        guard time.isFinite else {
+          throw NSError(domain: "IslamicCore", code: 2,
+            userInfo: [NSLocalizedDescriptionKey: "Prayer times are unavailable for this location or date."])
+        }
+        return time
+      }
+    }
   }
 }

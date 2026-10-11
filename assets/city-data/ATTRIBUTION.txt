@@ -1,0 +1,13 @@
+Offline city data provenance
+
+This app's offline city names, Arabic aliases, place IDs, coordinates, and time zones are adapted from GeoNames daily extracts:
+https://download.geonames.org/export/dump/cities500.zip
+https://download.geonames.org/export/dump/alternateNamesV2.zip
+https://download.geonames.org/export/dump/countryInfo.txt
+
+GeoNames data is licensed under the Creative Commons Attribution 4.0 International license (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+
+Attribution: “Place names and coordinates from GeoNames (https://www.geonames.org), licensed under CC BY 4.0.”
+
+The quota size per country is derived from Pew Research Center's 2020 Muslim-share estimate in its Religious Composition by Country, 2010–2020 dataset. No Pew source file is included. See docs/CITY-DATA.md for dataset dates, checksums, selection details, counts, caveats, and the Pew citation.

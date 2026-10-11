@@ -3,6 +3,8 @@
 
 use std::fmt;
 
+pub mod prayer_times;
+
 // Kaaba reference coordinates also used by the Adhan library.
 // https://github.com/batoulapps/adhan-js/blob/master/src/Qibla.ts
 pub const KAABA_LATITUDE: f64 = 21.422_524_1;

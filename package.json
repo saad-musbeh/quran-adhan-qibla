@@ -1,6 +1,6 @@
 {
   "name": "quran-adhan-qibla",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Open-source Quran, Adhan, and Qibla app for iOS and Android, built with React Native and Rust",
   "license": "MIT",
   "repository": {
@@ -16,11 +16,13 @@
     "expo": "~57.0.27",
     "expo-build-properties": "~57.0.22",
     "expo-dev-client": "~57.0.19",
+    "expo-location": "~57.0.20",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
     "react": "19.2.3",
     "react-native": "0.86.3",
-    "react-native-safe-area-context": "~5.7.0"
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-webview": "13.16.1"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
@@ -33,7 +35,7 @@
     "android": "npm run rust:android && expo run:android",
     "ios": "npm run rust:ios && expo run:ios",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/domain/coordinates.test.ts",
+    "test": "node --experimental-strip-types --test src/domain/*.test.ts src/components/map-assets/*.test.ts",
     "rust:test": "cargo test --workspace --locked",
     "rust:check": "cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings",
     "rust:android": "node scripts/build-native.mjs android",

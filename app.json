@@ -2,7 +2,7 @@
   "expo": {
     "name": "Quran Adhan Qibla",
     "slug": "quran-adhan-qibla",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "scheme": "quranadhanqibla",
     "platforms": [
       "ios",
@@ -13,10 +13,12 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "org.saadmusbeh.quranadhanqibla"
+      "bundleIdentifier": "org.saadmusbeh.quranadhanqibla",
+      "buildNumber": "2"
     },
     "android": {
       "package": "org.saadmusbeh.quranadhanqibla",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#102A25",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,6 +37,18 @@
           "android": {
             "buildArchs": ["arm64-v8a", "x86_64"]
           }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "نستخدم موقعك أثناء استخدام التطبيق لحساب اتجاه القبلة ومواقيت الصلاة. Your location is used for Qibla and prayer times while using the app.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
         }
       ]
     ]
