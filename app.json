@@ -2,7 +2,7 @@
   "expo": {
     "name": "Quran Adhan Qibla",
     "slug": "quran-adhan-qibla",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "scheme": "quranadhanqibla",
     "platforms": [
       "ios",
@@ -14,11 +14,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.saadmusbeh.quranadhanqibla",
-      "buildNumber": "2"
+      "buildNumber": "3"
     },
     "android": {
       "package": "org.saadmusbeh.quranadhanqibla",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#102A25",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,7 +35,10 @@
         "expo-build-properties",
         {
           "android": {
-            "buildArchs": ["arm64-v8a", "x86_64"]
+            "buildArchs": [
+              "arm64-v8a",
+              "x86_64"
+            ]
           }
         }
       ],
@@ -50,7 +53,17 @@
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": false
         }
-      ]
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-font"
     ]
   }
 }

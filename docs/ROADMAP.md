@@ -15,10 +15,12 @@
 
 ## Quran reader
 
-- [ ] Choose a verified Arabic text dataset and record license/version/checksum.
-- [ ] Import all 114 surahs with verse identifiers and offline storage.
-- [ ] Build the reader, font-size controls, bookmarks, and last-read position.
-- [ ] Add search; choose licensed translations and recitations separately.
+- [x] Choose a verified Arabic text dataset and record license/version/checksum.
+- [x] Import all 114 surahs with verse identifiers and offline storage.
+- [x] Build the reader, font-size controls, bookmarks, and last-read page.
+- [x] Add verse search and selectable source-hosted recitations with private offline downloads.
+- [ ] Select licensed translations and tafsir.
+- [ ] Verify Quran audio interruptions and lock-screen behavior on physical Android/iOS devices.
 
 ## Prayer times and Adhan
 
@@ -37,7 +39,8 @@
 
 - [x] Add an illustrated camera-style direction view without camera permission.
 - [x] Keep main screens compact, with swipe navigation and tabs that hide after inactivity.
-- [ ] Add device heading, true/magnetic north handling, and calibration guidance.
+- [x] Add device heading, true/magnetic north handling, and calibration guidance.
+- [ ] Verify live compass accuracy and sensor lifecycle on physical Android/iOS devices.
 - [x] Allow optional manual location entry without requiring GPS permission.
 - [ ] Replace template app icons and complete platform branding.
 - [ ] Add offline persistence, data attribution, and a privacy description matching actual behavior.

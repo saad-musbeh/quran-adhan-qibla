@@ -7,24 +7,31 @@ import { AdhanScreen } from './src/components/AdhanScreen';
 import { LocationSheet } from './src/components/LocationSheet';
 import { QiblaScreen } from './src/components/QiblaScreen';
 import { SwipeTabs, type Tab } from './src/components/SwipeTabs';
-import { localCalendarDate, type PrayerSettings } from './src/domain/prayers';
-import { translations, type Language } from './src/i18n';
+import { localCalendarDate } from './src/domain/prayers';
+import { translations } from './src/i18n';
 import { useLocation } from './src/use-location';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { SettingsSheet } from './src/components/SettingsSheet';
+import { QuranScreen, QuranSettings } from './src/components/QuranScreen';
+import { useQuranAudio } from './src/use-quran-audio';
+import { usePreferences } from './src/use-preferences';
 
 export default function App() {
   return <SafeAreaProvider><Main /></SafeAreaProvider>;
 }
 
 function Main() {
-  const [language, setLanguage] = useState<Language>('ar');
+  const { preferences, setPreferences } = usePreferences();
+  const { language, prayer: settings, reader, compassMode } = preferences;
+  const audio = useQuranAudio();
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<Tab>('quran');
   const [tab, setTab] = useState<Tab>('quran');
-  const [settings, setSettings] = useState<PrayerSettings>({ method: 0, hanafi: false, ramadan: false });
   const [showLocation, setShowLocation] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const locationState = useLocation(tab !== 'quran');
+  const locationState = useLocation(tab !== 'quran' || showLocation);
   const { location } = locationState;
   const t = translations[language];
-  const alignment = language === 'ar' ? styles.rtl : styles.ltr;
   // Calculations always use Gregorian date components, including in Arabic.
   const [year, month, day] = localCalendarDate(now);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -64,45 +71,45 @@ function Main() {
     <StatusBar style="light" />
     <View style={[styles.header, language === 'ar' && styles.reverse]}>
       <Text style={styles.brand}>{t.brand}</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={t.language} style={styles.languageButton}
-        onPress={() => setLanguage(language === 'ar' ? 'en' : 'ar')}>
-        <Text style={styles.languageLabel}>{language === 'ar' ? 'EN' : 'عربي'}</Text>
-      </Pressable>
+      <View style={[styles.tools, language === 'ar' && styles.reverse]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.language} accessibilityHint={language === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'} style={styles.iconButton}
+          onPress={() => setPreferences(value => ({ ...value, language: value.language === 'ar' ? 'en' : 'ar' }))}>
+          <Ionicons name="language-outline" color="#D6BA7A" size={23} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.locationTitle} style={styles.iconButton} onPress={() => setShowLocation(true)}>
+          <Ionicons name="location-outline" color="#D6BA7A" size={23} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.settings} style={styles.iconButton} onPress={() => { setSettingsSection(tab); setShowSettings(true); }}>
+          <Ionicons name="settings-outline" color="#D6BA7A" size={23} />
+        </Pressable>
+      </View>
     </View>
     <SwipeTabs language={language} tab={tab} onChange={next => { setTab(next); setNow(new Date()); }}>
       {tab === 'qibla' ? <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
-        calculationAvailable={isQiblaAvailable} calculationError={qibla.error} onChangeLocation={() => setShowLocation(true)} />
+        calculationAvailable={isQiblaAvailable} calculationError={qibla.error}
+        active={!showLocation && !showSettings} mode={compassMode}
+        onModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))} />
         : tab === 'adhan' ? <AdhanScreen language={language} state={locationState} times={schedule.times}
           error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now} timezone={timezone}
-          settings={settings} onSettingsChange={setSettings} onChangeLocation={() => setShowLocation(true)} />
-        : <View style={styles.quran}>
-          <Text style={[styles.preview, alignment]}>{t.preview}</Text>
-          <View style={styles.quranCard}>
-            <Text style={styles.quranIcon}>۞</Text>
-            <Text style={[styles.title, alignment]}>{t.quranTitle}</Text>
-            <Text style={[styles.body, alignment]}>{t.quranNote}</Text>
-          </View>
-          <Text style={[styles.swipeHint, alignment]}>↔ {t.swipeHint}</Text>
-        </View>}
+          />
+        : <QuranScreen language={language} audio={audio} settings={reader} />}
+
     </SwipeTabs>
+    <SettingsSheet language={language} visible={showSettings} section={settingsSection} onSectionChange={setSettingsSection}
+      onClose={() => setShowSettings(false)} prayer={settings} timezone={timezone}
+      onPrayerChange={prayer => setPreferences(value => ({ ...value, prayer }))}
+      compassMode={compassMode} onCompassModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))}
+      quran={<QuranSettings language={language} audio={audio} settings={reader}
+        onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />} />
     <LocationSheet language={language} visible={showLocation} state={locationState} onClose={() => setShowLocation(false)} />
   </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0B211D' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 6, gap: 12 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 2, gap: 6 },
   reverse: { flexDirection: 'row-reverse' },
-  brand: { color: '#F4EFE4', fontSize: 17, fontWeight: '600', flexShrink: 1 },
-  languageButton: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 },
-  languageLabel: { color: '#D6BA7A', fontSize: 13, fontWeight: '700' },
-  quran: { flex: 1, padding: 18, justifyContent: 'center', gap: 12, width: '100%', maxWidth: 620, alignSelf: 'center' },
-  preview: { color: '#D6BA7A', fontSize: 12 },
-  quranCard: { backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41', borderRadius: 24, padding: 20, gap: 14 },
-  quranIcon: { color: '#D6BA7A', fontSize: 52, lineHeight: 70, textAlign: 'center' },
-  title: { color: '#F4EFE4', fontSize: 26, lineHeight: 38, fontWeight: '600' },
-  body: { color: '#B8CDC4', fontSize: 15, lineHeight: 24 },
-  swipeHint: { color: '#D6BA7A', fontSize: 12, lineHeight: 20 },
-  rtl: { textAlign: 'right', writingDirection: 'rtl' },
-  ltr: { textAlign: 'left', writingDirection: 'ltr' },
+  brand: { color: '#F4EFE4', fontSize: 14, fontWeight: '600', flexShrink: 1 },
+  tools: { flexDirection: 'row', gap: 2 },
+  iconButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 22 },
 });

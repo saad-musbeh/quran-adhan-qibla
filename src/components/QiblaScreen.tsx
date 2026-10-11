@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import type { useLocation } from '../use-location';
+import { isFacingTarget, relativeBearing } from '../domain/heading';
+import { useHeading } from '../use-heading';
 
 type Props = {
   language: 'ar' | 'en';
@@ -8,7 +10,11 @@ type Props = {
   bearing: number | null;
   calculationAvailable: boolean;
   calculationError: boolean;
-  onChangeLocation: () => void;
+  active?: boolean;
+  mode?: 'live' | 'north';
+  onModeChange?: (mode: 'live' | 'north') => void;
+  /** Accepted during parent integration; location controls live in the shared sheet, never here. */
+  onChangeLocation?: () => void;
 };
 
 const directions = {
@@ -27,7 +33,7 @@ function lineBetween(x1: number, y1: number, x2: number, y2: number, color: stri
   };
 }
 
-function VirtualQiblaScene({ bearing, language }: { bearing: number; language: 'ar' | 'en' }) {
+function VirtualQiblaScene({ bearing, trueBearing, language, mode, heading }: { bearing: number; trueBearing: number; language: 'ar' | 'en'; mode: 'live' | 'north'; heading: number | null }) {
   const ar = language === 'ar';
   const [size, setSize] = useState({ width: 0, height: 0 });
   const onLayout = (event: LayoutChangeEvent) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height });
@@ -42,9 +48,21 @@ function VirtualQiblaScene({ bearing, language }: { bearing: number; language: '
   const arrowX = cx + Math.sin(radians) * radius * 0.61;
   const arrowY = cy - Math.cos(radians) * radius * 0.61;
   const cardinal = ar ? { n: 'شمال', e: 'شرق', s: 'جنوب', w: 'غرب' } : { n: 'N', e: 'E', s: 'S', w: 'W' };
-  const guidance = bearing.toLocaleString(ar ? 'ar-SA-u-nu-latn' : 'en', { maximumFractionDigits: 1 });
+  const compassRadius = Math.max(0, Math.min(width * 0.43, height * 0.40, cy - 18, height - cy - 18));
+  const compassLabels = [
+    { key: 'n', angle: 0, text: cardinal.n }, { key: 'e', angle: 90, text: cardinal.e },
+    { key: 's', angle: 180, text: cardinal.s }, { key: 'w', angle: 270, text: cardinal.w },
+  ].map(item => {
+    const angle = relativeBearing(item.angle, mode === 'live' && heading !== null ? heading : 0) * Math.PI / 180;
+    return { ...item, left: cx + Math.sin(angle) * compassRadius - 12, top: cy - Math.cos(angle) * compassRadius - 11 };
+  });
+  const guidance = trueBearing.toLocaleString(ar ? 'ar-SA-u-nu-latn' : 'en', { maximumFractionDigits: 1 });
 
-  return <View onLayout={onLayout} style={scene.frame} accessible accessibilityLabel={ar ? `مشهد توضيحي افتراضي باتجاه الشمال، القبلة ${guidance} درجة` : `Illustrated virtual north-facing view, Qibla at ${guidance} degrees`}>
+  const accessibilityLabel = mode === 'live'
+    ? (ar ? `مشهد توضيحي افتراضي باتجاه حي، القبلة ${guidance} درجة` : `Illustrated virtual live-heading view, Qibla at ${guidance} degrees`)
+    : (ar ? `مشهد توضيحي افتراضي باتجاه الشمال، القبلة ${guidance} درجة` : `Illustrated virtual north-facing view, Qibla at ${guidance} degrees`);
+
+  return <View onLayout={onLayout} style={scene.frame} accessible accessibilityLabel={accessibilityLabel}>
     <View pointerEvents="none" style={scene.sky}>
       <View style={scene.skyGlow} />
       <View style={[scene.mountain, scene.mountainLeft]} />
@@ -59,7 +77,7 @@ function VirtualQiblaScene({ bearing, language }: { bearing: number; language: '
       })}
     </View>
     <View pointerEvents="none" style={scene.label}>
-      <View style={scene.northBadge}><Text style={scene.northArrow}>↑</Text><Text style={scene.northText}>{ar ? 'الشمال الحقيقي' : 'TRUE NORTH'}</Text></View>
+      <View style={scene.northBadge}>{mode === 'north' || heading === null ? <Text style={scene.northArrow}>↑</Text> : null}<Text style={scene.northText}>{mode === 'live' && heading !== null ? (ar ? 'بوصلة حية · شمال حقيقي' : 'LIVE · TRUE NORTH') : (ar ? 'الشمال الحقيقي' : 'TRUE NORTH')}</Text></View>
       <Text style={scene.virtualTag}>{ar ? 'مشهد توضيحي افتراضي' : 'ILLUSTRATED VIEW'}</Text>
     </View>
     {width > 0 && height > 0 && <>
@@ -76,30 +94,38 @@ function VirtualQiblaScene({ bearing, language }: { bearing: number; language: '
         <Text style={scene.kaabaLabelText}>{ar ? 'الكعبة' : 'Kaaba'}</Text>
       </View>
     </>}
-    <View pointerEvents="none" style={[scene.compassWord, scene.compassN]}><Text style={scene.compassText}>{cardinal.n}</Text></View>
-    <View pointerEvents="none" style={[scene.compassWord, scene.compassE]}><Text style={scene.compassText}>{cardinal.e}</Text></View>
-    <View pointerEvents="none" style={[scene.compassWord, scene.compassS]}><Text style={scene.compassText}>{cardinal.s}</Text></View>
-    <View pointerEvents="none" style={[scene.compassWord, scene.compassW]}><Text style={scene.compassText}>{cardinal.w}</Text></View>
+    {compassLabels.map(item => <View key={item.key} pointerEvents="none" style={[scene.compassWord, { left: Math.max(3, Math.min(width - 27, item.left)), top: Math.max(3, Math.min(height - 25, item.top)) }]}><Text style={scene.compassText}>{item.text}</Text></View>)}
   </View>;
 }
 
-export function QiblaScreen({ language, state, bearing, calculationAvailable, calculationError, onChangeLocation }: Props) {
+export function QiblaScreen({ language, state, bearing, calculationAvailable, calculationError, active = true, mode = 'live' }: Props) {
   const ar = language === 'ar';
   const location = state.location;
+  const headingState = useHeading(Boolean(active && mode === 'live' && location?.source === 'device' && bearing !== null && calculationAvailable && !calculationError), location?.source === 'device' ? location : undefined);
+  const canUseLiveHeading = mode === 'live' && headingState.status === 'ready' && headingState.heading !== null;
+  const guideBearing = bearing === null ? 0 : canUseLiveHeading ? relativeBearing(bearing, headingState.heading!) : bearing;
+  const turn = canUseLiveHeading && bearing !== null ? relativeBearing(bearing, headingState.heading!) : null;
+  const facingQibla = turn !== null && isFacingTarget(turn);
   const direction = bearing === null ? '' : directions[language][Math.round(bearing / 45) % 8];
   const degrees = bearing === null ? '' : `${bearing.toLocaleString(ar ? 'ar-SA-u-nu-latn' : 'en', { maximumFractionDigits: 1 })}°`;
   const t = ar ? {
     title: 'اتجاه القبلة', instruction: 'قف مواجهًا الشمال الحقيقي، ثم اتبع السهم. يظل الدليل ثابتًا.',
+    liveFacing: 'أنت تواجه القبلة', turnLeft: 'انعطف يسارًا', turnRight: 'انعطف يمينًا',
+    calibrating: 'جارٍ معايرة البوصلة. أبقِ الهاتف مسطحًا وحرّكه ببطء. يظهر دليل الشمال الثابت حتى تستقر القراءة.', headingTimeout: 'لم تصل قراءة البوصلة بعد. أبقِ الهاتف مسطحًا وحرّكه ببطء؛ يستمر البحث مع عرض دليل الشمال الثابت.', permission: 'يتطلب الاتجاه الحي إذن الموقع وموقع الجهاز. يظهر الآن دليل الشمال الثابت.',
+    headingUnavailable: 'البوصلة غير متاحة الآن. يظهر دليل الشمال الثابت.', headingLoading: 'جارٍ تشغيل البوصلة. أبقِ الهاتف مسطحًا وحرّكه ببطء عند الحاجة؛ يظهر دليل الشمال الثابت.', paused: 'البوصلة متوقفة مؤقتًا. يظهر دليل الشمال الثابت.',
     device: 'موقع الجهاز', city: 'المدينة', map: 'الخريطة', manual: 'إحداثيات يدوية',
-    useLocation: 'استخدام موقعي', locating: 'جارٍ تحديد الموقع…', changeLocation: 'تغيير الموقع', otherOptions: 'خيارات موقع أخرى',
+    useLocation: 'استخدام موقعي', locating: 'جارٍ تحديد الموقع…',
     locationHint: 'اعثر على اتجاه القبلة من موقعك الحالي.', locationError: 'تعذّر تحديد الموقع. حاول مجددًا أو اختر موقعًا آخر.',
     denied: 'لم يُسمح بالوصول إلى الموقع. حاول مجددًا أو اختر موقعًا آخر.', blocked: 'إذن الموقع متوقف. فعّله من إعدادات الجهاز أو اختر موقعًا آخر.',
     servicesDisabled: 'خدمة الموقع متوقفة. فعّلها أو اختر موقعًا آخر.', timeout: 'استغرق تحديد الموقع وقتًا طويلًا. حاول مجددًا أو اختر موقعًا آخر.',
     unavailable: 'حساب اتجاه القبلة غير متاح في هذا الإصدار.', calcError: 'تعذّر حساب اتجاه القبلة لهذا الموقع.',
   } : {
     title: 'Qibla direction', instruction: 'Face true north first, then follow the arrow. The guide stays fixed.',
+    liveFacing: 'You’re facing Qibla', turnLeft: 'Turn left', turnRight: 'Turn right',
+    calibrating: 'Calibrating compass. Hold the phone flat and turn it slowly. The fixed north guide stays visible until readings settle.', headingTimeout: 'No compass reading yet. Hold the phone flat and turn it slowly; the compass will keep listening while the fixed north guide stays visible.', permission: 'Live direction needs location permission and a device location. Showing the fixed north guide.',
+    headingUnavailable: 'Compass unavailable. Showing the fixed north guide.', headingLoading: 'Starting compass. Hold the phone flat and turn it slowly if needed; the fixed north guide stays visible.', paused: 'Compass paused. Showing the fixed north guide.',
     device: 'Device location', city: 'City', map: 'Map', manual: 'Manual coordinates',
-    useLocation: 'Use my location', locating: 'Finding your location…', changeLocation: 'Change location', otherOptions: 'Other location options',
+    useLocation: 'Use my location', locating: 'Finding your location…',
     locationHint: 'Find the Qibla direction from your current location.', locationError: 'Could not get your location. Try again or choose another location.',
     denied: 'Location access was denied. Try again or choose another location.', blocked: 'Location permission is off. Enable it in device settings or choose another location.',
     servicesDisabled: 'Location services are off. Turn them on or choose another location.', timeout: 'Getting your location took too long. Try again or choose another location.',
@@ -108,17 +134,24 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
   const align = ar ? styles.rtl : styles.ltr;
   const errorCopy = state.error ? (state.error === 'locationError' ? t.locationError : t[state.error]) : null;
   const sourceCopy = location ? t[location.source] : '';
+  const headingHint = !active ? t.paused
+    : headingState.status === 'calibrating' ? t.calibrating
+      : headingState.reason === 'timeout' ? t.headingTimeout
+      : headingState.reason === 'permission' || (location?.source !== 'device' && mode === 'live') ? t.permission
+        : headingState.status === 'loading' || headingState.status === 'idle' ? t.headingLoading : t.headingUnavailable;
 
   return <View style={styles.screen}>
     <Text style={[styles.eyebrow, align]}>{t.title}</Text>
     {location ? <>
       {bearing !== null && calculationAvailable && !calculationError ? <View style={styles.mainArea}>
-        <VirtualQiblaScene bearing={bearing} language={language} />
+        <VirtualQiblaScene bearing={guideBearing} trueBearing={bearing} language={language} mode={canUseLiveHeading ? 'live' : 'north'} heading={canUseLiveHeading ? headingState.heading : null} />
         <View style={[styles.readout, ar && styles.readoutRtl]}>
           <Text style={[styles.direction, align]}>{direction}</Text>
           <Text style={styles.degrees}>{degrees}</Text>
         </View>
-        <Text style={[styles.instruction, align]}>{t.instruction}</Text>
+        {canUseLiveHeading && turn !== null
+          ? <Text accessibilityLiveRegion="polite" style={[styles.instruction, facingQibla ? styles.aligned : styles.turning]}>{facingQibla ? t.liveFacing : `${turn < 0 ? t.turnLeft : t.turnRight} ${Math.round(Math.abs(turn))}°`}</Text>
+          : <Text style={[styles.instruction, align]}>{mode === 'live' ? headingHint : t.instruction}</Text>}
       </View> : <View style={[styles.errorPanel, styles.mainArea]}>
         <Text style={[styles.errorHeading, align]}>{t.title}</Text>
         <Text accessibilityRole="alert" style={[styles.error, align]}>{calculationError ? t.calcError : t.unavailable}</Text>
@@ -128,9 +161,6 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
           <Text numberOfLines={1} style={[styles.locationSource, align]}>{location.source === 'city' && location.label ? location.label : sourceCopy}</Text>
           <Text style={styles.coordinates}>{location.latitude.toFixed(3)}, {location.longitude.toFixed(3)}</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={t.changeLocation} disabled={state.loading} onPress={onChangeLocation} style={[styles.changeButton, state.loading && styles.disabled]}>
-          <Text style={styles.changeText}>{t.changeLocation}</Text>
-        </Pressable>
       </View>
     </> : <View style={styles.emptyCard}>
       <Text style={[styles.emptyTitle, align]}>{t.title}</Text>
@@ -140,9 +170,6 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
         <Text style={styles.primaryText}>{state.loading ? t.locating : t.useLocation}</Text>
       </Pressable>
       {errorCopy && <Text accessibilityRole="alert" style={[styles.error, align]}>{errorCopy}</Text>}
-      <Pressable accessibilityRole="button" disabled={state.loading} onPress={onChangeLocation} style={styles.secondaryButton}>
-        <Text style={[styles.secondaryText, align]}>{t.otherOptions}</Text>
-      </Pressable>
     </View>}
   </View>;
 }
@@ -160,9 +187,9 @@ const styles = StyleSheet.create({
   youMarker: { position: 'absolute', width: 16, height: 16, borderRadius: 8, backgroundColor: '#49C9C0', borderWidth: 3, borderColor: '#D8F6EF', alignItems: 'center', justifyContent: 'center' }, youDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#102A25' },
   kaabaMarker: { position: 'absolute', width: 54, height: 48, alignItems: 'center' }, kaabaTop: { position: 'absolute', top: 0, width: 22, height: 14, backgroundColor: '#443B2A', transform: [{ rotate: '45deg' }] }, kaabaFront: { position: 'absolute', top: 9, left: 11, width: 33, height: 30, backgroundColor: '#171512', borderWidth: 1, borderColor: '#9B8042' }, kaabaSide: { position: 'absolute', top: 10, right: 2, width: 12, height: 28, backgroundColor: '#29241A', transform: [{ skewY: '-20deg' }] }, kaabaBelt: { position: 'absolute', top: 7, left: 0, right: 0, height: 4, backgroundColor: '#D6BA7A' }, kaabaDoor: { position: 'absolute', right: 5, bottom: 0, width: 7, height: 12, borderWidth: 1, borderColor: '#B99A52', backgroundColor: '#302516' },
   kaabaLabel: { position: 'absolute', width: 104, alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, backgroundColor: '#0B211DD9' }, kaabaLabelText: { color: '#F4EFE4', fontSize: 10, fontWeight: '700' },
-  compassWord: { position: 'absolute', alignItems: 'center', justifyContent: 'center', minWidth: 24, minHeight: 22, borderRadius: 11, backgroundColor: '#0B211D99' }, compassN: { top: '35%', left: '50%', marginLeft: -12 }, compassE: { right: 5, top: '56%' }, compassS: { bottom: 3, left: '50%', marginLeft: -12 }, compassW: { left: 5, top: '56%' }, compassText: { color: '#A8C1B8', fontSize: 9, fontWeight: '700' },
-  readout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }, readoutRtl: { flexDirection: 'row-reverse' }, direction: { color: '#F4EFE4', fontSize: 16, fontWeight: '700' }, degrees: { color: '#D6BA7A', fontSize: 15, fontVariant: ['tabular-nums'] }, instruction: { color: '#C1D1CA', fontSize: 12, lineHeight: 18, textAlign: 'center' },
-  locationRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41' }, rowRtl: { flexDirection: 'row-reverse' }, locationDetails: { flex: 1, gap: 2 }, locationSource: { color: '#F4EFE4', fontSize: 13, fontWeight: '600' }, coordinates: { color: '#A8C1B8', fontSize: 11, fontVariant: ['tabular-nums'], textAlign: 'left', writingDirection: 'ltr' }, changeButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 11, borderRadius: 12, borderWidth: 1, borderColor: '#547265' }, changeText: { color: '#D6BA7A', fontSize: 12, fontWeight: '700' },
+  compassWord: { position: 'absolute', alignItems: 'center', justifyContent: 'center', minWidth: 24, minHeight: 22, borderRadius: 11, backgroundColor: '#0B211D99' }, compassText: { color: '#A8C1B8', fontSize: 9, fontWeight: '700' },
+  readout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }, readoutRtl: { flexDirection: 'row-reverse' }, direction: { color: '#F4EFE4', fontSize: 16, fontWeight: '700' }, degrees: { color: '#D6BA7A', fontSize: 15, fontVariant: ['tabular-nums'] }, instruction: { color: '#C1D1CA', fontSize: 12, lineHeight: 18, textAlign: 'center' }, aligned: { color: '#A8D6A0', fontWeight: '700' }, turning: { color: '#F4EFE4', fontWeight: '700' },
+  locationRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41' }, rowRtl: { flexDirection: 'row-reverse' }, locationDetails: { flex: 1, gap: 2 }, locationSource: { color: '#F4EFE4', fontSize: 13, fontWeight: '600' }, coordinates: { color: '#A8C1B8', fontSize: 11, fontVariant: ['tabular-nums'], textAlign: 'left', writingDirection: 'ltr' },
   emptyCard: { flex: 1, minHeight: 0, justifyContent: 'center', gap: 13, padding: 18, borderRadius: 22, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41' }, emptyTitle: { color: '#F4EFE4', fontSize: 22, fontWeight: '600' }, hint: { color: '#A8C1B8', fontSize: 14, lineHeight: 22 }, primaryButton: { minHeight: 50, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, paddingHorizontal: 16, borderRadius: 14, backgroundColor: '#D6BA7A' }, primaryText: { color: '#102A25', fontSize: 16, fontWeight: '700' }, secondaryButton: { minHeight: 44, justifyContent: 'center', alignItems: 'center', paddingVertical: 8 }, secondaryText: { color: '#D6BA7A', fontSize: 14, textDecorationLine: 'underline' }, disabled: { opacity: 0.45 },
   errorPanel: { justifyContent: 'center', alignItems: 'center', gap: 12, padding: 20, borderRadius: 20, backgroundColor: '#15342E' }, errorHeading: { color: '#F4EFE4', fontSize: 20, fontWeight: '700' }, error: { color: '#FFB3A8', fontSize: 14, lineHeight: 20, textAlign: 'center' }, rtl: { textAlign: 'right', writingDirection: 'rtl' }, ltr: { textAlign: 'left', writingDirection: 'ltr' },
 });
