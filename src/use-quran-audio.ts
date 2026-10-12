@@ -135,6 +135,7 @@ export function useQuranAudio(): QuranAudioController {
   const resumeTime = useRef(0);
   const currentTimeRef = useRef(0);
   currentTimeRef.current = playerStatus.currentTime;
+  const stopRequest = useRef(() => {});
   const playRequest = useRef<(position: QuranQueuePosition, autoplay?: boolean, resumeAt?: number) => Promise<void>>(async () => {});
   currentRef.current = current;
   statusRef.current = status;
@@ -393,15 +394,20 @@ export function useQuranAudio(): QuranAudioController {
     const subscription = quranAudioControls.addRemoteCommandListener((command, nativeHandled) => {
       if (command === 'play') {
         wantsPlayback.current = true;
+        if (statusRef.current === 'error' && currentRef.current) { void playRequest.current(currentRef.current,true,resumeTime.current); return; }
         if (nativeHandled) setStatus('playing');
         else if (queuePositionsRef.current.length) playlist.play();
         else void playPosition(currentRef.current ?? { surah: 1, verse: 1 });
       } else if (command === 'pause') {
         wantsPlayback.current = false;
         recoverOnConnection.current = false;
+        generationRef.current++;
+        queueLoadingRef.current=false;
+        refillForRef.current=null;
         if (nativeHandled) setStatus('paused');
         else playlist.pause();
       }
+      else if (command === 'stop') stopRequest.current();
       else if (command === 'next') playlist.next();
       else if (command === 'previous') playlist.previous();
     });
@@ -475,6 +481,8 @@ export function useQuranAudio(): QuranAudioController {
     setStatus('idle');
     setError(null);
   }, [playlist]);
+
+  stopRequest.current = stop;
 
   const togglePlayback = useCallback(async () => {
     if (status === 'playing' || status === 'loading') {

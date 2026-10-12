@@ -51,7 +51,7 @@ class QuranAudioService : MediaSessionService() {
   private fun createSession(player: Player, titles: List<String>, artist: String) {
     check(Looper.myLooper() == Looper.getMainLooper())
     releaseSession()
-    val wrapper = QuranMetadataPlayer(player, titles, artist)
+    val wrapper = QuranMetadataPlayer(player, titles, artist) { command -> remoteCommandHandler?.invoke(command) }
     val builder = MediaSession.Builder(this, wrapper).setId("QuranAudioMediaSession")
     packageManager.getLaunchIntentForPackage(packageName)?.let { launch ->
       builder.setSessionActivity(PendingIntent.getActivity(this, 0, launch,
@@ -88,13 +88,15 @@ class QuranAudioService : MediaSessionService() {
     private var activePlayer: Player? = null
     private var activeTitles: List<String> = emptyList()
     private var activeArtist: String = ""
+    private var remoteCommandHandler: ((String) -> Unit)? = null
 
-    fun attach(context: Context, player: Player, titles: List<String>, artist: String) {
+    fun attach(context: Context, player: Player, titles: List<String>, artist: String, onRemoteCommand: (String) -> Unit) {
       check(Looper.myLooper() == Looper.getMainLooper())
       synchronized(lock) {
         activePlayer = player
         activeTitles = titles.toList()
         activeArtist = artist
+        remoteCommandHandler = onRemoteCommand
         val runningService = service
         if (runningService != null) {
           runningService.createSession(player, activeTitles, activeArtist)
@@ -134,6 +136,7 @@ class QuranAudioService : MediaSessionService() {
         activePlayer = null
         activeTitles = emptyList()
         activeArtist = ""
+        remoteCommandHandler = null
         service?.let { current ->
           current.releaseSession()
           current.stopSelf()
@@ -148,11 +151,23 @@ class QuranAudioService : MediaSessionService() {
 private class QuranMetadataPlayer(
   player: Player,
   titles: List<String>,
-  artist: String
+  artist: String,
+  private val onRemoteCommand: (String) -> Unit
 ) : ForwardingPlayer(player) {
   private val listeners = IdentityHashMap<Player.Listener, Player.Listener>()
   private var trackTitles = titles.toList()
   private var trackArtist = artist
+
+  // Only MediaSession controllers operate this wrapper; JavaScript operates
+  // the underlying Expo playlist. Keep explicit system pause/stop separate
+  // from pauses performed during buffering recovery.
+  override fun play() { super.play(); onRemoteCommand("play") }
+  override fun pause() { super.pause(); onRemoteCommand("pause") }
+  override fun stop() { super.stop(); onRemoteCommand("stop") }
+  override fun setPlayWhenReady(playWhenReady: Boolean) {
+    super.setPlayWhenReady(playWhenReady)
+    onRemoteCommand(if (playWhenReady) "play" else "pause")
+  }
 
   override fun getMediaMetadata(): MediaMetadata {
     val title = trackTitles.getOrNull(currentMediaItemIndex)

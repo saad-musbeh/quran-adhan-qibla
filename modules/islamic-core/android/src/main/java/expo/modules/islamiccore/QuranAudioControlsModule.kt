@@ -40,7 +40,9 @@ class QuranAudioControlsModule : Module() {
         playlist.ref.addListener(errorListener)
         val context = appContext.reactContext
           ?: throw IllegalStateException("React context is unavailable.")
-        QuranAudioService.attach(context, playlist.ref, titles, artist)
+        QuranAudioService.attach(context, playlist.ref, titles, artist) { command ->
+          sendEvent("remoteCommand", mapOf("command" to command, "nativeHandled" to true))
+        }
       }
     }
 
