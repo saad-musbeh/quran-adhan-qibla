@@ -290,7 +290,10 @@ document.addEventListener('touchend', event => {
   const t = event.changedTouches[0], dx=t.clientX-origin.x, dy=t.clientY-origin.y;
   if (origin.axis) {
     moveDrag(origin,dx,dy);
-    if (drag && Math.abs(drag.offset) > drag.extent/2 && cache.has(drag.target)) {
+    // Keep short accidental drags reversible; cap the deliberate swipe
+    // distance so large pages never demand a half-screen movement.
+    const turnDistance=drag?Math.max(24,Math.min(64,drag.extent*.18)):Infinity;
+    if (drag && Math.abs(drag.offset) >= turnDistance && cache.has(drag.target)) {
       const target = drag.target, delta=(target-shownPage)/pageStep;
       send({type:'swipe',delta});
       window.activatePage(target,{},true);

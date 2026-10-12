@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use **`codex/tablet-location`** for the current **0.4.3-test** source. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
+Use **`codex/tablet-location`** for the current **0.4.4-test** source. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
 
 ## Requirements
 
@@ -72,7 +72,7 @@ For a bundled device build, use `npx expo run:ios --device --configuration Relea
 
 ## Current status
 
-Version **0.4.3**, iOS build **13**, on `codex/tablet-location`. The merged 0.4.2 source remains on `main` until this follow-up branch is merged. Android and iOS share the six-book reader, twenty reciters, Saad Al-Ghamdi default, download manager, playback recovery, themes and retained screen layers. Local iOS prayer notifications are implemented with a 29-second sound; no APNs entitlement is requested.
+Version **0.4.4**, iOS build **14**, on `codex/tablet-location`. The merged 0.4.2 source remains on `main` until this follow-up branch is merged. Android and iOS share the six-book reader, twenty reciters, Saad Al-Ghamdi default, download manager, playback recovery, themes and retained screen layers. Local iOS prayer notifications are implemented with a 29-second sound; no APNs entitlement is requested.
 
 The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated, so name/relaunch checks were not completed. Those two failures remain unresolved.
 
@@ -83,3 +83,5 @@ TypeScript and Android/iOS bundle exports passed for 0.4.2. The Android APK is b
 ## Tablet and landscape follow-up
 
 For 0.4.3 use `codex/tablet-location` or its release source archive. Start on an iPad: the home page should show Quran, Adhan and Qibla buttons. Rotate portrait/landscape in each section; wide tablet reading should show two consecutive pages in Arabic reading order, preserving each book’s saved page. Verify Settings → Main menu on small screens on iPhone and Settings → Credits. Android’s new system-provider module is Android-only and does not replace iOS Core Location. Physical iPad GPS, compass and multitasking checks remain for the Mac tester.
+
+0.4.4 reduces the page-turn distance to 18% of the page dimension, capped at 64 CSS pixels (minimum 24). The iPad simulator check now uses a short 90-point drag rather than the next-page button. The 8 compact tafsir files remain pinned to the immutable 0.4.3-test assets.

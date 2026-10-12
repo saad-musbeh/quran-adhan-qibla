@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: ios-${{ github.ref }}-${{ inputs.diagnostic_run || 'build' }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   previous-diagnostics:
