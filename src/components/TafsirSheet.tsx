@@ -28,6 +28,8 @@ export function TafsirSheet({ library, verseKey, language, dark, quranFontLoaded
   useEffect(()=>{choiceRevision.current+=1;setShowBooks(false);setPendingBook(null);setRemoveError(false)},[verseKey]);
   useEffect(()=>{if(pendingBook&&library.selectedId===pendingBook&&library.downloadedIds.includes(pendingBook)&&tafsir){setShowBooks(false);setPendingBook(null)}},[pendingBook,library.selectedId,library.downloadedIds,tafsir]);
   const choose = async (id:string) => { const revision=++choiceRevision.current;setRemoveError(false); await library.selectBook(id); if(revision!==choiceRevision.current)return; if(library.downloadedIds.includes(id)){setShowBooks(false);setPendingBook(null)} else {setPendingBook(id);await library.downloadBook(id)} };
+  // A hidden catalogue must not format dates during reader startup.
+  if (!verse) return null;
   return <Modal visible={Boolean(verse)} transparent animationType="fade" onRequestClose={onClose}>
     <View style={[styles.overlay, { paddingTop: Math.max(insets.top, 20), paddingBottom: insets.bottom }]}>
       <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={c.close} onPress={onClose}/>
@@ -69,8 +71,20 @@ function publicationLabel(book:TafsirBook,language:Language):string {
   const first=book.firstPublicationHijri===null
     ?bilingual(language,'أول نشر للكتاب: غير موثق في المصدر','First book publication: not documented by the source')
     :bilingual(language,'أول نشر للكتاب: {year} هـ','First book publication: {year} AH',{year:book.firstPublicationHijri.toLocaleString(localeFor(language),{useGrouping:false})});
-  const date=new Intl.DateTimeFormat(localeFor(language),{calendar:'islamic-umalqura',year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'}).format(new Date(`${book.firstDigitalPublication}T12:00:00Z`));
-  return first+'\n'+bilingual(language,'أول إصدار رقمي على QuranEnc: {date}','First QuranEnc digital edition: {date}',{date});
+  try {
+    // Hermes Android rejects multi-part calendar options. Use one locale
+    // extension, replacing the Gregorian extension used by prayer dates.
+    const locale=localeFor(language).split('-u-')[0]+'-u-ca-islamic-umalqura';
+    const formatter=new Intl.DateTimeFormat(locale,{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
+    const calendar=formatter.resolvedOptions().calendar;
+    if (calendar && calendar!=='islamic-umalqura') return first;
+    const date=formatter.format(new Date(`${book.firstDigitalPublication}T12:00:00Z`));
+    return first+'\n'+bilingual(language,'أول إصدار رقمي على QuranEnc: {date}','First QuranEnc digital edition: {date}',{date});
+  } catch {
+    // Keep the documented publication year when a device cannot format this
+    // calendar; optional edition metadata must never terminate the reader.
+    return first;
+  }
 }
 const baseStyles=StyleSheet.create({
   overlay:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(12,28,40,.55)',paddingHorizontal:8},sheet:{maxHeight:'85%',borderTopLeftRadius:22,borderTopRightRadius:22,borderWidth:StyleSheet.hairlineWidth,overflow:'hidden'},header:{minHeight:76,flexDirection:'row',alignItems:'center',paddingHorizontal:8,borderBottomWidth:StyleSheet.hairlineWidth},icon:{width:44,height:44,alignItems:'center',justifyContent:'center'},titleGroup:{flex:1,paddingHorizontal:8,gap:4},title:{fontSize:20,fontWeight:'600',textAlign:'right',writingDirection:'rtl'},reference:{fontSize:14,textAlign:'right',writingDirection:'rtl'},content:{padding:22,gap:22},verse:{fontSize:25,lineHeight:48,textAlign:'right',writingDirection:'rtl'},explanation:{fontSize:20,lineHeight:36,textAlign:'right',writingDirection:'rtl'},footnotes:{fontSize:17,lineHeight:30,textAlign:'right',writingDirection:'rtl'},source:{minHeight:44,justifyContent:'center'},catalogue:{paddingBottom:18},hint:{fontSize:14,lineHeight:23,padding:16,textAlign:'right',writingDirection:'rtl'},bookRow:{flexDirection:'row',alignItems:'center',borderBottomWidth:StyleSheet.hairlineWidth,paddingVertical:12,paddingHorizontal:10,gap:8},statusColumn:{alignItems:'center',width:44},progress:{fontSize:12},bookDetails:{flex:1,gap:8,minHeight:70,justifyContent:'center'},bookTitle:{fontSize:22,fontWeight:'700',textAlign:'right',writingDirection:'rtl'},publisher:{fontSize:15,lineHeight:24,textAlign:'right',writingDirection:'rtl'},edition:{fontSize:12,lineHeight:22,opacity:.75,textAlign:'right',writingDirection:'rtl'},error:{color:'#A44130',fontSize:14,lineHeight:22,textAlign:'right',padding:16},
