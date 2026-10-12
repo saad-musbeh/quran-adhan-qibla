@@ -9,3 +9,13 @@
 - Native iPhone simulator UI checks for independent book persistence, notification scheduling/cancellation, download settings and repeated tab transitions; simulator screenshots are saved as CI artifacts.
 
 Physical-device compass, sound policy/interruptions, long background sessions and device-specific rendering remain for the Android/iPhone testers. Version 0.3.6 remains available for the friend's current baseline; 0.4.0 work is on `codex/test-0.4.0`.
+
+## Validation
+
+- 78 JavaScript tests and 14 Rust tests passed, along with TypeScript, formatting/Clippy and Android/iOS JavaScript exports.
+- The Android 0.4.0 APK (build 10) compiled for ARM64 and x86_64. Its signature and 16 KB ZIP alignment passed; it uses the same test certificate as 0.3.6.
+- APK SHA-256: `5491b88042573aba1801552025b16bc2212473307b4540313558e4873476f3f7`.
+- The 0.4.0 iOS native app compiled in [the earlier Mac run](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/38241740471). That run failed while preparing the UI test target, before runtime checks. The setup is corrected; [current simulator runtime checks](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/38245903826) are still pending and are not claimed as passed.
+- The APK was compiled from `3a86b3c07bf9a981ff67a1cedef0ebe0d046b65e`. Later commits update documentation and simulator test setup; application source is unchanged.
+
+The source ZIP is for Mac/iPhone development and requires the tester’s own signing setup. It is not an installable iPhone build. Android APKs use a development test certificate and are not store releases.
