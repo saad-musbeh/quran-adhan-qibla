@@ -1,12 +1,74 @@
-# Reader and compass verification — 0.3.0
+# Reader and compass verification
+
+## 0.3.3 — reader themes, centered opening pages, and native audio queues
+
+The Quran reader offers Green, Maroon, Blue, Black, and Brown in the top gear sheet. The saved choice applies to reader backgrounds, frames, metadata, menus, and controls in both reading views. Every page has equal horizontal artwork margins. Pages 1 and 2 use a tighter runtime viewBox around the existing vector paths and an original geometric opening frame; the source calligraphy, ayah polygons, printed line breaks, and bundled asset hashes are unchanged.
+
+Ayah actions can start a loop immediately through the surah's end, or select an ending ayah for review in the range sheet. The range button also supports tapping a start and end on the page. An empty ending field means the selected surah's end. Playback uses one native playlist rather than reloading each ayah from JavaScript. Android's foreground MediaSession service uses that same ExoPlayer. iOS uses the Expo AVQueuePlayer with a version-checked postinstall patch for consumed-item removal and prepared repeat cycles; native iOS compilation and runtime behavior remain unverified on this Linux host.
+
+`npm run check` passed: 59 JavaScript tests, 14 Rust tests, TypeScript, formatting, and Clippy. Both Android and iOS JavaScript/asset exports passed. The Android release build passed with version 0.3.3 / versionCode 6. Chromium renderer QA passed prepared-panel reuse, bounded eviction, rapid transition cleanup, ayah selection, menu actions, bookmarks, language/theme updates, zoom, and small-screen resizing. Opening-page checks covered all seven Al-Fatiha and five opening Al-Baqarah ayahs, the cropped artwork bounds, and night reading.
+
+Android API 36 observations with the final test build:
+
+- Maroon survived app restart. All five Arabic color choices fit at 320 × 568 dp. Green, Maroon, Blue, Black, and Brown were selected on the emulator; Brown also rendered complete page 37 in book-view night reading.
+- Pages 1 and 2 retained every verified accessible ayah at 320 × 568 dp. Their complete artwork and original opening frames were visually inspected. Book page 37 retained all three complete source ayahs at that size; initial reading did not require scrolling.
+- Long-pressing Al-Fatiha 1:1 and choosing the loop start began playback through 1:7. Choosing 1:2 as the endpoint opened the range editor with 1–2. In book view, tapping 1:1 and 1:3 populated 1–3. Clearing the ending field and starting restored the active 1–7 range. The range fields and action buttons remained reachable at 320 × 568 dp.
+- Al-Fatiha's seven recitations were downloaded to private storage. With Wi-Fi and cellular disabled and the app restarted, the saved range played all seven ayahs and repeated twice. The captured automatic transitions remained `PLAYING` through indices 0–6 and back to 0, with no intermediate paused or buffering state after initial loading. Playback stayed active after more than 90 seconds in the background. The service reported `isForeground=true` and its notification carried `FOREGROUND_SERVICE` before the first ayah finished.
+- Normal playback advanced from Al-Fatiha through its seven ayahs into Al-Baqarah's first ayah, with the native queue retaining the current and next surah. The captured automatic transitions remained `PLAYING`. Media-session metadata followed each ayah. Native pause/resume, next/previous commands, and 1.5× playback speed were exercised. Manual skips can require buffering; the observed uninterrupted automatic transitions do not promise gapless playback for every source or network condition.
+
+Natural pauses in the source recordings remain; there is no silence editing or crossfade. Physical Android devices, Bluetooth/audio interruptions, extended background sessions, TalkBack/VoiceOver, and native iOS still need device verification.
+
+The universal APK is 147,158,767 bytes (147.16 MB / 140.34 MiB), using the existing generated test signing key. Signature verification and 16 KB ZIP alignment passed; all 32 packaged native libraries retain at least 16 KB ELF LOAD alignment. No tafsir books or recitation downloads are bundled.
+
+SHA-256: `44965a2d33f83e0d2ffa0bbb5dec3790d1fa69e118fbdd9c64ab83695e692b97`.
+
+## 0.3.2 — cached pages, verse actions, tafsir downloads, and loop picker
+
+The reader keeps one WebView alive, prepares the two adjacent pages in each direction, and retains at most five SVG page panels. Cached pages reuse the parsed artwork; rapid turns settle the previous slide before starting the next. A long press opens play, tafsir, and persistent verse-bookmark actions. Both reading views include the supplied four-line range icon, opening Arabic-only surah selection and first/last ayah fields for continuous repetition within that surah.
+
+`npm run check` passed: 52 JavaScript tests, 14 Rust tests, TypeScript, formatting, and Clippy. Android/iOS JavaScript exports and the Android release build passed. Optional Chromium renderer QA checked prepared-panel reuse, bounded eviction, rapid transition cleanup, theme/language changes, verse actions, zoom, and resizing. Native iOS and physical TalkBack/VoiceOver remain unverified.
+
+Android API 36 observations:
+
+- Six right/left turns traversed pages 599–602 and ended on page 601 with all 17 verified verse labels. The final recording contained 425 frames; the central printed-text crop retained at least 1.40% dark ink, with no blank frames below the 0.3% threshold. This checks that recording, not every device or uncached navigation.
+- Main-view verse actions and zoomed book-view tafsir were exercised offline. The scroll container uses left-to-right coordinates while Arabic metadata retains its own RTL layout; Android WebView verse/action bounds then matched the zoomed artwork.
+- Verse bookmark 1:1 survived app restart and appeared in the bookmark picker with its verified text.
+- Both QuranEnc books downloaded completely. Each saved private file contained all 6,236 ayahs in canonical order; the saved Moyassar text, Arabic source text, and footnotes matched the retained provenance fixture verbatim. No partial files remained. Mokhtasar cancellation and retry succeeded.
+- With Wi-Fi and cellular disabled, restart preserved the selected Mokhtasar edition. Its tafsir opened offline, switching to saved Moyassar worked, and deleting Mokhtasar changed its row back to the download state.
+- The loop picker rejected a reversed range. Starting Al-Fatiha 1–2 produced native media-session metadata for ayah 2 followed by ayah 1; reopening showed the active range and the stop action cleared repetition. Main and book buttons opened the picker. Arabic start/end fields and the primary action fit at 320 × 568 dp.
+
+The universal test APK is 147,109,107 bytes (147.11 MB / 140.29 MiB), with no tafsir or recitation files bundled. Its signature and 16 KB ZIP alignment passed; all 32 packaged native libraries retain 16 KB ELF load alignment. It uses the existing generated test signing key.
+
+SHA-256: `48fbeb0982c41a798b95ac64b7ca543237290b087a54f9314706038e2a77a5b8`.
+
+## 0.3.1 — full-page Mushaf reader
+
+The reader now bundles all 604 Hafs/KFGQPC vector text blocks from Quran.ws. It preserves calligraphy and printed line breaks, fits one complete page without scrolling, and uses the SVG verse polygons for accessible verse labels and recitation highlighting. Search, surah selection, and audio following use the matching printed-page verse index. The added green-and-gold heading frame is original project artwork recreated from the reference style; it is not claimed to be the reference application's exact ornament. Running labels and the folio are app-rendered. Source details and licensing are in [Mushaf provenance](../assets/mushaf/PROVENANCE.md).
+
+`npm run check` passed: 39 JavaScript tests, 14 Rust tests, TypeScript, formatting, and Clippy. The asset test checks all 604 packed/unpacked hashes and all 6,236 verse keys against the verified Tanzil corpus. Android and iOS JavaScript/asset exports passed. The Android release build passed on Linux; native iOS remains unverified.
+
+Android API 36 observations:
+
+- Whole pages 37, 38, 599, 600, and 604 were inspected; their accessible verse labels matched the complete source page.
+- Right/left swipes turned pages 38/39 and 600/601. Tapping the page reveals tools; the page picker, dismiss action, and inactivity timeout work. The floating tools have their own touch layer above the WebView.
+- At 320 × 568 dp, page 38 remained complete without scrolling. Switching size without restarting correctly resized the vector page. Book zoom enlarges the preserved artwork and permits pan; its initial horizontal position follows Arabic reading direction.
+- With Wi-Fi and cellular disabled, an app restart and first visit to page 604 loaded its bundled artwork and all 15 verse labels. Language switching preserved Arabic surah names. Night reading showed light calligraphy against the dark paper.
+- Al-Fatiha playback paused at 2,068 ms and resumed at 2,144 ms in the Android media session. The UI reconciles fresh native status events so a local pause no longer reuses a stale playing sample.
+- Screen readers keep tools visible. A dedicated dismiss action remains available, while the touch backdrop is excluded from screen-reader traversal; full-page verse regions carry the verified Arabic verse text. Physical TalkBack/VoiceOver behavior still needs device checks.
+
+The universal test APK is 147.02 MB (140.21 MiB). Its 604 offline SVG assets use 95,248,101 bytes after lossless gzip; no recitation MP3s are included in the APK. Signature verification and 16 KB ZIP alignment passed; the 32 packaged native libraries retain 16 KB ELF load alignment. This build uses the existing generated test signing key.
+
+SHA-256: `0a63cf745368160141db2741aa6be6e32b98b1979b3d7c83f1295e09029772f8`.
+
+## 0.3.0 — previous reader, audio, and compass checks
 
 The Android test build uses Expo SDK 57 / React Native 0.86.3, Android SDK 36, JDK 17, and ARM64 plus x86_64 Rust libraries. The test environment is an API 36 x86_64 emulator. Native iOS compilation requires macOS/Xcode and has not been performed here.
 
-## Automated checks
+### Automated checks
 
 `npm run check` covers TypeScript, Quran counts/page metadata, normalized search, exact text reconstruction after pagination, reciter cache isolation, repeat boundaries, coordinate/heading math, Rust formatting and Clippy, prayer/Qibla reference results, and WMM2025 declination against NOAA reference points. `npm run export:mobile` bundles JavaScript and assets for Android and iOS; it does not verify Swift compilation or iOS runtime behavior.
 
-## Android observations
+### Android observations
 
 - The three top icons open language switching, shared location selection, and the gear sheet. Gear sections cover Quran, prayer calculations, and compass mode.
 - At 320 × 568 dp, Quran text uses measured page portions with explicit next/previous controls. Quran text and the reader font are bundled; recitations are optional network streams or private downloads.
@@ -18,12 +80,35 @@ The Android test build uses Expo SDK 57 / React Native 0.86.3, Android SDK 36, J
 - Without a usable initial compass sample, the emulator showed an explicit fixed guide and a compass explanation. The watch now stays available for a later heading while the screen is active, because Expo Android can suppress an initial near-zero azimuth. This does not verify real compass alignment. Physical-device calibration, magnetic interference, sensor orientation, and GPS accuracy still require device testing.
 - With a flat synthetic acceleration vector and changing magnetic-field vectors, live mode showed “LIVE · TRUE NORTH” and a phone-relative turn instruction. This verifies the Android sensor callback and UI path with simulated inputs, not physical compass precision.
 
-## Download build
+### Download build
 
 The final universal test APK contains ARM64 and x86_64 libraries, is 51.36 MB (48.98 MiB), and includes no MP3 recordings. Its signature, ZIP alignment and all 32 native libraries' 16 KB ELF load alignment were checked. Both Rust libraries contain the new declination C and JNI exports. Only the required Quran and icon fonts remain in the generated resources.
 
 SHA-256: `ebee922eaf78b4aac4568bbe19f14aa95028d72439bdb691004acad5ded10029`.
 
-## Remaining platform checks
+### Remaining platform checks
 
 Test a physical Android phone and iPhone for compass calibration and movement, foreground/background sensor cleanup, Bluetooth/audio interruptions, lock-screen controls, and extended background recitation. No camera permission, microphone permission, or background location permission is needed. Android test APKs use the generated debug signing key and are intended for testing, not store distribution.
+
+## 0.3.4 — Android icon, language menu and Adhan notifications (11 October 2026)
+
+- Added the Android book/direction/crescent launcher icon and a separate white notification silhouette; verified the installed launcher icon on the API 36 emulator. The ImageGen prompt is saved in `assets/branding/README.md`.
+- All 35 language IDs are selectable by native name and searchable. The 33 new catalogs contain all 268 source messages with intact placeholders and no empty entries or translation sentinels. AST review found no uncatalogued `bilingual`/`localizeCopy` UI strings. These are machine-assisted drafts; structural checks do not replace native-speaker review.
+- Native checks at 390×844: French menus/settings, language search and Urdu settings with reversed rows, switch position and tabs. At 320×568: Chinese settings/font fallback and the German Qibla screen fit; the final German dock label uses the short, conventional `Qibla` name. Quran text and surah names remain Arabic. Browser checks also passed French, German, Urdu, Sorani, Chinese and Hindi ayah menu labels/direction at 320px, alongside the existing page-cache, opening-frame, loop and theme checks.
+- Opt-in Android alerts use the saved location/calculation settings, exclude sunrise, and cover remaining prayers today plus seven following local dates. Enabling requested notification permission; missing-location recovery opened the location sheet without an unsolicited GPS prompt. Riyadh after Isha produced 35 future alarms.
+- With exact-alarm access denied, Android reported a one-hour inexact window and the app offered Alarms & reminders. Granting access changed all 35 alarms to `window=0` / `exactAllowReason=permission`; the timing guidance disappeared after return.
+- Five-second test alerts were delivered while the app was foregrounded and while the launcher was foregrounded. Notification records used the Adhan channel and `android.resource://org.saadmusbeh.quranadhanqibla/raw/adhan`; Android's MediaPlayer entered `started` with 44.1kHz stereo notification audio. The emulator runs without audible output: listening quality, full recording duration, DND, Bluetooth and vendor battery policies still require a physical phone.
+- Turning alerts off removed all pending prayer alarms. A cold restart restored the enabled preference, Urdu selection and saved city, then rebuilt 35 alarms. Revoking notification permission removed all alarms; the in-app recovery action opened Android notification settings and restoring permission rebuilt 35.
+- Changing from Riyadh to unsupported polar coordinates (80°, 0°) removed the previous city's 35 alarms; returning to Riyadh rebuilt them. Failed calculation/scheduling now clears known obsolete app-owned alerts rather than leaving stale times.
+- Final host checks: TypeScript, 69 JS/domain tests, Rust formatting/Clippy and 14 Rust tests passed. Both Android/iOS JS exports passed. Android release compilation and installation passed; native iOS compilation is unverified on Linux.
+- APK: `/home/saad/Downloads/quran-adhan-qibla-0.3.4-android-test.apk`, version 0.3.4 / code 7; 150,256,945 bytes. SHA-256: `83087593d627a1f422f1d2acdceabe0c48c410ef1609e49ac43257b5f5bb5252`. Signature matches the 0.3.3 test APK. ZIP alignment and all 34 ELF libraries pass 16KB checks. The bundled OGG matches its documented source SHA-256.
+
+JSON-only edits were initially treated as up to date by Gradle's bundle task. The final APK explicitly regenerated `createBundleReleaseJsAndAssets --rerun-tasks` before assembly; the README release recipe includes that step. The owned emulator's language was restored to Arabic, alerts disabled, display/network overrides reset, then the emulator was stopped. Reboot restoration, long-term background operation and native iOS behavior remain unverified.
+
+## 0.3.5 — shared app colours and surah headings (11 October 2026)
+
+- The five persisted palettes now apply across Quran, Adhan, Qibla, the header/dock, settings and location surfaces. **App color / لون التطبيق** is available in every gear section and reuses the saved reader preference. The native colour menu exposes all five options; maroon, brown, black, green and blue selections were exercised. Brown prayer times, black Qibla and black after a cold restart were inspected. The saved black selection remained checked after reopening settings.
+- Night mode no longer filters the full page artwork and banner together. Only the original source glyph group receives inversion, preserving the banner's intended paper colour. Browser checks on pages 599 and 604 cover all five palettes in light/night mode with at least 7:1 title/paper contrast.
+- Blank heading frames moved down 2.5 SVG units around the preserved source title artwork. Regression checks reconstruct source glyph contours and measure their transformed bounds, verifying title centres within 3 screen pixels of the frames and frame containment within a 2-pixel edge allowance. Source Quran glyphs, ayah geometry and bundled SVG assets are unchanged. Native page 604 retained all 15 verified ayah accessibility labels; its light/night title rendering was inspected.
+- TypeScript, 69 JS/domain tests, Rust formatting/Clippy and 14 Rust tests passed; Android/iOS JavaScript exports passed. The strengthened Mushaf browser checks passed. Android release build and upgrade installation passed with no app runtime crash. Native iOS and physical-device checks remain pending.
+- APK: `/home/saad/Downloads/quran-adhan-qibla-0.3.5-android-test.apk`, version 0.3.5 / code 8; **150,260,389 bytes**. SHA-256: `3ad693610def3cbee0f7649e6426b027ac3b29b0c6d344de8dc9d7245ed33d04`. Signature matches the preceding test build. ZIP alignment and all 34 native ELF libraries passed the 16KB checks. JS/assets were forced to regenerate before assembly.

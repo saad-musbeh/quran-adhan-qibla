@@ -8,8 +8,9 @@ import {
   View,
 } from 'react-native';
 import {nextPrayer, prayerNames} from '../domain/prayers';
-import {translations, type Language} from '../i18n';
+import { isRTL, localeFor, localizeCopy, translations, type Language } from '../i18n';
 import type {useLocation} from '../use-location';
+import { useReaderStyles } from '../quran-theme-context';
 
 type Props = {
   language: Language;
@@ -27,10 +28,11 @@ const sourceNames = {
 } as const;
 
 export function AdhanScreen({language, state, times, error, calculationAvailable, now, timezone}: Props) {
+  const { styles } = useReaderStyles(baseStyles);
   const t = translations[language];
-  const copy = sourceNames[language];
-  const rtl = language === 'ar';
-  const locale = language === 'ar' ? 'ar-SA-u-ca-gregory' : 'en';
+  const copy = localizeCopy(language, sourceNames);
+  const rtl = isRTL(language);
+  const locale = localeFor(language);
   const [settingsError, setSettingsError] = useState(false);
   const [availableHeight, setAvailableHeight] = useState(0);
   const compact = availableHeight > 0 && availableHeight <= 500;
@@ -101,7 +103,7 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
   </View>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   container: {flex: 1, width: '100%', maxWidth: 620, alignSelf: 'center', paddingHorizontal: 22, paddingTop: 12, paddingBottom: 8, gap: 10},
   containerCompact: {paddingHorizontal: 18, paddingTop: 4, paddingBottom: 4, gap: 3},
   heading: {minHeight: 44, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10},

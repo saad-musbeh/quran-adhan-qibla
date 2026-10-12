@@ -1,5 +1,7 @@
+import { isRTL, type Language } from './languages.ts';
+export type { Language } from './languages.ts';
+
 export type Tab = 'quran' | 'adhan' | 'qibla';
-export type Language = 'ar' | 'en';
 
 export const TABS: readonly Tab[] = ['quran', 'adhan', 'qibla'];
 
@@ -13,6 +15,6 @@ export function isDeliberateTabSwipe(dx: number, dy: number, activeTouches: numb
 export function neighborForSwipe(tab: Tab, dx: number, dy: number, language: Language): Tab | null {
   if (!isDeliberateTabSwipe(dx, dy, 1) || dx === 0) return null;
   const index = TABS.indexOf(tab);
-  const logicalStep = language === 'ar' ? Math.sign(dx) : -Math.sign(dx);
+  const logicalStep = isRTL(language) ? Math.sign(dx) : -Math.sign(dx);
   return TABS[index + logicalStep] ?? null;
 }

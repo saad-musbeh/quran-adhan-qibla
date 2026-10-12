@@ -1,6 +1,8 @@
+import { useReaderStyles } from '../quran-theme-context';
 import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, PanResponder, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { neighborForSwipe, TABS, type Language, type Tab } from '../domain/navigation';
+import { isRTL, localizeCopy } from '../i18n';
 
 export type { Tab } from '../domain/navigation';
 
@@ -8,17 +10,21 @@ type Props = {
   language: Language;
   tab: Tab;
   onChange: (tab: Tab) => void;
+  theme?: 'green' | 'navy';
+  reading?: boolean;
+  chromeVisible?: boolean;
   children: ReactNode;
 };
 
-const labels: Record<Language, Record<Tab, string> & { show: string }> = {
+const labels: { en: Record<Tab, string> & { show: string }; ar: Record<Tab, string> & { show: string } } = {
   en: { quran: 'Quran', adhan: 'Adhan', qibla: 'Qibla', show: 'Show navigation tabs' },
   ar: { quran: 'القرآن', adhan: 'الأذان', qibla: 'القبلة', show: 'إظهار تبويبات التنقل' },
 };
 
 const HIDE_DELAY_MS = 4_000;
 
-export function SwipeTabs({ language, tab, onChange, children }: Props) {
+export function SwipeTabs({ language, tab, onChange, children, theme = 'green', reading = false, chromeVisible = false }: Props) {
+  const {styles}=useReaderStyles(baseStyles);
   const [dockVisible, setDockVisible] = useState(true);
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,7 +135,7 @@ export function SwipeTabs({ language, tab, onChange, children }: Props) {
     if (!responderActive.current) revealAndRestartTimer();
   };
 
-  const copy = labels[language];
+  const copy = localizeCopy(language, labels);
   const chooseTab = (next: Tab) => {
     revealAndRestartTimer();
     if (next !== current.current.tab) current.current.onChange(next);
@@ -137,13 +143,13 @@ export function SwipeTabs({ language, tab, onChange, children }: Props) {
 
   return <View
     style={styles.root}
-    {...responder.panHandlers}
-    onTouchStart={onTouchStart}
-    onTouchEnd={onTouchEnd}
-    onTouchCancel={onTouchCancel}
+    {...(!reading ? responder.panHandlers : {})}
+    onTouchStart={reading ? undefined : onTouchStart}
+    onTouchEnd={reading ? undefined : onTouchEnd}
+    onTouchCancel={reading ? undefined : onTouchCancel}
   >
-    <View style={styles.content}>{children}</View>
-    {dockVisible ? <View accessibilityRole="tablist" style={[styles.dock, language === 'ar' && styles.dockRtl]}>
+    <View style={[styles.content, theme === 'navy' && styles.navyContent, reading && styles.readingContent]}>{children}</View>
+    {(reading ? chromeVisible : dockVisible) ? <View accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, theme === 'navy' && styles.navyDock, isRTL(language) && styles.dockRtl]}>
       {TABS.map(item => <Pressable
         key={item}
         accessibilityRole="tab"
@@ -151,25 +157,32 @@ export function SwipeTabs({ language, tab, onChange, children }: Props) {
         accessibilityState={{ selected: tab === item }}
         onPress={() => chooseTab(item)}
         onPressIn={revealAndRestartTimer}
-        style={[styles.tab, tab === item && styles.tabSelected]}
+        style={[styles.tab, theme === 'navy' && styles.navyTab, tab === item && styles.tabSelected, theme === 'navy' && tab === item && styles.navyTabSelected]}
       >
-        <Text style={[styles.tabLabel, tab === item && styles.tabLabelSelected]}>{copy[item]}</Text>
+        <Text style={[styles.tabLabel, theme === 'navy' && styles.navyTabLabel, tab === item && styles.tabLabelSelected]}>{copy[item]}</Text>
       </Pressable>)}
-    </View> : <Pressable
+    </View> : !reading && <Pressable
       accessibilityRole="button"
       accessibilityLabel={copy.show}
       accessibilityState={{ expanded: false }}
       onPress={revealAndRestartTimer}
-      style={styles.handleButton}
+      style={[styles.handleButton, theme === 'navy' && styles.navyHandleButton]}
     >
       <View style={styles.handle} />
     </Pressable>}
   </View>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: { flex: 1 },
   content: { flex: 1, paddingBottom: 64 },
+  navyContent: { paddingBottom: 54 },
+  readingContent: { paddingBottom: 0 },
+  navyDock: { minHeight: 48, padding: 2, backgroundColor: '#18334A', borderColor: '#516C80' },
+  navyTab: { minHeight: 44 },
+  navyTabSelected: { backgroundColor: '#FAF7EF' },
+  navyTabLabel: { color: '#BCD0DF' },
+  navyHandleButton: { backgroundColor: '#18334A', borderColor: '#516C80' },
   dock: {
     position: 'absolute',
     bottom: 6,

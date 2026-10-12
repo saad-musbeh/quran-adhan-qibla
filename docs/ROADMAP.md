@@ -3,7 +3,8 @@
 ## Foundation
 
 - [x] React Native / Expo TypeScript starter for iOS and Android.
-- [x] Arabic/English shell with Quran, Adhan, and Qibla tabs.
+- [x] Arabic default and searchable 35-language menu/settings shell with Quran, Adhan, and Qibla tabs.
+- [ ] Native-speaker review of the 33 new UI translations.
 - [x] Rust Qibla calculation, validation, reference tests, and C ABI.
 - [x] Swift/Kotlin bridge source and native build scripts.
 - [x] Open-source license and automated host/bundle checks.
@@ -19,7 +20,12 @@
 - [x] Import all 114 surahs with verse identifiers and offline storage.
 - [x] Build the reader, font-size controls, bookmarks, and last-read page.
 - [x] Add verse search and selectable source-hosted recitations with private offline downloads.
-- [ ] Select licensed translations and tafsir.
+- [x] Add an optional two-book QuranEnc tafsir library with release checks and private, atomic offline downloads; keep tafsir text out of the runtime bundle.
+- [x] Keep Quran source path and verse data unchanged while centering all 604 pages at equal 12.75% artwork margins and cropping only the empty opening-page viewBoxes.
+- [x] Add the original geometric opening frame and theme-aware reader frame/metadata/controls; persist the five app-wide color themes through the top gear sheet.
+- [x] Add immediate same-surah looping from a long-pressed ayah, an optional ending-ayah review editor, direct start/end selection on the page, and native playlist loop-all playback.
+- [x] Verify the 0.3.3 reader themes, opening pages, ayah loop selection, offline native queue transitions, and foreground playback on the Android emulator. See [reader QA](READER-COMPASS-QA.md); physical-device and native iOS checks remain pending.
+- [ ] Select licensed translations.
 - [ ] Verify Quran audio interruptions and lock-screen behavior on physical Android/iOS devices.
 
 ## Prayer times and Adhan
@@ -27,13 +33,15 @@
 - [x] Select and validate the `adhaan` Rust prayer-time engine.
 - [x] Make foreground device location primary, with optional manual coordinates and six-hour refresh.
 - [x] Add offline city search (70/30 country targets), online map selection, and manual coordinate alternatives.
-- [ ] Persist location and preferences across app sessions.
+- [x] Persist validated location and preferences across app sessions.
 - [x] Use the phone’s calendar/timezone/DST, six calculation methods, Asr school, and optional Ramadan Isha.
 - [ ] Add configurable high-latitude and polar rules (currently middle-of-night below 65°, polar locations unsupported).
 - [x] Check Makkah and London reference schedules, winter/summer DST, and explicit polar rejection.
 - [ ] Expand prayer reference fixtures across more regions and boundary conditions.
-- [ ] Add local reminders and licensed Adhan audio within iOS/Android OS limits.
-- [ ] Reschedule reminders after time, timezone, location, and preference changes.
+- [x] Add optional Android prayer notifications with a CC0 Adhan channel sound, permission recovery and a test alert.
+- [ ] Add iOS prayer notifications and validate Adhan playback on physical phones.
+- [x] Reconcile Android reminders at launch/resume, midnight, and location/settings/language changes.
+- [ ] Validate background clock/timezone changes and reboot restoration on physical phones.
 
 ## Qibla and release
 
@@ -42,6 +50,7 @@
 - [x] Add device heading, true/magnetic north handling, and calibration guidance.
 - [ ] Verify live compass accuracy and sensor lifecycle on physical Android/iOS devices.
 - [x] Allow optional manual location entry without requiring GPS permission.
-- [ ] Replace template app icons and complete platform branding.
+- [x] Create and configure the Android Quran/direction launcher and notification icons.
+- [ ] Complete iOS branding.
 - [ ] Add offline persistence, data attribution, and a privacy description matching actual behavior.
 - [ ] Test battery/background behavior, device builds, and store distribution.

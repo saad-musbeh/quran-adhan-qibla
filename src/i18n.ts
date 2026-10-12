@@ -1,4 +1,7 @@
-export type Language = 'ar' | 'en';
+import { LANGUAGES, type Language } from './domain/languages.ts';
+import { localizeCopy } from './localization.ts';
+export { LANGUAGES, isLanguage, isRTL, localeFor, searchLanguages, type Language } from './domain/languages.ts';
+export { bilingual, localizeCopy, message } from './localization.ts';
 
 const en = {
   brand: 'Quran · Adhan · Qibla', preview: 'EARLY PREVIEW',
@@ -50,7 +53,7 @@ const en = {
   ramadan: 'Ramadan: Isha 120 minutes after Maghrib',
   normalIsha: 'Otherwise, Umm al-Qura uses 90 minutes after Maghrib.',
   highLatitude: 'High latitudes below 65° use the middle-of-the-night rule.',
-  planned: 'IN DEVELOPMENT', language: 'Switch to Arabic',
+  planned: 'IN DEVELOPMENT', language: 'Language',
 };
 
 const ar: typeof en = {
@@ -103,7 +106,7 @@ const ar: typeof en = {
   ramadan: 'رمضان: العشاء بعد المغرب بـ١٢٠ دقيقة',
   normalIsha: 'في غير رمضان، تعتمد أم القرى ٩٠ دقيقة بعد المغرب.',
   highLatitude: 'للدوائر العليا دون ٦٥°، تُستخدم قاعدة منتصف الليل.',
-  planned: 'قيد التطوير', language: 'التبديل إلى الإنجليزية',
+  planned: 'قيد التطوير', language: 'اللغة',
 };
 
-export const translations = { ar, en };
+export const translations = Object.fromEntries(LANGUAGES.map(({ id }) => [id, localizeCopy(id, { ar, en })])) as Record<Language, typeof en>;

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Quran Adhan Qibla",
     "slug": "quran-adhan-qibla",
-    "version": "0.3.0",
+    "version": "0.3.5",
     "scheme": "quranadhanqibla",
     "platforms": [
       "ios",
@@ -14,18 +14,17 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.saadmusbeh.quranadhanqibla",
-      "buildNumber": "3"
+      "buildNumber": "8"
     },
     "android": {
       "package": "org.saadmusbeh.quranadhanqibla",
-      "versionCode": 3,
+      "versionCode": 8,
       "adaptiveIcon": {
-        "backgroundColor": "#102A25",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#1A3D2E",
+        "foregroundImage": "./assets/branding/android-icon-v1.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "icon": "./assets/branding/android-icon-v1.png"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -63,7 +62,20 @@
           "enableBackgroundRecording": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/adhan/adhan.ogg"
+          ],
+          "enableBackgroundRemoteNotifications": false,
+          "icon": "./assets/branding/notification-icon.png",
+          "color": "#D6BA7A"
+        }
+      ],
+      "./plugins/withPrayerExactAlarm.cjs"
     ]
   }
 }

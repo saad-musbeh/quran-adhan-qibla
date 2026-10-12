@@ -3,46 +3,52 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'r
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { LEAFLET_CSS, LEAFLET_JS, LEAFLET_LICENSE } from './map-assets/leaflet-runtime';
 import { parseMapMessage, type SelectedCoordinates } from './map-assets/map-message';
+import { isRTL, localizeCopy, type Language } from '../i18n';
+import { useReaderStyles } from '../quran-theme-context';
 
 type Props = {
-  language: 'ar' | 'en';
+  language: Language;
   initialCoordinates?: SelectedCoordinates;
   onSelect: (coordinates: SelectedCoordinates) => void;
   disabled?: boolean;
 };
 
 const copy = {
-  en: { title: 'Choose a point on the map', privacy: 'Map selection requires internet. Only map tiles contact OpenStreetMap and share your IP address and viewed area. City search and manual coordinates work offline.', use: 'Use selected point', selected: 'Selected coordinates', loading: 'Loading map…', failure: 'The map could not load. Check your connection and try again. City search and manual coordinates are still available offline.', retry: 'Retry' },
-  ar: { title: 'اختر موقعًا على الخريطة', privacy: 'يتطلب اختيار الموقع عبر الخريطة اتصالًا بالإنترنت. مربعات الخريطة وحدها تتصل بـ OpenStreetMap وتكشف عنوان IP والمنطقة المعروضة. يعمل البحث عن مدينة وإدخال الإحداثيات يدويًا دون اتصال.', use: 'استخدم الموقع المحدد', selected: 'الإحداثيات المحددة', loading: 'جارٍ تحميل الخريطة…', failure: 'تعذّر تحميل الخريطة. تحقّق من الاتصال وحاول مجددًا. يظل البحث عن مدينة وإدخال الإحداثيات يدويًا متاحين دون اتصال.', retry: 'إعادة المحاولة' },
+  en: { title: 'Choose a point on the map', privacy: 'Map selection requires internet. Only map tiles contact OpenStreetMap and share your IP address and viewed area. City search and manual coordinates work offline.', use: 'Use selected point', selected: 'Selected coordinates', loading: 'Loading map…', failure: 'The map could not load. Check your connection and try again. City search and manual coordinates are still available offline.', retry: 'Retry', hint: 'Tap the map to choose a point' },
+  ar: { title: 'اختر موقعًا على الخريطة', privacy: 'يتطلب اختيار الموقع عبر الخريطة اتصالًا بالإنترنت. مربعات الخريطة وحدها تتصل بـ OpenStreetMap وتكشف عنوان IP والمنطقة المعروضة. يعمل البحث عن مدينة وإدخال الإحداثيات يدويًا دون اتصال.', use: 'استخدم الموقع المحدد', selected: 'الإحداثيات المحددة', loading: 'جارٍ تحميل الخريطة…', failure: 'تعذّر تحميل الخريطة. تحقّق من الاتصال وحاول مجددًا. يظل البحث عن مدينة وإدخال الإحداثيات يدويًا متاحين دون اتصال.', retry: 'إعادة المحاولة', hint: 'انقر على الخريطة لاختيار موقع' },
 } as const;
 
-function mapHtml(center: SelectedCoordinates | undefined, language: 'ar' | 'en') {
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
+}
+
+function mapHtml(center: SelectedCoordinates | undefined, language: Language, hint: string, theme: ReturnType<typeof useReaderStyles>['colors']) {
   const initial = center && Number.isFinite(center.latitude) && Number.isFinite(center.longitude)
     && Math.abs(center.latitude) <= 90 && Math.abs(center.longitude) <= 180
     ? center : { latitude: 20, longitude: 0 };
-  const direction = language === 'ar' ? 'rtl' : 'ltr';
-  const labels = language === 'ar' ? { hint: 'انقر على الخريطة لاختيار موقع' } : { hint: 'Tap the map to choose a point' };
-  return `<!doctype html><html lang="${language}" dir="${direction}"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>${LEAFLET_CSS}html,body,#map{height:100%;width:100%;margin:0;background:#eef2f4}.hint{position:absolute;z-index:500;top:8px;left:50%;transform:translateX(-50%);padding:5px 9px;border-radius:6px;background:#fffE;color:#263238;font:13px sans-serif;white-space:nowrap;box-shadow:0 1px 4px #0003}</style><script>${LEAFLET_JS}</script></head><body><!-- ${LEAFLET_LICENSE} --><div id="map"></div><div class="hint">${labels.hint}</div><script>
+  const direction = isRTL(language) ? 'rtl' : 'ltr';
+  return `<!doctype html><html lang="${escapeHtml(language)}" dir="${direction}"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>${LEAFLET_CSS}html,body,#map{height:100%;width:100%;margin:0;background:#eef2f4}.hint{position:absolute;z-index:500;top:8px;left:50%;transform:translateX(-50%);padding:5px 9px;border-radius:6px;background:${theme.appSurface};color:#F4EFE4;font:13px sans-serif;white-space:nowrap;box-shadow:0 1px 4px #0003}</style><script>${LEAFLET_JS}</script></head><body><!-- ${LEAFLET_LICENSE} --><div id="map"></div><div class="hint">${escapeHtml(hint)}</div><script>
 const map=L.map('map',{zoomControl:true,attributionControl:true,preferCanvas:true,worldCopyJump:false}).setView([${initial.latitude},${initial.longitude}],${center ? 12 : 2});
 const tileLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{minZoom:2,maxZoom:19,updateWhenIdle:true,keepBuffer:2,detectRetina:false,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
 let tileErrors=0,tileFailed=false,tileReady=false;const tileTimeout=setTimeout(()=>{if(!tileReady){tileFailed=true;window.setMapEnabled(false);window.ReactNativeWebView.postMessage(JSON.stringify({type:'map-error'}));}},15000);
 tileLayer.on('tileload',()=>{tileErrors=0;if(!tileReady){tileReady=true;clearTimeout(tileTimeout);window.ReactNativeWebView.postMessage(JSON.stringify({type:'map-ready'}));}});tileLayer.on('tileerror',()=>{if(tileFailed)return;tileErrors+=1;if(tileErrors>=3){tileFailed=true;clearTimeout(tileTimeout);window.setMapEnabled(false);window.ReactNativeWebView.postMessage(JSON.stringify({type:'map-error'}));}});
 let marker=null,enabled=true;window.setMapEnabled=value=>{enabled=!!value;if(enabled){map.dragging.enable();map.touchZoom.enable();map.doubleClickZoom.enable();map.scrollWheelZoom.enable();map.keyboard.enable();map.zoomControl.addTo(map);}else{map.dragging.disable();map.touchZoom.disable();map.doubleClickZoom.disable();map.scrollWheelZoom.disable();map.keyboard.disable();map.zoomControl.remove();}};
-function choose(latlng){if(!enabled)return;const p={latitude:latlng.lat,longitude:latlng.lng};if(marker)marker.setLatLng(latlng);else marker=L.circleMarker(latlng,{radius:8,color:'#fff',weight:3,fillColor:'#087e8b',fillOpacity:1}).addTo(map);window.ReactNativeWebView.postMessage(JSON.stringify({type:'select',latitude:p.latitude,longitude:p.longitude}));}
+function choose(latlng){if(!enabled)return;const p={latitude:latlng.lat,longitude:latlng.lng};if(marker)marker.setLatLng(latlng);else marker=L.circleMarker(latlng,{radius:8,color:'#fff',weight:3,fillColor:'${theme.accent}',fillOpacity:1}).addTo(map);window.ReactNativeWebView.postMessage(JSON.stringify({type:'select',latitude:p.latitude,longitude:p.longitude}));}
 map.on('click',event=>choose(event.latlng));
 ${center ? `choose(L.latLng(${initial.latitude},${initial.longitude}));` : ''}
 </script></body></html>`;
 }
 
 export function LocationMap({ language, initialCoordinates, onSelect, disabled = false }: Props) {
-  const t = copy[language];
+  const { colors: theme, styles } = useReaderStyles(baseStyles);
+  const t = localizeCopy(language, copy);
   const [selected, setSelected] = useState<SelectedCoordinates | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [loading, setLoading] = useState(true);
   const webView = useRef<WebView>(null);
-  const html = useMemo(() => mapHtml(initialCoordinates, language), [initialCoordinates, language, attempt]);
-  const isRtl = language === 'ar';
+  const html = useMemo(() => mapHtml(initialCoordinates, language, t.hint, theme), [initialCoordinates, language, attempt, t.hint, theme]);
+  const isRtl = isRTL(language);
   const setMapEnabledScript = `window.setMapEnabled && window.setMapEnabled(${!disabled}); true;`;
 
   useEffect(() => { webView.current?.injectJavaScript(setMapEnabledScript); }, [setMapEnabledScript]);
@@ -102,7 +108,7 @@ export function LocationMap({ language, initialCoordinates, onSelect, disabled =
   </View>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   container: { gap: 8 },
   title: { color: '#F4EFE4', fontSize: 16, fontWeight: '700', textAlign: 'left' },
   privacy: { color: '#A8C1B8', fontSize: 12, lineHeight: 18, textAlign: 'left' },

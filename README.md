@@ -2,19 +2,19 @@
 
 **قرآن · أذان · قبلة** — an open-source app for iOS and Android, built with React Native, TypeScript, Expo, and a shared Rust core.
 
-This app includes an offline Arabic Quran reader with verse audio, Arabic/English screens, foreground device location, and shared Rust calculations for Qibla and today’s prayer times. Adhan playback and prayer notifications remain upcoming work.
+This app includes an offline Arabic Quran reader with verse audio, menus/settings in 35 languages, saved foreground location, shared Rust calculations for Qibla and today’s prayer times, and optional Android prayer notifications with a bundled Adhan recording.
 
 ## What is ready
 
-- Arabic by default, English toggle, and layouts that follow the selected language.
-- Compact tabs that hide after inactivity, with horizontal swipe navigation following Arabic/English tab order.
+- Arabic by default, a searchable language menu with 35 native-name choices, and layouts that follow the selected language. The 33 new menu/settings translations are machine-assisted drafts awaiting native-speaker review; Quran text and surah names remain Arabic.
+- Compact tabs that hide after inactivity. In Quran reading, tap the page to reveal tabs and tools; swipe the page to turn Mushaf pages, or swipe the revealed tab dock to switch screens.
 - Main screens fit without vertical scrolling; location choices and calculation settings open separately.
-- A compact top row with language, location-pin, and settings icons. Reading, audio, prayer, and compass preferences share the gear sheet.
+- A compact top row with language, location-pin, and settings icons, revealed by tapping during Quran reading. Reading, audio, prayer, and compass preferences share the gear sheet.
 - An illustrated Qibla scene with a live phone compass and an optional fixed true-north view, without camera access. Poor sensor readings show calibration guidance and a clearly labelled fixed fallback.
-- All 114 surahs / 6,236 verses bundled offline from Tanzil, with 604 printed-page references and readable screen-sized portions on smaller phones. See [Quran text provenance](docs/QURAN-DATA.md).
-- Surah/Juz/page navigation, text search, bookmarks, last page, font size, and night reading.
-- A book icon opens a full-screen framed Quran page with continuous text, page/part controls, bookmarks, and audio highlighting. It uses the same verified text and adapts its portions to the available space.
-- Verse highlighting, three reciters, pitch-preserving playback speeds, seek controls, repeat of one verse or a verse range, and optional surah downloads. See [audio behavior and sources](docs/QURAN-AUDIO.md).
+- All 114 surahs / 6,236 verses bundled offline from Tanzil, alongside 604 offline Mushaf vector pages. Each complete page fits on screen, with optional enlarged reading. See [Quran text provenance](docs/QURAN-DATA.md).
+- Surah/Juz/page navigation, text search, page and verse bookmarks, last page, font size, and night reading. Long-press a verse to open its actions, then choose an optional QuranEnc tafsir edition for private offline download. App colors can be changed from **App color / لون التطبيق** in the top gear sheet on any tab. Green, maroon, blue, black and brown apply to the Quran reader, prayer times, Qibla scene and settings, and are saved locally.
+- The Quran tab opens a complete Mushaf page with controls hidden until tapped. Original printed calligraphy and line breaks are preserved, with the artwork centered at equal 12.75% margins, Arabic verse numbers, bookmarks and audio highlighting. The opening pages use tight crops based on their existing vector paths and a separate original geometric frame. The frame, page metadata and controls follow the selected theme; night mode retains its dark page and light text. The book icon opens the same vector pages with zoom and pan; only zoomed reading scrolls.
+- Verse highlighting, three reciters, pitch-preserving playback speeds, seek controls, same-surah ayah loops, and optional surah downloads. Long-press an ayah and choose **Start loop here** to begin immediately through the end of that surah; choose an ending ayah on the page to open the range editor with that endpoint selected. Audio uses a native queued playlist for advancing between ayahs and looping a chosen range. Natural recorded pauses remain and network buffering is still possible. See [audio behavior and sources](docs/QURAN-AUDIO.md).
 - Offline Rust Qibla bearing calculation with coordinate validation and tests.
 - Device location is the primary action on both Qibla and Adhan, with a shared location and permission recovery.
 - Secondary location choices are ordered: offline city search, online map selection, then optional manual coordinates (including Arabic/Persian digits).
@@ -24,13 +24,13 @@ This app includes an offline Arabic Quran reader with verse audio, Arabic/Englis
 - iOS C ABI/XCFramework and Android JNI bridge source and build scripts.
 - MIT license, contribution guide, roadmap, and CI checks.
 
-Quran playback is separate from Adhan: prayer times are calculated, but Adhan audio and notifications are not implemented. The Qibla bearing is clockwise from **true north**. Live mode rotates the scene relative to a reliable phone heading; fixed mode keeps north at the top.
+Quran playback is separate from Adhan. In **Settings → Adhan**, enable **Play Adhan at prayer times**, allow notifications, and grant **Alarms and reminders** access for exact scheduling. The test button schedules an alert in five seconds. Remaining prayers today and the following seven dates are scheduled locally; open the app at least weekly to refresh them. Android controls notification volume, Do Not Disturb and sound duration. See [prayer notification behavior](docs/PRAYER-NOTIFICATIONS.md) and [recording provenance](assets/adhan/PROVENANCE.md). The Qibla bearing is clockwise from **true north**. Live mode rotates the scene relative to a reliable phone heading; fixed mode keeps north at the top.
 
 ## Location and prayer times
 
 Open Qibla or Adhan, tap **Use my location**, and allow foreground access in the system prompt. Approximate access is accepted. A single foreground fix supplies both screens; there is no continuous location watch, background permission, or background location service. Device location is reused for six hours and refreshed only while a location screen is open and the app is active. Refresh sooner after travelling. The **top location pin** opens the three secondary choices together; city, map point, and manual coordinates each require confirmation and stop automatic device-location refresh.
 
-The Qibla scene is illustrated. Live mode follows the phone’s heading while the Qibla page is visible; keep the phone flat and away from magnetic objects. Select the fixed true-north view in the top gear sheet to keep north at the top. See [compass behavior](docs/COMPASS.md). Swipe between tabs, or reveal the compact bottom navigation using its handle. Use the reader’s page buttons to move through Quran page portions without vertical scrolling.
+The Qibla scene is illustrated. Live mode follows the phone’s heading while the Qibla page is visible; keep the phone flat and away from magnetic objects. Select the fixed true-north view in the top gear sheet to keep north at the top. See [compass behavior](docs/COMPASS.md). Swipe between tabs, or reveal the compact bottom navigation using its handle. In Quran reading, tap the page to reveal tools and tabs; swipe right for the next Mushaf page and left for the previous page. Page buttons provide the same navigation without vertical scrolling. Long-press a verse to open its play, tafsir, verse-bookmark, and loop actions. **Start loop here** immediately starts the selected ayah through the end of its surah. To choose a shorter range, select an ending ayah on the page or use the range sheet’s **Choose ayahs on the page** action to tap its start and end. The range sheet can also set a same-surah range directly. Playback advances through the native audio queue and loops the chosen range; natural pauses remain in the source recordings and network buffering can occur. The tafsir library offers the التفسير الميسر and المختصر editions from QuranEnc. Each book is optional: download it over the network for private offline use, select an installed edition, or remove its saved copy. A source-edition check runs before download; the app validates all 6,236 ordered ayahs and saves a book only after the complete download succeeds. No tafsir text is included in the runtime bundle.
 
 Permission denial, a blocked permission, disabled location services, and a 30-second position timeout have recovery messages. Automatic refresh never prompts for permission. Location coordinates are held in memory for the current app session; reading, audio, and app preferences are saved locally. Qibla and prayer calculations do not upload coordinates, and the app adds no analytics. City search and manual entry are offline. The optional map sends tile requests (IP address and viewed area) to OpenStreetMap; see [MAP-PICKER.md](docs/MAP-PICKER.md). OS location services may use network assistance.
 
@@ -78,10 +78,11 @@ To create an APK without a connected device or running development server:
 npm run rust:android
 npx expo prebuild --platform android --no-install
 cd android
+NODE_ENV=production ./gradlew :app:createBundleReleaseJsAndAssets --rerun-tasks --max-workers=2
 NODE_ENV=production ./gradlew :app:assembleRelease --max-workers=2
 ```
 
-The APK is written to `android/app/build/outputs/apk/release/app-release.apk`. It includes the JavaScript bundle and uses Expo's generated debug signing key for local testing. Configure your own release signing before store distribution.
+The explicit bundle step refreshes JSON catalogs too; Gradle can otherwise reuse the old bundle after JSON-only edits. The APK is written to `android/app/build/outputs/apk/release/app-release.apk`. It includes the JavaScript bundle and uses Expo's generated debug signing key for local testing. Configure your own release signing before store distribution.
 
 ## iOS development build
 
@@ -104,7 +105,7 @@ npm run export:mobile
 
 `check` runs TypeScript, coordinate/location/schedule behavior tests, Rust formatting/lint checks, and Rust tests. Reference schedules cover Makkah and London in winter and summer (DST); bridge validation rejects invalid dates, unsupported polar locations, and incomplete schedules. The export builds the JavaScript bundles for both mobile platforms; it does **not** compile Swift, Kotlin, or an installable app. Host checks cover the Rust core and C ABI.
 
-Android test APKs are compiled on Linux with JDK 17. Their ARM64/x86_64 Rust libraries, JNI exports, bundled JavaScript, APK signature, and 16 KB packaging/library alignment were checked. Native Rust Qibla/prayer results, location permissions, and Arabic/English layouts were exercised on an Android API 36 x86_64 emulator. Physical-device compass/GPS behavior and the iOS native build remain unverified. Android reader/audio/compass checks for 0.3.0 are recorded in [READER-COMPASS-QA.md](docs/READER-COMPASS-QA.md).
+Android test APKs were compiled on Linux with JDK 17. The 0.3.3 reader/audio checks and 0.3.4 icon, language menu, persistence and Android Adhan notification checks are recorded in [READER-COMPASS-QA.md](docs/READER-COMPASS-QA.md), alongside earlier compass and reader results. The iOS native build remains unverified on this Linux host. Physical-device compass/GPS behavior also remains unverified.
 
 The initial npm audit (10 October 2026) also reports inherited dependency advisories through Expo/Metro/Xcode tooling (`braces`, `node-forge`, and `uuid`). Compatible automatic updates did not resolve them. Updating upstream packages is follow-up work; functional checks do not imply a clean dependency audit.
 
@@ -113,7 +114,7 @@ The initial npm audit (10 October 2026) also reports inherited dependency adviso
 ```text
 App.tsx                         Mobile shell and shared calculation state
 src/components/                 Screens, swipe tabs, location sheet, map picker
-src/i18n.ts                     Arabic / English copy
+src/i18n.ts, src/locales/        Menu/settings translations and language metadata
 src/domain/                     Coordinates, permissions, schedules, and tests
 src/use-location.ts             Foreground device access and six-hour refresh
 crates/islamic-core/             Rust calculation and C header
@@ -127,13 +128,13 @@ Expo generates root `android/` and `ios/` projects when needed. They, Rust build
 
 ## Next work
 
-See [the roadmap](docs/ROADMAP.md). Next steps include licensed Adhan audio and local notifications, persisted location, advanced high-latitude handling, physical-device compass/audio validation, and iOS native testing.
+See [the roadmap](docs/ROADMAP.md). Next steps include native-speaker translation review, iOS notifications and branding, advanced high-latitude handling, physical-device compass/audio validation, and iOS native testing.
 
-The app adds no analytics and calculates Qibla and prayer times locally. Only foreground location permission is requested, after the user chooses device location. Notification permission is not requested yet. The icons are Expo template placeholders.
+The app adds no analytics and calculates Qibla and prayer times locally. Only foreground location permission is requested, after the user chooses device location. Android notification permission is requested only when prayer alerts are enabled. Locations and preferences are saved locally. Android uses an original Quran/direction icon; the iOS icon is still a template placeholder.
 
 ## Contributing and license
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Code is licensed under [MIT](LICENSE). Rust prayer, GeoNames, and Leaflet notices are in [third-party-notices.txt](modules/islamic-core/assets/third-party-notices.txt) and included in the native app assets. Quran text and font notices are separate from the code license. Recitation files are streamed or downloaded for listening; no MP3 files are distributed in the repository/APK. Translations and tafsir remain future work.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Code is licensed under [MIT](LICENSE). Rust prayer, GeoNames, and Leaflet notices are in [third-party-notices.txt](modules/islamic-core/assets/third-party-notices.txt) and included in the native app assets. Quran text and font notices are separate from the code license. Recitation files are streamed or downloaded for listening; no MP3 files are distributed in the repository/APK. Quran translations remain future work; menu/settings translations are separate. Tafsir books are downloaded on demand from QuranEnc and saved in app-private storage. The Moyassar source fixture is retained for development provenance and integrity tests; the app runtime does not load or bundle that tafsir text.
 
 ## References
 

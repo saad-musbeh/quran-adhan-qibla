@@ -1,18 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { translations, type Language } from '../i18n';
+import { bilingual, isRTL, localeFor, translations, type Language } from '../i18n';
 import type { useLocation } from '../use-location';
 import { LocationAlternatives } from './LocationAlternatives';
+import { useReaderStyles } from '../quran-theme-context';
 
 type Props = { language: Language; visible: boolean; state: ReturnType<typeof useLocation>; onClose: () => void };
 
 export function LocationSheet({ language, visible, state, onClose }: Props) {
+  const { styles } = useReaderStyles(baseStyles);
   const [settingsError, setSettingsError] = useState(false);
   const wasLoading = useRef(false);
   const { location, loading, error } = state;
   const t = translations[language];
-  const align = language === 'ar' ? styles.rtl : styles.ltr;
+  const rtl = isRTL(language);
+  const align = rtl ? styles.rtl : styles.ltr;
   useEffect(() => {
     if (wasLoading.current && !loading && !error && location?.source === 'device') onClose();
     wasLoading.current = loading;
@@ -20,9 +23,9 @@ export function LocationSheet({ language, visible, state, onClose }: Props) {
 
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
     <SafeAreaView style={styles.screen}>
-      <View style={[styles.header, language === 'ar' && styles.reverse]}>
+      <View style={[styles.header, rtl && styles.reverse]}>
         <Text style={[styles.title, align]}>{t.locationTitle}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={language === 'ar' ? 'إغلاق خيارات الموقع' : 'Close location options'}
+        <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language, 'إغلاق خيارات الموقع', 'Close location options')}
           onPress={onClose} style={styles.close}><Text style={styles.closeText}>✕</Text></Pressable>
       </View>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -41,7 +44,7 @@ export function LocationSheet({ language, visible, state, onClose }: Props) {
           <LocationAlternatives language={language} disabled={loading} coordinates={location ?? undefined}
             onSelect={selection => { state.useAlternative(selection); onClose(); }} />
           <Text style={[styles.note, align]}>{t.locationPrivacy}</Text>
-          {location && <Text style={[styles.note, align]}>{t.updated}: {new Date(location.timestamp).toLocaleString(language === 'ar' ? 'ar-SA-u-ca-gregory' : 'en')}
+          {location && <Text style={[styles.note, align]}>{t.updated}: {new Date(location.timestamp).toLocaleString(localeFor(language))}
             {location.source === 'device' && location.accuracy != null && Number.isFinite(location.accuracy)
               ? ` · ${t.accuracy}: ±${Math.round(location.accuracy)} ${t.meters}` : ''}</Text>}
         </ScrollView>
@@ -50,7 +53,7 @@ export function LocationSheet({ language, visible, state, onClose }: Props) {
   </Modal>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0B211D' }, flex: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8 }, reverse: { flexDirection: 'row-reverse' },
   title: { color: '#F4EFE4', fontSize: 22, fontWeight: '600' }, close: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, closeText: { color: '#D6BA7A', fontSize: 24 },

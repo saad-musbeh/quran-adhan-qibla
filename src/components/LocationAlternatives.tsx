@@ -2,17 +2,20 @@ import { useMemo, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { cities, countries, searchCities, cityLabel, countryLabel } from '../domain/cities';
 import { parseCoordinate } from '../domain/coordinates';
+import { bilingual, isRTL, localizeCopy, type Language } from '../i18n';
 import { LocationMap } from './LocationMap';
+import { useReaderStyles } from '../quran-theme-context';
 
 type Coordinates = { latitude: number; longitude: number };
 type Selection = Coordinates & { source: 'city' | 'map' | 'manual'; label?: string };
 type Props = {
-  language: 'ar' | 'en'; disabled?: boolean; coordinates?: Coordinates;
+  language: Language; disabled?: boolean; coordinates?: Coordinates;
   onSelect: (value: Selection) => void;
 };
 
 export function LocationAlternatives({ language, disabled = false, coordinates, onSelect }: Props) {
-  const ar = language === 'ar';
+  const { styles } = useReaderStyles(baseStyles);
+  const rtl = isRTL(language);
   const [open, setOpen] = useState<'city' | 'map' | 'manual' | null>(null);
   const [countryQuery, setCountryQuery] = useState('');
   const [countryCode, setCountryCode] = useState<string | undefined>();
@@ -32,7 +35,8 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
   const matches = useMemo(() => !cityQuery.trim() && countryCode
     ? cities.filter(city => city.countryCode === countryCode)
     : searchCities(cityQuery, countryCode), [cityQuery, countryCode]);
-  const txt = ar ? {
+  const copies = {
+  ar: {
     title: 'خيارات أخرى للموقع', hint: 'لا تحتاج هذه الخيارات إلى إذن الموقع.',
     city: 'البحث عن مدينة', map: 'اختيار من الخريطة', manual: 'إدخال الإحداثيات',
     countrySearch: 'ابحث عن دولة', citySearch: 'اكتب اسم مدينة', allCountries: 'كل الدول', filterCountry: 'تصفية حسب الدولة',
@@ -40,7 +44,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
     showing: 'عرض', of: 'من', use: 'استخدام هذه المدينة', example: 'مثال: الرياض',
     lat: 'خط العرض (اختياري)', lon: 'خط الطول (اختياري)', useCoords: 'استخدام الإحداثيات', invalid: 'أدخل إحداثيات صحيحة ضمن النطاق المسموح.',
     exampleNote: 'يملأ المثال حقلي الرياض فقط؛ لن يُستخدم الموقع حتى تضغط «استخدام الإحداثيات».',
-  } : {
+  }, en: {
     title: 'Other location options', hint: 'These options work without location permission.',
     city: 'Search for a city', map: 'Choose on map', manual: 'Enter coordinates',
     countrySearch: 'Search countries', citySearch: 'Enter a city name', allCountries: 'All countries', filterCountry: 'Filter by country',
@@ -48,8 +52,9 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
     showing: 'Showing', of: 'of', use: 'Use this city', example: 'Example: Riyadh',
     lat: 'Latitude (optional)', lon: 'Longitude (optional)', useCoords: 'Use coordinates', invalid: 'Enter valid coordinates within the allowed range.',
     exampleNote: 'The example only fills in Riyadh’s values. They are not used until you tap “Use coordinates.”',
-  };
-  const alignment = ar ? styles.rtl : styles.ltr;
+  }};
+  const txt = localizeCopy(language, copies);
+  const alignment = rtl ? styles.rtl : styles.ltr;
   const titleFor = (key: 'city' | 'map' | 'manual') => key === 'city' ? txt.city : key === 'map' ? txt.map : txt.manual;
   const choose = (key: 'city' | 'map' | 'manual') => setOpen(current => current === key ? null : key);
   const useManual = () => {
@@ -71,11 +76,11 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
       {open === key && <View style={styles.panel}>
         {key === 'city' && <>
           <Pressable accessibilityRole="link" disabled={disabled} onPress={() => { void Linking.openURL('https://www.geonames.org/').catch(() => {}); }}>
-            <Text style={[styles.hint, alignment]}>{ar ? 'بيانات المدن: GeoNames · ترخيص CC BY 4.0' : 'City data: GeoNames · CC BY 4.0'}</Text>
+            <Text style={[styles.hint, alignment]}>{bilingual(language, 'بيانات المدن: GeoNames · ترخيص CC BY 4.0', 'City data: GeoNames · CC BY 4.0')}</Text>
           </Pressable>
           <TextInput accessibilityLabel={txt.citySearch} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={cityQuery} placeholder={txt.citySearch} placeholderTextColor="#73988D" style={[styles.input, alignment]} onChangeText={value => { setCityQuery(value); setSelectedCity(null); setShown(8); }} />
           <Pressable accessibilityRole="button" accessibilityState={{ expanded: showCountryFilter, disabled }} disabled={disabled} onPress={() => setShowCountryFilter(value => !value)}><Text style={styles.link}>{txt.filterCountry} {showCountryFilter ? '−' : '+'}</Text></Pressable>
-          {country && <View style={[styles.selectedCountry, ar && styles.selectedCountryRtl]}>
+          {country && <View style={[styles.selectedCountry, rtl && styles.selectedCountryRtl]}>
             <Text style={[styles.cityText, alignment]}>{countryLabel(country, language)} · {country.cityCount}/{country.targetCount}</Text>
             <Pressable accessibilityRole="button" disabled={disabled} onPress={() => { setCountryCode(undefined); setSelectedCity(null); setShown(8); }}><Text style={styles.link}>{txt.clear}</Text></Pressable>
           </View>}
@@ -89,7 +94,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
                 <Text style={styles.cityText}>{countryLabel(item, language)} · {item.cityCount}/{item.targetCount}</Text>
               </Pressable>)}
             </View>
-            {countryShown < countryMatches.length && <Pressable accessibilityRole="button" disabled={disabled} onPress={() => setCountryShown(value => value + 10)}><Text style={styles.link}>{ar ? 'عرض المزيد من الدول' : 'Show more countries'}</Text></Pressable>}
+            {countryShown < countryMatches.length && <Pressable accessibilityRole="button" disabled={disabled} onPress={() => setCountryShown(value => value + 10)}><Text style={styles.link}>{bilingual(language, 'عرض المزيد من الدول', 'Show more countries')}</Text></Pressable>}
             <Text style={[styles.hint, alignment]}>{txt.pickCountry}</Text>
           </>}
           {matches.length === 0 ? <Text accessibilityRole="text" style={[styles.hint, alignment]}>{cityQuery.trim() ? txt.noResults : countryCode ? txt.noResults : txt.searchPrompt}</Text> : <>
@@ -101,7 +106,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
               </Pressable>;
             })}
             <Text style={[styles.hint, alignment]}>{txt.showing} {Math.min(shown, matches.length)} {txt.of} {matches.length}</Text>
-            {shown < matches.length && <Pressable accessibilityRole="button" disabled={disabled} onPress={() => setShown(n => n + 8)}><Text style={styles.link}>{ar ? 'عرض المزيد' : 'Show more'}</Text></Pressable>}
+            {shown < matches.length && <Pressable accessibilityRole="button" disabled={disabled} onPress={() => setShown(n => n + 8)}><Text style={styles.link}>{bilingual(language, 'عرض المزيد', 'Show more')}</Text></Pressable>}
             {selectedCity && matches.some(city => city.id === selectedCity) && <Pressable accessibilityRole="button" disabled={disabled} style={[styles.apply, disabled && styles.disabled]} onPress={() => {
               const city = matches.find(item => item.id === selectedCity)!;
               const nation = countries.find(item => item.code === city.countryCode);
@@ -126,7 +131,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
   </View>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: { gap: 10 }, section: { gap: 8 }, heading: { color: '#F4EFE4', fontSize: 18, fontWeight: '600' },
   hint: { color: '#A8C1B8', fontSize: 12, lineHeight: 20 }, ltr: { textAlign: 'left', writingDirection: 'ltr' }, rtl: { textAlign: 'right', writingDirection: 'rtl' },
   choice: { borderWidth: 1, borderColor: '#35544B', borderRadius: 12, padding: 13, backgroundColor: '#102A25' }, active: { borderColor: '#D6BA7A', backgroundColor: '#284C40' },

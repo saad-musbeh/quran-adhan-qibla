@@ -15,3 +15,14 @@ android {
     consumerProguardFiles 'consumer-rules.pro'
   }
 }
+
+repositories {
+  maven { url "$rootDir/../node_modules/expo-audio/local-maven-repo" }
+}
+
+dependencies {
+  implementation 'expo.modules.audio:expo.modules.audio:57.0.5'
+  def androidxMedia3Version = "1.9.0"
+  implementation "androidx.media3:media3-session:$androidxMedia3Version"
+  implementation "androidx.media3:media3-exoplayer:$androidxMedia3Version"
+}

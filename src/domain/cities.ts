@@ -1,3 +1,5 @@
+import type { Language } from './languages';
+
 export type City = {
   id: number;
   name: string;
@@ -45,10 +47,10 @@ export function searchCities(query: string, countryCode?: string): City[] {
   return matches;
 }
 
-export function cityLabel(city: City, language: 'ar' | 'en'): string {
+export function cityLabel(city: City, language: Language): string {
   return language === 'ar' ? city.arabicName ?? city.name : city.name;
 }
 
-export function countryLabel(country: Country, language: 'ar' | 'en'): string {
+export function countryLabel(country: Country, language: Language): string {
   return language === 'ar' ? country.arabicName : country.name;
 }
