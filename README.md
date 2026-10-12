@@ -87,7 +87,7 @@ The explicit bundle step refreshes JSON catalogs too; Gradle can otherwise reuse
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use `codex/test-0.4.0` for the current 0.4.1-test source. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use `codex/test-0.4.0` for the current 0.4.2-test source. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -106,7 +106,7 @@ npm run export:mobile
 
 `check` runs TypeScript, coordinate/location/schedule behavior tests, Rust formatting/lint checks, and Rust tests. Reference schedules cover Makkah and London in winter and summer (DST); bridge validation rejects invalid dates, unsupported polar locations, and incomplete schedules. The export builds the JavaScript bundles for both mobile platforms; it does **not** compile Swift, Kotlin, or an installable app. Host checks cover the Rust core and C ABI.
 
-Android test APKs were compiled on Linux with JDK 17. The 0.3.3 reader/audio checks and 0.3.4 icon, language menu, persistence and Android Adhan notification checks are recorded in [READER-COMPASS-QA.md](docs/READER-COMPASS-QA.md), alongside earlier compass and reader results. The [macOS Release simulator build passed on 12 October 2026](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/38219756885), including the Rust XCFramework and bundled Quran assets. iOS runtime and physical-device checks remain pending. Physical-device compass/GPS behavior also remains unverified.
+Android test APKs were compiled on Linux with JDK 17. The 0.3.3 reader/audio checks and 0.3.4 icon, language menu, persistence and Android Adhan notification checks are recorded in [READER-COMPASS-QA.md](docs/READER-COMPASS-QA.md), alongside earlier compass and reader results. The [macOS Release simulator build passed on 12 October 2026](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/38219756885), including the Rust XCFramework and bundled Quran assets. The 0.4.1 iOS native playback and repeated tab checks passed; book-name entry and whole-Quran download checks remain unresolved. The 0.4.2 Android reader crash fix was reproduced and checked on an API 36 emulator. The updated iOS run and physical-device checks remain pending. Physical-device compass/GPS behavior also remains unverified.
 
 The initial npm audit (10 October 2026) also reports inherited dependency advisories through Expo/Metro/Xcode tooling (`braces`, `node-forge`, and `uuid`). Compatible automatic updates did not resolve them. Updating upstream packages is follow-up work; functional checks do not imply a clean dependency audit.
 
