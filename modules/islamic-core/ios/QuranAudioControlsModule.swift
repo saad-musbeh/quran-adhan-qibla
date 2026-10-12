@@ -230,8 +230,9 @@ public final class QuranAudioControlsModule: Module {
     for registration in commandTargets {
       registration.command.removeTarget(registration.target)
       registration.command.isEnabled = registration.wasEnabled
-      if let skipCommand = registration.command as? MPSkipIntervalCommand {
-        skipCommand.preferredIntervals = registration.priorIntervals
+      if let skipCommand = registration.command as? MPSkipIntervalCommand,
+         let priorIntervals = registration.priorIntervals {
+        skipCommand.preferredIntervals = priorIntervals
       }
     }
     commandTargets.removeAll()
