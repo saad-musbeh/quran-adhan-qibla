@@ -40,6 +40,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, zipfile
           root=pathlib.Path('previous-diagnostics')
+          print((root/'summary.json').read_text())
           for path in root.rglob('*'):
             if path.is_file() and path.suffix in ('.ips','.crash','.txt','.log'):
               report=path.read_text(errors='replace')
