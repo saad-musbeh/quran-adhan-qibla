@@ -20,6 +20,7 @@ target.build_configurations.each do |configuration|
     'SWIFT_VERSION' => '5.0',
     'GENERATE_INFOPLIST_FILE' => 'YES',
     'PRODUCT_BUNDLE_IDENTIFIER' => 'org.saadmusbeh.quranadhanqibla.uitests',
+    'PRODUCT_NAME' => '$(TARGET_NAME)',
     'TEST_TARGET_NAME' => app.name,
     'TARGETED_DEVICE_FAMILY' => '1,2',
     'CODE_SIGNING_ALLOWED' => 'NO',
