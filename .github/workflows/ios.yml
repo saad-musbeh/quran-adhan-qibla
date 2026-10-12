@@ -1,0 +1,63 @@
+name: iOS native build
+
+on:
+  push:
+    branches: [codex/reader-polish]
+    paths-ignore: ['docs/**', '**/*.md']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      CI: '1'
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies and apply the iOS audio patch
+        run: npm ci --include=dev
+      - name: Build Rust device and simulator libraries
+        run: |
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+          npm run rust:ios
+      - name: Generate iOS project
+        run: npx expo prebuild --platform ios --no-install
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install
+      - name: Compile a bundled simulator app without signing
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/QuranAdhanQibla.xcworkspace \
+            -scheme QuranAdhanQibla -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath target/ios-build CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee target/ios-build.log | xcbeautify
+      - name: Package simulator app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            target/ios-build/Build/Products/Release-iphonesimulator/QuranAdhanQibla.app \
+            target/quran-adhan-qibla-ios-simulator.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ios-simulator
+          path: target/quran-adhan-qibla-ios-simulator.zip
+          retention-days: 14
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ios-build-log
+          path: target/ios-build.log
+          if-no-files-found: ignore
+          retention-days: 14

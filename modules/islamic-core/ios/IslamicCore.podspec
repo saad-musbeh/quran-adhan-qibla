@@ -11,6 +11,7 @@ Pod::Spec.new do |s|
   }
   s.source         = { :git => 'https://github.com/saad-musbeh/quran-adhan-qibla.git' }
   s.static_framework = true
+  s.swift_version = '5.9'
 
   s.dependency 'ExpoModulesCore'
   s.dependency 'ExpoAudio'

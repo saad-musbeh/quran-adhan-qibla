@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.saadmusbeh.quranadhanqibla",
+      "icon": "./assets/branding/android-icon-v1.png",
       "buildNumber": "9"
     },
     "android": {
@@ -33,6 +34,10 @@
       [
         "expo-build-properties",
         {
+          "ios": {
+            "usePrecompiledModules": false,
+            "enableSceneSupport": true
+          },
           "android": {
             "buildArchs": [
               "arm64-v8a",
@@ -64,6 +69,7 @@
       ],
       "expo-font",
       "expo-asset",
+      "./plugins/withLocalNotificationsOnly.cjs",
       [
         "expo-notifications",
         {

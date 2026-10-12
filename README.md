@@ -86,7 +86,8 @@ The explicit bundle step refreshes JSON catalogs too; Gradle can otherwise reuse
 
 ## iOS development build
 
-Use macOS with Xcode and CocoaPods, plus Rust and Node.js 22 on your PATH.
+Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
+Use `codex/reader-polish` for the current 0.3.6 source. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -130,7 +131,7 @@ Expo generates root `android/` and `ios/` projects when needed. They, Rust build
 
 See [the roadmap](docs/ROADMAP.md). Next steps include native-speaker translation review, iOS notifications and branding, advanced high-latitude handling, physical-device compass/audio validation, and iOS native testing.
 
-The app adds no analytics and calculates Qibla and prayer times locally. Only foreground location permission is requested, after the user chooses device location. Android notification permission is requested only when prayer alerts are enabled. Locations and preferences are saved locally. Android uses an original Quran/direction icon; the iOS icon is still a template placeholder.
+The app adds no analytics and calculates Qibla and prayer times locally. Only foreground location permission is requested, after the user chooses device location. Android notification permission is requested only when prayer alerts are enabled. Locations and preferences are saved locally. Both platforms use the original Quran/direction launcher icon.
 
 ## Contributing and license
 

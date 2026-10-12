@@ -51,6 +51,6 @@
 - [ ] Verify live compass accuracy and sensor lifecycle on physical Android/iOS devices.
 - [x] Allow optional manual location entry without requiring GPS permission.
 - [x] Create and configure the Android Quran/direction launcher and notification icons.
-- [ ] Complete iOS branding.
+- [x] Use the Quran/direction launcher icon on iOS.
 - [ ] Add offline persistence, data attribution, and a privacy description matching actual behavior.
 - [ ] Test battery/background behavior, device builds, and store distribution.

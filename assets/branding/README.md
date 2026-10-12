@@ -1,6 +1,6 @@
 # Android icon
 
-`android-icon-v1.png` is the Android launcher/adaptive icon: a cream open Quran, gold direction pointer and crescent on forest green. Created with the built-in ImageGen tool, then copied without pixel edits. Expo generates the native launcher sizes. The iOS icon remains pending.
+`android-icon-v1.png` is the shared Android/iOS launcher icon: a cream open Quran, gold direction pointer and crescent on forest green. Created with the built-in ImageGen tool, then copied without pixel edits. Expo generates the native launcher sizes.
 
 Final ImageGen prompt:
 
