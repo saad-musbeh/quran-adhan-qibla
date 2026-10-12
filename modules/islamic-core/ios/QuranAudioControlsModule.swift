@@ -105,7 +105,7 @@ public final class QuranAudioControlsModule: Module {
     ) { [weak self] notification in
       guard let self, let failed = notification.object as? AVPlayerItem,
             failed === self.player?.currentItem else { return }
-      self.sendEvent("playbackError", ["message": failed.error?.localizedDescription ?? "Audio playback failed."])
+      self.reportFailure(failed)
     }
     publishNowPlaying()
   }
@@ -116,9 +116,18 @@ public final class QuranAudioControlsModule: Module {
       guard item.status == .failed else { return }
       DispatchQueue.main.async {
         guard let self, item === self.player?.currentItem else { return }
-        self.sendEvent("playbackError", ["message": item.error?.localizedDescription ?? "Audio playback failed."])
+        self.reportFailure(item)
       }
     }
+  }
+
+  private func reportFailure(_ item: AVPlayerItem) {
+    let time = item.currentTime().seconds
+    sendEvent("playbackError", [
+      "message": item.error?.localizedDescription ?? "Audio playback failed.",
+      "uri": (item.asset as? AVURLAsset)?.url.absoluteString ?? "",
+      "time": time.isFinite ? max(0, time) : 0,
+    ])
   }
 
   private func installRemoteCommands() {

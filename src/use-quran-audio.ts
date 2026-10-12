@@ -143,12 +143,17 @@ export function useQuranAudio(): QuranAudioController {
   repeatRef.current = repeatRange;
   rateRef.current = playbackRate;
 
-  const refreshOnline = useCallback(async () => {
+  const refreshOnline = useCallback(async (allowRecovery = false) => {
     try {
       const network = await getNetworkStateAsync();
       const reachable = network.isConnected !== false && network.isInternetReachable !== false;
+      const reconnected = !onlineRef.current && reachable;
       onlineRef.current = reachable;
       if (mountedRef.current) setIsOnline(reachable);
+      if (allowRecovery && reconnected && recoverOnConnection.current && wantsPlayback.current && currentRef.current) {
+        recoverOnConnection.current = false;
+        void playRequest.current(currentRef.current, true, resumeTime.current);
+      }
       return reachable;
     } catch {
       return onlineRef.current;
@@ -169,9 +174,9 @@ export function useQuranAudio(): QuranAudioController {
   }, []);
 
   useEffect(() => {
-    void refreshOnline();
+    void refreshOnline(true);
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void refreshOnline();
+      if (state === 'active') void refreshOnline(true);
     });
     const networkSubscription = addNetworkStateListener((network) => {
       const reachable = network.isConnected !== false && network.isInternetReachable !== false;
@@ -314,9 +319,14 @@ export function useQuranAudio(): QuranAudioController {
   playRequest.current = playPosition;
 
   useEffect(() => {
-    const subscription = quranAudioControls.addPlaybackErrorListener(message => {
+    const subscription = quranAudioControls.addPlaybackErrorListener((message, uri, time) => {
       if (!currentRef.current || !mountedRef.current) return;
-      resumeTime.current = Math.max(0, currentTimeRef.current);
+      const match = /\/(\d{3})(\d{3})\.mp3(?:\?|$)/.exec(uri ?? '');
+      if (match) {
+        const position={surah:Number(match[1]),verse:Number(match[2])};
+        if (findQuranQueuePosition(queuePositionsRef.current,position)>=0) { currentRef.current=position;setCurrent(position); }
+      }
+      resumeTime.current = Math.max(0, typeof time === 'number' && Number.isFinite(time) ? time : currentTimeRef.current);
       generationRef.current += 1;
       queueLoadingRef.current = false;
       refillForRef.current = null;

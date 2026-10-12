@@ -8,7 +8,7 @@ type NativeQuranAudioControls = {
   updateMetadata(title: string, artist: string): void;
   updatePlaybackRate(rate: number): void;
   detach(): void;
-  addListener(eventName: 'remoteCommand' | 'playbackError', listener: (event: { command?: string; nativeHandled?: boolean; message?: string }) => void): { remove(): void };
+  addListener(eventName: 'remoteCommand' | 'playbackError', listener: (event: { command?: string; nativeHandled?: boolean; message?: string; uri?: string; time?: number }) => void): { remove(): void };
 };
 
 const native = requireOptionalNativeModule<NativeQuranAudioControls>('QuranAudioControls');
@@ -24,7 +24,7 @@ export const quranAudioControls = {
   addRemoteCommandListener(listener: (command: string, nativeHandled: boolean) => void) {
     return native?.addListener('remoteCommand', event => { if (event.command) listener(event.command, event.nativeHandled === true); }) ?? { remove() {} };
   },
-  addPlaybackErrorListener(listener: (message: string) => void) {
-    return native?.addListener('playbackError', event => listener(event.message ?? 'Audio playback failed.')) ?? { remove() {} };
+  addPlaybackErrorListener(listener: (message: string, uri?: string, time?: number) => void) {
+    return native?.addListener('playbackError', event => listener(event.message ?? 'Audio playback failed.', event.uri, event.time)) ?? { remove() {} };
   },
 };

@@ -15,7 +15,11 @@ class QuranAudioControlsModule : Module() {
   private var observedPlayer: Player? = null
   private val errorListener = object : Player.Listener {
     override fun onPlayerError(error: PlaybackException) {
-      sendEvent("playbackError", mapOf("message" to (error.message ?: "Audio playback failed.")))
+      sendEvent("playbackError", mapOf(
+        "message" to (error.message ?: "Audio playback failed."),
+        "uri" to observedPlayer?.currentMediaItem?.localConfiguration?.uri?.toString(),
+        "time" to ((observedPlayer?.currentPosition ?: 0L).coerceAtLeast(0L) / 1000.0)
+      ))
     }
   }
 
