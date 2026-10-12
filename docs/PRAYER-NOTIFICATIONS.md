@@ -20,7 +20,7 @@ Disabling alerts cancels this app’s prayer and test entries. The five-second t
 
 ## Using the feature
 
-Open the gear sheet, select Adhan, and enable Play Adhan at prayer times. Notification permission is requested at this explicit action. If needed, use the location action to choose a city/device/map/coordinates and on Android the Alarms and reminders action to grant exact-alarm special access. The test button schedules the bundled CC0 Adhan recording five seconds later. Settings and the selected location are restored across launches; no background GPS permission is needed. Open the app at least weekly to replenish scheduled dates.
+Open the gear sheet, scroll to Adhan alerts, and enable Play Adhan at prayer times. Notification permission is requested at this explicit action. If needed, use the location action to choose a city/device/map/coordinates and on Android the Alarms and reminders action to grant exact-alarm special access. The test button schedules the bundled CC0 Adhan recording five seconds later. Settings and the selected location are restored across launches; no background GPS permission is needed. Open the app at least weekly to replenish scheduled dates.
 
 Turning the setting off cancels pending app-owned prayer/test alerts. Revoked notification access or missing location removes pending app-owned reminders. Clock/timezone changes are reconciled on the next app resume; physical-device reboot, OEM battery policy, DND and complete recording playback require device validation.
 

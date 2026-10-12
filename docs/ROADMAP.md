@@ -11,7 +11,8 @@
 - [x] Compile an Android APK containing ARM64/x86_64 Rust libraries and bundled JavaScript.
 - [x] Verify the Android Rust bridge on an API 36 emulator.
 - [x] Compile and package a bundled Release iOS simulator app on macOS with the Rust XCFramework.
-- [ ] Verify the iOS Rust bridge and app behavior on a device or simulator.
+- [x] Verify iOS Rust prayer calculations through simulator notification scheduling, and check saved audio inventory and tab changes.
+- [ ] Complete the iOS reader/audio runtime checks after correcting the tafsir locale startup crash.
 - [ ] Check RTL, accessibility, and large text on real devices.
 - [ ] Resolve inherited Expo/Metro/Xcode dependency audit advisories as compatible upstream fixes become available.
 
@@ -28,6 +29,8 @@
 - [x] Verify the 0.3.3 reader themes, opening pages, ayah loop selection, offline native queue transitions, and foreground playback on the Android emulator. See [reader QA](READER-COMPASS-QA.md); physical-device and native iOS checks remain pending.
 - [x] Expand to twenty reciters with Saad Al-Ghamdi as the default and separate per-voice offline storage.
 - [x] Add a saved audio/tafsir download manager and playback failure/reconnection recovery.
+- [x] Add full-Quran downloads with cancellation, cached-ayah continuation and job-specific retry.
+- [x] Keep library navigation visible, merge global settings and add original floral opening-page frames.
 - [ ] Select licensed translations.
 - [ ] Verify Quran audio interruptions and lock-screen behavior on physical Android/iOS devices.
 

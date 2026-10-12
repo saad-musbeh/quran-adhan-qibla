@@ -30,3 +30,11 @@ Ten more distinct Hafs voices bring the catalogue to twenty. Saad Al-Ghamdi is t
 The primary EveryAyah catalogue, each new directory's coverage of all 6,236 canonical filenames, and first/last ayah HTTP responses were checked on 12 October 2026. The checked metadata is in `assets/quran/reciter-verification-2026-10-12.json`. This verifies source listing/endpoint availability, not the decoding or contents of every recording. No MP3 is bundled or published. Simulator test downloads are placed only in that simulator's private document directory and excluded from CI artifacts.
 
 Native playback failures include the current recording URI/time so retries resume the failed ayah, independent from download failures. A network reconnection gets one recovery attempt while playback is still requested. Explicit pause/stop, including supported system transport commands, cancels recovery. The download manager measures saved final ayah files across voices, identifies partial surahs, and supports continuation and confirmed removal. Selecting a download voice does not change the current playback voice.
+
+## 0.4.1 full Quran downloads
+
+Settings is now one page. **Manage downloads → Recitations → Download whole Quran** starts one sequential job across all 114 surahs for the selected download voice. A single job lock spans chapter boundaries, so another download or audio removal cannot overlap it. The job keeps its original voice even if playback/download selections change. Total progress counts processed ayahs; current-surah progress and completed surahs are also shown.
+
+Cached nonempty final ayah files are reused. Cancel/failure retains completed files and removes the active partial; retries of a full-Quran job cover the full remaining corpus, rather than stopping after its failed surah. Per-job partial filenames and progress guards isolate late callbacks. Keep the app open; completion after an app kill or automatic background restart is not implemented. Press the full-download button again after reopening to continue from saved files. No recording is added to the repo or release assets.
+
+Playback speed and loop editing remain in the player/reader. Settings uses a compact expandable reciter chooser rather than showing all voices and duplicate player controls at once.
