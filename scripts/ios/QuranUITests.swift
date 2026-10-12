@@ -61,7 +61,8 @@ final class QuranUITests: XCTestCase {
     app.buttons["open-book-2"].tap()
     revealReader()
     app.buttons["reader-audio-controls"].tap()
-    XCTAssertTrue(app.staticTexts["سعد الغامدي"].waitForExistence(timeout: 10))
+    let reciter = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "سعد الغامدي")).firstMatch
+    XCTAssertTrue(reciter.waitForExistence(timeout: 10))
     app.buttons["audio-play-pause"].tap()
     let status=app.staticTexts["audio-status"]
     let playing=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in ["Playing","جارٍ التشغيل"].contains(status.label) },object:status)
@@ -76,7 +77,8 @@ final class QuranUITests: XCTestCase {
     app.buttons["audio-next"].tap()
     app.buttons["audio-replay"].tap()
     app.buttons["audio-stop"].tap()
-    XCTAssertTrue(["Tap Play to listen","اختر تشغيل للاستماع"].contains(status.label))
+    let stopped = XCTNSPredicateExpectation(predicate: NSPredicate { _,_ in ["Tap Play to listen","اختر تشغيل للاستماع"].contains(status.label) }, object: status)
+    XCTAssertEqual(XCTWaiter.wait(for: [stopped], timeout: 5), .completed)
     app.terminate()
   }
 
