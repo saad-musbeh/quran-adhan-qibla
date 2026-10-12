@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use **`codex/test-0.4.0`** for the current test version. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged. The repository’s `main` branch is older.
+Use **`main`** for the current test version. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ If the developer directory is `/Library/Developer/CommandLineTools`, select the 
 ## Current source and development build
 
 ```sh
-git clone --branch codex/test-0.4.0 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
+git clone --branch main --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
 cd quran-adhan-qibla
 git log -1 --oneline
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -72,7 +72,7 @@ For a bundled device build, use `npx expo run:ios --device --configuration Relea
 
 ## Current status
 
-Version **0.4.2**, iOS build **12**, on `codex/test-0.4.0`. Android and iOS share the six-book reader, twenty reciters, Saad Al-Ghamdi default, download manager, playback recovery, themes and retained screen layers. Local iOS prayer notifications are implemented with a 29-second sound; no APNs entitlement is requested.
+Version **0.4.2**, iOS build **12**, on `main`. Android and iOS share the six-book reader, twenty reciters, Saad Al-Ghamdi default, download manager, playback recovery, themes and retained screen layers. Local iOS prayer notifications are implemented with a 29-second sound; no APNs entitlement is requested.
 
 The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated, so name/relaunch checks were not completed. Those two failures remain unresolved.
 

@@ -2,7 +2,7 @@ name: iOS native build
 
 on:
   push:
-    branches: [codex/reader-polish, codex/test-0.4.0]
+    branches: [main, codex/reader-polish, codex/test-0.4.0]
     paths-ignore: ['docs/**', '**/*.md']
   pull_request:
   workflow_dispatch:
