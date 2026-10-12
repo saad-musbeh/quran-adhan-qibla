@@ -11,6 +11,10 @@ class IslamicCoreModule : Module() {
   }
 
   private external fun nativeQiblaBearing(latitude: Double, longitude: Double): Double
+  private external fun nativeMagneticDeclination(latitude: Double, longitude: Double,
+    year: Int, month: Int, day: Int): Double
+  private external fun nativePrayerTime(latitude: Double, longitude: Double,
+    year: Int, month: Int, day: Int, flags: Int, prayer: Int): Double
 
   override fun definition() = ModuleDefinition {
     Name("IslamicCore")
@@ -19,6 +23,20 @@ class IslamicCoreModule : Module() {
       val bearing = nativeQiblaBearing(latitude, longitude)
       require(bearing.isFinite()) { "No valid Qibla bearing at these coordinates." }
       bearing
+    }
+
+    Function("magneticDeclination") { latitude: Double, longitude: Double,
+      year: Int, month: Int, day: Int ->
+      val declination = nativeMagneticDeclination(latitude, longitude, year, month, day)
+      if (declination.isFinite()) declination else null
+    }
+
+    Function("prayerTimes") { latitude: Double, longitude: Double, year: Int, month: Int, day: Int, flags: Int ->
+      (0..5).map { prayer ->
+        val time = nativePrayerTime(latitude, longitude, year, month, day, flags, prayer)
+        require(time.isFinite()) { "Prayer times are unavailable for this location or date." }
+        time
+      }
     }
   }
 }

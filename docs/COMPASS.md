@@ -1,0 +1,19 @@
+# Live compass behavior
+
+The Qibla screen has two gear-controlled modes: a live, phone-relative compass and a fixed true-north guide. The illustrated scene never uses the camera. The fixed guide is drawn from the Qibla bearing alone; the live guide rotates by `Qibla bearing − device true heading` and uses the shortest signed angle so turns stay smooth across north.
+
+Live heading starts only when the Qibla page is active, the app is foregrounded, live mode is selected, and the selected location came from the device. The hook checks the existing foreground permission but never requests permission. It removes the subscription when the page becomes inactive, live mode is disabled, permission is missing, the app backgrounds, or the sensor reports an error. Each new foreground session starts a fresh subscription. If no first sample arrives within eight seconds, the fixed guide and a short rotate/hold-flat hint appear while the heading subscription stays active. A later valid sample can switch back to the live guide without leaving the page.
+
+The live guide prefers a valid `trueHeading`. If the platform supplies only `magHeading`, the app corrects it with local magnetic declination from offline NOAA WMM2025 at the selected device coordinates. It rejects dates outside 2025–2029 and locations in WMM's compass blackout zone. Expo documents `accuracy` as a calibration tier from 0 to 3; this app accepts only tier 3, the highest tier, before showing a live direction or “facing Qibla” message. Missing coordinates, expired model dates, lower calibration, missing permission, or sensor failure leave the fixed true-north guide visible with a reason in the UI. The app does not claim live alignment while using that fallback.
+
+The live compass runs only for a device-origin location. On Android, Expo’s heading implementation reads a last-known GPS/network fix and requests one high-accuracy fix if none is cached. The app starts the heading watch only after a device location was selected, and it does not run a separate location polling loop. If the operating system no longer has a cached fix, Expo may still perform that bounded one-shot request. On iOS, Expo starts Core Location heading updates; Apple documents that true heading is valid only when the location manager also has location updates and returns a negative value when it cannot determine true north. In that case, the WMM correction provides true north from the calibrated magnetic sample without starting a GPS request or stream.
+
+The bundled Rust `world_magnetic_model` implementation exposes NOAA WMM2025 field calculations. The crate is dual-licensed MIT/Apache-2.0; NOAA's model data and software are public domain. See the third-party notices for attribution.
+
+This watch is not a heartbeat: platform heading streams may emit only when orientation changes. The eight-second timeout changes the display to its fixed guide, but does not stop the watch; a later valid sample can restore the live guide. Leaving the Qibla page, changing out of live mode, or backgrounding the app clears the sample and stops the subscription. The subscription is also stopped on a sensor-reported error.
+
+References:
+
+- [Expo Location, SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/location/): `watchHeadingAsync`, heading fields, calibration tiers, and permission APIs.
+- [Apple `CLHeading`](https://developer.apple.com/documentation/corelocation/clheading): true and magnetic headings; true heading needs location updates.
+- [Android position sensors](https://developer.android.com/develop/sensors-and-location/sensors/sensors_position): device orientation and geomagnetic sensor concepts.

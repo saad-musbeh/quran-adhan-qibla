@@ -1,9 +1,19 @@
 {
-  "platforms": ["android", "apple"],
+  "platforms": [
+    "android",
+    "apple"
+  ],
   "apple": {
-    "modules": ["IslamicCoreModule"]
+    "modules": [
+      "IslamicCoreModule",
+      "QuranAudioControlsModule"
+    ]
   },
   "android": {
-    "modules": ["expo.modules.islamiccore.IslamicCoreModule"]
+    "modules": [
+      "expo.modules.islamiccore.IslamicCoreModule",
+      "expo.modules.islamiccore.QuranAudioControlsModule",
+      "expo.modules.islamiccore.PrayerNotificationPermissionsModule"
+    ]
   }
 }

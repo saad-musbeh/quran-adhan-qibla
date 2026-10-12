@@ -11,4 +11,4 @@ repository = "https://github.com/saad-musbeh/quran-adhan-qibla"
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+panic = "unwind"

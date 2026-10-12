@@ -2,7 +2,7 @@
   "expo": {
     "name": "Quran Adhan Qibla",
     "slug": "quran-adhan-qibla",
-    "version": "0.1.0",
+    "version": "0.4.2",
     "scheme": "quranadhanqibla",
     "platforms": [
       "ios",
@@ -13,17 +13,19 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "org.saadmusbeh.quranadhanqibla"
+      "bundleIdentifier": "org.saadmusbeh.quranadhanqibla",
+      "icon": "./assets/branding/android-icon-v1.png",
+      "buildNumber": "12"
     },
     "android": {
       "package": "org.saadmusbeh.quranadhanqibla",
+      "versionCode": 12,
       "adaptiveIcon": {
-        "backgroundColor": "#102A25",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#1A3D2E",
+        "foregroundImage": "./assets/branding/android-icon-v1.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "icon": "./assets/branding/android-icon-v1.png"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,11 +34,56 @@
       [
         "expo-build-properties",
         {
+          "ios": {
+            "usePrecompiledModules": false,
+            "enableSceneSupport": true
+          },
           "android": {
-            "buildArchs": ["arm64-v8a", "x86_64"]
+            "buildArchs": [
+              "arm64-v8a",
+              "x86_64"
+            ]
           }
         }
-      ]
-    ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "نستخدم موقعك أثناء استخدام التطبيق لحساب اتجاه القبلة ومواقيت الصلاة. Your location is used for Qibla and prayer times while using the app.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-font",
+      "expo-asset",
+      "./plugins/withLocalNotificationsOnly.cjs",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/adhan/adhan.ogg",
+            "./assets/adhan/adhan_short.wav"
+          ],
+          "enableBackgroundRemoteNotifications": false,
+          "icon": "./assets/branding/notification-icon.png",
+          "color": "#D6BA7A"
+        }
+      ],
+      "./plugins/withPrayerExactAlarm.cjs"
+    ],
+    "backgroundColor": "#14293C"
   }
 }

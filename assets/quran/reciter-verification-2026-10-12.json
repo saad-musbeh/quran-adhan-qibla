@@ -1,0 +1,277 @@
+{
+  "checked": "2026-10-12",
+  "catalogue": "https://everyayah.com/data/recitations.js",
+  "catalogueSha256": "cde8cc62f7a6d830bd61934d279d8c4ab890d9db440087d1db51a9bd55864ee6",
+  "checks": [
+    {
+      "reciter": {
+        "subfolder": "Ghamadi_40kbps",
+        "name": "Ghamadi",
+        "bitrate": "40kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Ghamadi_40kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "27426"
+        },
+        {
+          "url": "https://everyayah.com/data/Ghamadi_40kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "31475"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Ghamadi_40kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "97fb69d60f89f672262bba0338573e46b81abbc23f1350374bdb154768546f4a"
+      }
+    },
+    {
+      "reciter": {
+        "subfolder": "Fares_Abbad_64kbps",
+        "name": "Fares Abbad",
+        "bitrate": "64kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Fares_Abbad_64kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "48458"
+        },
+        {
+          "url": "https://everyayah.com/data/Fares_Abbad_64kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "40047"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Fares_Abbad_64kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "71f57628b1214e4ad14870da84749e0eb297485c6a21a244a25a6f531d6e7f2c"
+      }
+    },
+    {
+      "reciter": {
+        "subfolder": "Yasser_Ad-Dussary_128kbps",
+        "name": "Yasser_Ad-Dussary",
+        "bitrate": "128kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Yasser_Ad-Dussary_128kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "55424"
+        },
+        {
+          "url": "https://everyayah.com/data/Yasser_Ad-Dussary_128kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "102400"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Yasser_Ad-Dussary_128kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "ff88ab643de537e66ba1ed3f7f3990ca1f1ab03d6c0a870611158cde9af78a13"
+      }
+    },
+    {
+      "reciter": {
+        "subfolder": "Nasser_Alqatami_128kbps",
+        "name": "Nasser_Alqatami",
+        "bitrate": "128kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Nasser_Alqatami_128kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "40960"
+        },
+        {
+          "url": "https://everyayah.com/data/Nasser_Alqatami_128kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "141312"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Nasser_Alqatami_128kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "8400235a34f3a366708ef3fb259f8e06b81db9f4ce2a96a6b826e74632a4bf94"
+      }
+    },
+    {
+      "reciter": {
+        "subfolder": "Muhsin_Al_Qasim_192kbps",
+        "name": "Muhsin Al Qasim",
+        "bitrate": "192kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Muhsin_Al_Qasim_192kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "97011"
+        },
+        {
+          "url": "https://everyayah.com/data/Muhsin_Al_Qasim_192kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "106415"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Muhsin_Al_Qasim_192kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "884395183d8e16a603194148911be730825f0f03ad12964fcaf3de1ddbe70d98"
+      }
+    },
+    {
+      "reciter": {
+        "subfolder": "Salah_Al_Budair_128kbps",
+        "name": "Salah Al Budair",
+        "bitrate": "128kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Salah_Al_Budair_128kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "50470"
+        },
+        {
+          "url": "https://everyayah.com/data/Salah_Al_Budair_128kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "83968"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Salah_Al_Budair_128kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "0de1870838bc46596c07cf299838892fb91361693c194fd1c9caa18b1b9b087e"
+      }
+    },
+    {
+      "reciter": {
+        "subfolder": "Hani_Rifai_192kbps",
+        "name": "Hani Rifai",
+        "bitrate": "192kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Hani_Rifai_192kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "107335"
+        },
+        {
+          "url": "https://everyayah.com/data/Hani_Rifai_192kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "162506"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Hani_Rifai_192kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "4fab06e531ee327463695aa5e8819846aa364d29bad94bbdaca9759d32900d58"
+      }
+    },
+    {
+      "reciter": {
+        "subfolder": "Muhammad_Jibreel_128kbps",
+        "name": "Muhammad Jibreel",
+        "bitrate": "128kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Muhammad_Jibreel_128kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "80228"
+        },
+        {
+          "url": "https://everyayah.com/data/Muhammad_Jibreel_128kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "85718"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Muhammad_Jibreel_128kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "f9600eb5140a428a56357d0d461858a989f02d9be8c60e341666dc4feddf1d51"
+      }
+    },
+    {
+      "reciter": {
+        "subfolder": "Ali_Jaber_64kbps",
+        "name": "Ali Jaber",
+        "bitrate": "64kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Ali_Jaber_64kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "105953"
+        },
+        {
+          "url": "https://everyayah.com/data/Ali_Jaber_64kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "76278"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Ali_Jaber_64kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "b45cdfba08d9a813a7c7400ae56c0cd8d3d79dec817692bc1769d3418ac20c95"
+      }
+    },
+    {
+      "reciter": {
+        "subfolder": "Abu_Bakr_Ash-Shaatree_128kbps",
+        "name": "Abu Bakr Ash-Shaatree",
+        "bitrate": "128kbps"
+      },
+      "samples": [
+        {
+          "url": "https://everyayah.com/data/Abu_Bakr_Ash-Shaatree_128kbps/001001.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "104200"
+        },
+        {
+          "url": "https://everyayah.com/data/Abu_Bakr_Ash-Shaatree_128kbps/114006.mp3",
+          "status": 200,
+          "mime": "audio/mpeg",
+          "bytes": "81212"
+        }
+      ],
+      "index": {
+        "url": "https://everyayah.com/data/Abu_Bakr_Ash-Shaatree_128kbps/",
+        "listedCanonicalAyahs": 6236,
+        "missingCanonicalAyahs": 0,
+        "indexSha256": "85d63e292c6b976c01f3fda3bda3ffeebcf7357f0c2b0539ab5227d3e990b5b1"
+      }
+    }
+  ]
+}

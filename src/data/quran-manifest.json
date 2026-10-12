@@ -1,0 +1,13 @@
+{
+  "textSource": "Tanzil Uthmani Quran text 1.1 (published February 2021)",
+  "metadataSource": "Tanzil Quran metadata 1.0",
+  "retrieved": "2026-10-11",
+  "textUrl": "https://tanzil.net/pub/download/index.php?quranType=uthmani&outType=xml&agree=true&marks=true&sajdah=true&rub=false&tatweel=true&stanween=false",
+  "metadataUrl": "https://tanzil.net/res/text/metadata/quran-data.xml",
+  "textSha256": "af9311c521b5dadab01ea1ef259c281ffa83cf224bad24ee89469ce1c3c72916",
+  "metadataSha256": "8867c1d88191472adec9db694b3cd9f135b1a2ef580574d32cf888dcb22c5c7a",
+  "surahCount": 114,
+  "verseCount": 6236,
+  "copyright": "Tanzil Quran Text\nCopyright (C) 2007-2021 Tanzil Project\nLicense: Creative Commons Attribution 3.0\n\nThis copy of the Quran text is carefully produced, highly verified and continuously monitored by a group of specialists in Tanzil Project.\n\nTERMS OF USE:\n\n- Permission is granted to copy and distribute verbatim copies of this text, but CHANGING IT IS NOT ALLOWED.\n\n- This Quran text can be used in any website or application, provided that its source (Tanzil Project) is clearly indicated, and a link is made to tanzil.net to enable users to keep track of changes.\n\n- This copyright notice shall be included in all verbatim copies of the text, and shall be reproduced appropriately in all files derived from or containing substantial portion of this text.\n\nPlease check updates at: http://tanzil.net/updates/",
+  "licenseNotice": "Tanzil Quran Text\nCopyright (C) 2007-2021 Tanzil Project\nLicense: Creative Commons Attribution 3.0\n\nThis copy of the Quran text is carefully produced, highly verified and continuously monitored by a group of specialists in Tanzil Project.\n\nTERMS OF USE:\n\n- Permission is granted to copy and distribute verbatim copies of this text, but CHANGING IT IS NOT ALLOWED.\n\n- This Quran text can be used in any website or application, provided that its source (Tanzil Project) is clearly indicated, and a link is made to tanzil.net to enable users to keep track of changes.\n\n- This copyright notice shall be included in all verbatim copies of the text, and shall be reproduced appropriately in all files derived from or containing substantial portion of this text.\n\nPlease check updates at: http://tanzil.net/updates/"
+}

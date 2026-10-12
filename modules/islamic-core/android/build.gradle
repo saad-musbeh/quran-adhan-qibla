@@ -8,9 +8,21 @@ version = '0.1.0'
 
 android {
   namespace "expo.modules.islamiccore"
+  sourceSets.main.assets.srcDirs += file('../assets')
   defaultConfig {
     versionCode 1
     versionName "0.1.0"
     consumerProguardFiles 'consumer-rules.pro'
   }
+}
+
+repositories {
+  maven { url "$rootDir/../node_modules/expo-audio/local-maven-repo" }
+}
+
+dependencies {
+  implementation 'expo.modules.audio:expo.modules.audio:57.0.5'
+  def androidxMedia3Version = "1.9.0"
+  implementation "androidx.media3:media3-session:$androidxMedia3Version"
+  implementation "androidx.media3:media3-exoplayer:$androidxMedia3Version"
 }

@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name           = 'IslamicCore'
   s.version        = '0.1.0'
-  s.summary        = 'Rust Qibla calculations for React Native'
+  s.summary        = 'Rust Qibla and prayer calculations for React Native'
   s.description    = 'A local Expo module bridging the shared Rust core to iOS.'
   s.author         = 'saad-musbeh'
   s.homepage       = 'https://github.com/saad-musbeh/quran-adhan-qibla'
@@ -11,8 +11,10 @@ Pod::Spec.new do |s|
   }
   s.source         = { :git => 'https://github.com/saad-musbeh/quran-adhan-qibla.git' }
   s.static_framework = true
+  s.swift_version = '5.9'
 
   s.dependency 'ExpoModulesCore'
+  s.dependency 'ExpoAudio'
 
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {
@@ -20,5 +22,6 @@ Pod::Spec.new do |s|
   }
 
   s.source_files = '*.{h,m,mm,swift}'
+  s.resources = '../assets/third-party-notices.txt'
   s.vendored_frameworks = 'Frameworks/IslamicCoreFFI.xcframework'
 end

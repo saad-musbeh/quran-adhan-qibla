@@ -3,6 +3,9 @@
 
 use std::fmt;
 
+pub mod geomagnetic;
+pub mod prayer_times;
+
 // Kaaba reference coordinates also used by the Adhan library.
 // https://github.com/batoulapps/adhan-js/blob/master/src/Qibla.ts
 pub const KAABA_LATITUDE: f64 = 21.422_524_1;
@@ -62,6 +65,20 @@ pub extern "C" fn islamic_core_qibla_bearing(latitude: f64, longitude: f64) -> f
     qibla_bearing(latitude, longitude).unwrap_or(f64::NAN)
 }
 
+/// Magnetic declination (degrees, east-positive) from NOAA WMM2025.
+/// Returns NaN outside the model's 2025–2029 validity dates, for invalid
+/// coordinates/dates, or inside the WMM compass blackout zone.
+#[no_mangle]
+pub extern "C" fn islamic_core_magnetic_declination(
+    latitude: f64,
+    longitude: f64,
+    year: i32,
+    month: i32,
+    day: i32,
+) -> f64 {
+    geomagnetic::magnetic_declination(latitude, longitude, year, month, day).unwrap_or(f64::NAN)
+}
+
 /// JNI entry point for the Kotlin Expo module. No JNI object access is needed.
 #[cfg(target_os = "android")]
 #[no_mangle]
@@ -72,6 +89,21 @@ pub extern "system" fn Java_expo_modules_islamiccore_IslamicCoreModule_nativeQib
     longitude: f64,
 ) -> f64 {
     islamic_core_qibla_bearing(latitude, longitude)
+}
+
+/// JNI entry point for the Kotlin Expo module. NaN signals no reliable WMM value.
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "system" fn Java_expo_modules_islamiccore_IslamicCoreModule_nativeMagneticDeclination(
+    _env: *mut std::ffi::c_void,
+    _receiver: *mut std::ffi::c_void,
+    latitude: f64,
+    longitude: f64,
+    year: i32,
+    month: i32,
+    day: i32,
+) -> f64 {
+    islamic_core_magnetic_declination(latitude, longitude, year, month, day)
 }
 
 #[cfg(test)]
