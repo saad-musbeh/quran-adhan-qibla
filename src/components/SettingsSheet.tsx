@@ -38,10 +38,10 @@ export function SettingsSheet({ language, visible, section, onSectionChange, onC
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
     <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={[styles.header, rtl && styles.reverse]}><Text style={styles.title}>{t.settings}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={c.close} onPress={onClose} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable>
+        <Pressable accessibilityRole="button" testID="settings-close" accessibilityLabel={c.close} onPress={onClose} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable>
       </View>
       <View style={[styles.sections, rtl && styles.reverse]}>{(['quran', 'adhan', 'qibla'] as const).map(value =>
-        <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: section === value }} onPress={() => onSectionChange(value)}
+        <Pressable key={value} testID={`settings-${value}`} accessibilityRole="tab" accessibilityState={{ selected: section === value }} onPress={() => onSectionChange(value)}
           style={[styles.section, section === value && styles.selected]}><Text style={styles.choiceText}>{t[value]}</Text></Pressable>)}</View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <QuranThemePicker visible={themePickerVisible} language={language} themeId={themeId} onChoose={setThemeId} onClose={() => setThemePickerVisible(false)} />

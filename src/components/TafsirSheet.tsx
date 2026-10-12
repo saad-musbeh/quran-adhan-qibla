@@ -31,8 +31,8 @@ export function TafsirSheet({ library, verseKey, language, dark, quranFontLoaded
   return <Modal visible={Boolean(verse)} transparent animationType="fade" onRequestClose={onClose}>
     <View style={[styles.overlay, { paddingTop: Math.max(insets.top, 20), paddingBottom: insets.bottom }]}>
       <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={c.close} onPress={onClose}/>
-      <View accessibilityViewIsModal style={[styles.sheet, { backgroundColor: paper, borderColor: dark ? '#45637A' : '#D2DDE3' }]}>
-        <View style={[styles.header,{backgroundColor:catalogue?headerPaper:paper,borderColor:dark?'#45637A':'#D2DDE3'}]}>
+      <View accessibilityViewIsModal style={[styles.sheet, { backgroundColor: paper, borderColor: colors.accent }]}>
+        <View style={[styles.header,{backgroundColor:catalogue?headerPaper:paper,borderColor:colors.accent}]}>
           <Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={c.close} onPress={onClose}><Ionicons name="close" size={24} color={ink}/></Pressable>
           <View style={styles.titleGroup}><Text accessibilityRole="header" style={[styles.title,{color:ink},catalogue&&{textAlign:ar?'right':'left',writingDirection:ar?'rtl':'ltr'}]}>{catalogue?c.books:book?.title}</Text><Text style={[styles.reference,{color:ink}]}>{getSurah(surah)?.arabicName} · {String(ayah).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[Number(d)])}</Text></View>
           <Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={catalogue?c.back:c.books} disabled={catalogue&&!tafsir} onPress={()=>setShowBooks(!catalogue)}><Ionicons name={catalogue?'document-text-outline':'library-outline'} size={23} color={ink}/></Pressable>
@@ -43,7 +43,7 @@ export function TafsirSheet({ library, verseKey, language, dark, quranFontLoaded
           {library.books.map(item=>{
             const saved=library.downloadedIds.includes(item.id), loading=library.isDownloading===item.id, selected=library.selectedId===item.id;
             const label=`${loading?c.cancel:saved?c.saved:c.download}: ${item.title}`;
-            return <View key={item.id} style={[styles.bookRow,{borderColor:dark?'#45637A':'#D2DDE3'},selected&&{backgroundColor:selectedPaper}]}>
+            return <View key={item.id} style={[styles.bookRow,{borderColor:colors.accent},selected&&{backgroundColor:selectedPaper}]}>
               <View style={styles.statusColumn}>
                 <Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{selected:saved,disabled:!library.ready||Boolean(library.isDownloading&&!loading)}} disabled={!library.ready||Boolean(library.isDownloading&&!loading)} onPress={()=>{if(loading){choiceRevision.current+=1;setPendingBook(null);library.cancelDownload()}else void choose(item.id)}}><Ionicons name={loading?'close-circle-outline':saved?'checkmark-circle-outline':'arrow-down-circle-outline'} size={32} color="#BD8744"/></Pressable>
                 {loading?<Text style={[styles.progress,{color:ink}]}>{library.progress}%</Text>:saved?<Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={`${c.remove}: ${item.title}`} onPress={()=>{setPendingBook(null);void library.deleteBook(item.id).catch(()=>setRemoveError(true))}}><Ionicons name="trash-outline" size={18} color={ink}/></Pressable>:null}

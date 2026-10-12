@@ -118,8 +118,9 @@ export function MushafPageView(props: Props) {
       } else if(data.type==='swipe'&&(data.delta===1||data.delta===-1))current.onPageSwipe(data.delta);
     } catch { /* Ignore malformed or stale reader messages. */ }
   };
-  return <View style={styles.root}>
-    {html ? <WebView key={attempt} ref={web} source={{html}} originWhitelist={['about:blank']} onShouldStartLoadWithRequest={r=>r.url==='about:blank'} onMessage={message} onLoadEnd={()=>web.current?.injectJavaScript(`requestAnimationFrame(()=>window.zoomPage(${latest.current.zoom??1}));true;`)} style={[styles.web,{backgroundColor:props.dark?(props.theme?.deep??'#14293C'):(props.theme?.lightPaper??'#FAF7EF')}]} scrollEnabled={(props.zoom??1)>1} bounces={false} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} allowFileAccess={false} allowFileAccessFromFileURLs={false} allowUniversalAccessFromFileURLs={false} setSupportMultipleWindows={false} onError={()=>setError(true)}/> : !error && <ActivityIndicator style={styles.loading} color="#BD8744"/>}
+  const paper = props.dark ? (props.theme?.deep ?? '#14293C') : (props.theme?.lightPaper ?? '#FAF7EF');
+  return <View style={[styles.root,{backgroundColor:paper}]}>
+    {html ? <WebView testID="mushaf-page" key={attempt} ref={web} source={{html}} originWhitelist={['about:blank']} onShouldStartLoadWithRequest={r=>r.url==='about:blank'} onMessage={message} onLoadEnd={()=>web.current?.injectJavaScript(`requestAnimationFrame(()=>window.zoomPage(${latest.current.zoom??1}));true;`)} style={[styles.web,{backgroundColor:props.dark?(props.theme?.deep??'#14293C'):(props.theme?.lightPaper??'#FAF7EF')}]} scrollEnabled={(props.zoom??1)>1} bounces={false} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} allowFileAccess={false} allowFileAccessFromFileURLs={false} allowUniversalAccessFromFileURLs={false} setSupportMultipleWindows={false} onError={()=>setError(true)}/> : !error && <ActivityIndicator style={styles.loading} color="#BD8744"/>}
     {error && <Pressable accessibilityRole="button" onPress={()=>setAttempt(v=>v+1)} style={styles.retry}><Text style={styles.retryText}>{bilingual(props.language, 'تعذر فتح الصفحة. إعادة المحاولة', 'Could not open this page. Retry')}</Text></Pressable>}
   </View>;
 }

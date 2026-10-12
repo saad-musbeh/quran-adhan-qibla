@@ -10,6 +10,7 @@ import {
   type AudioRange as DomainAudioRange,
 } from './domain/quran-audio';
 import { findQuranQueuePosition, initialQuranQueue, nextQuranQueueChapter, type QuranQueuePosition } from './domain/quran-audio-queue';
+import { summarizeAudioDownload, type AudioDownload } from './domain/audio-downloads';
 import { quranAudioControls } from './quran-audio-controls';
 
 import { RECITERS, emptyReciterDownloads, type ReciterId } from './data/reciters';
@@ -28,6 +29,10 @@ export type QuranAudioController = {
   downloadError: string | null;
   downloadedSurahs: number[];
   isDownloading: number | null;
+  downloadingReciter: ReciterId | null;
+  savedAudio: AudioDownload[];
+  refreshDownloads(): Promise<void>;
+  removeSavedAudio(items: readonly AudioDownload[]): Promise<void>;
   downloadProgress: number;
   isCurrentSurahDownloaded: boolean;
   isOnline: boolean;
@@ -43,10 +48,12 @@ export type QuranAudioController = {
   setReciter(id: ReciterId): void;
   setPlaybackRate(rate: number): void;
   setRepeatRange(range: AudioRange | null): void;
-  downloadSurah(surah: number): Promise<void>;
+  downloadSurah(surah: number, reciter?: ReciterId): Promise<void>;
   cancelDownload(): void;
   deleteSurahDownload(surah: number): Promise<void>;
   retry(): Promise<void>;
+  retryPlayback(): Promise<void>;
+  retryDownload(): Promise<void>;
 };
 
 const PREFERENCES_KEY = 'quran-audio-preferences-v1';
@@ -98,6 +105,8 @@ export function useQuranAudio(): QuranAudioController {
   const [error, setError] = useState<string | null>(null);
   const [downloadsByReciter, setDownloadsByReciter] = useState<Record<ReciterId, number[]>>(emptyReciterDownloads);
   const [isDownloading, setIsDownloading] = useState<number | null>(null);
+  const [downloadingReciter, setDownloadingReciter] = useState<ReciterId | null>(null);
+  const [savedAudio, setSavedAudio] = useState<AudioDownload[]>([]);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -110,15 +119,23 @@ export function useQuranAudio(): QuranAudioController {
   const temporaryDownloadRef = useRef<string | null>(null);
   const downloadCanceledRef = useRef(false);
   const failedDownloadRef = useRef<number | null>(null);
+  const failedDownloadReciter = useRef<ReciterId | null>(null);
   const generationRef = useRef(0);
   const mountedRef = useRef(false);
   const onlineRef = useRef(true);
   const downloadingRef = useRef(false);
+  const inventoryRevision = useRef(0);
   const queuePositionsRef = useRef<QuranQueuePosition[]>([]);
   const queueTitlesRef = useRef<string[]>([]);
   const queueLoadingRef = useRef(false);
   const refillForRef = useRef<string | null>(null);
   const attachedPlaylistRef = useRef(false);
+  const wantsPlayback = useRef(false);
+  const recoverOnConnection = useRef(false);
+  const resumeTime = useRef(0);
+  const currentTimeRef = useRef(0);
+  currentTimeRef.current = playerStatus.currentTime;
+  const playRequest = useRef<(position: QuranQueuePosition, autoplay?: boolean, resumeAt?: number) => Promise<void>>(async () => {});
   currentRef.current = current;
   statusRef.current = status;
   reciterRef.current = reciter;
@@ -157,8 +174,13 @@ export function useQuranAudio(): QuranAudioController {
     });
     const networkSubscription = addNetworkStateListener((network) => {
       const reachable = network.isConnected !== false && network.isInternetReachable !== false;
+      const reconnected = !onlineRef.current && reachable;
       onlineRef.current = reachable;
       if (mountedRef.current) setIsOnline(reachable);
+      if (reconnected && recoverOnConnection.current && wantsPlayback.current && currentRef.current) {
+        recoverOnConnection.current = false;
+        void playRequest.current(currentRef.current, true, resumeTime.current);
+      }
     });
     return () => {
       subscription.remove();
@@ -230,9 +252,12 @@ export function useQuranAudio(): QuranAudioController {
     return sources;
   }, []);
 
-  const playPosition = useCallback(async (position: QuranQueuePosition, autoplay = true) => {
+  const playPosition = useCallback(async (position: QuranQueuePosition, autoplay = true, resumeAt = 0) => {
     if (!getVerse(position.surah, position.verse)) return;
     const generation = ++generationRef.current;
+    wantsPlayback.current = autoplay;
+    resumeTime.current = resumeAt;
+    recoverOnConnection.current = false;
     const activeReciter = reciterRef.current;
     const requestedLocal = localUri(activeReciter, position.surah, position.verse);
     currentRef.current = position;
@@ -268,6 +293,8 @@ export function useQuranAudio(): QuranAudioController {
       if (startIndex >= 0) playlist.skipTo(startIndex);
       quranAudioControls.updatePlaybackRate(rateRef.current);
       quranAudioControls.updateMetadata(titleFor(position), activeReciter);
+      if (resumeAt > 0) await playlist.seekTo(resumeAt);
+      if (generation !== generationRef.current || !mountedRef.current) return;
       queueLoadingRef.current = false;
       if (autoplay) {
         playlist.play();
@@ -277,11 +304,28 @@ export function useQuranAudio(): QuranAudioController {
       if (generation !== generationRef.current || !mountedRef.current) return;
       queueLoadingRef.current = false;
       const message = cause instanceof Error ? cause.message : 'Unable to play this recitation.';
-      console.warn('Quran audio could not start:', message);
+      recoverOnConnection.current = autoplay && (!onlineRef.current || /offline|connection|network|timed out/i.test(message));
       setError(message);
       setStatus('error');
     }
   }, [playlist, resolveSources, titleFor]);
+
+  playRequest.current = playPosition;
+
+  useEffect(() => {
+    const subscription = quranAudioControls.addPlaybackErrorListener(message => {
+      if (!currentRef.current || !mountedRef.current) return;
+      resumeTime.current = Math.max(0, currentTimeRef.current);
+      generationRef.current += 1;
+      queueLoadingRef.current = false;
+      refillForRef.current = null;
+      recoverOnConnection.current = wantsPlayback.current && (!onlineRef.current || /network|connection|timed out|offline/i.test(message));
+      playlist.pause();
+      setError(message);
+      setStatus('error');
+    });
+    return () => subscription.remove();
+  }, [playlist]);
 
   useEffect(() => {
     if (!currentRef.current || queueLoadingRef.current || playerStatus.trackCount !== queuePositionsRef.current.length) return;
@@ -296,7 +340,7 @@ export function useQuranAudio(): QuranAudioController {
 
   useEffect(() => {
     const statusError = (playerStatus as typeof playerStatus & { error?: { message?: string } | string }).error;
-    if (statusError) {
+    if (statusError && currentRef.current) {
       setError(typeof statusError === 'string' ? statusError : statusError.message ?? 'The audio player could not load this ayah.');
       setStatus('error');
       return;
@@ -311,7 +355,7 @@ export function useQuranAudio(): QuranAudioController {
       return;
     }
     if (playerStatus.isBuffering) setStatus(previous => previous === 'paused' || previous === 'idle' || previous === 'error' ? previous : 'loading');
-    else if (playerStatus.playing) setStatus(previous => previous === 'idle' || previous === 'error' ? previous : 'playing');
+    else if (playerStatus.playing && wantsPlayback.current) setStatus(previous => previous === 'idle' || previous === 'error' ? previous : 'playing');
     else if (playerStatus.isLoaded && statusRef.current === 'playing') setStatus('paused');
   }, [playerStatus, playlist]);
 
@@ -348,10 +392,13 @@ export function useQuranAudio(): QuranAudioController {
   useEffect(() => {
     const subscription = quranAudioControls.addRemoteCommandListener((command, nativeHandled) => {
       if (command === 'play') {
+        wantsPlayback.current = true;
         if (nativeHandled) setStatus('playing');
         else if (queuePositionsRef.current.length) playlist.play();
         else void playPosition(currentRef.current ?? { surah: 1, verse: 1 });
       } else if (command === 'pause') {
+        wantsPlayback.current = false;
+        recoverOnConnection.current = false;
         if (nativeHandled) setStatus('paused');
         else playlist.pause();
       }
@@ -371,6 +418,8 @@ export function useQuranAudio(): QuranAudioController {
     const timeout = setTimeout(() => {
       generationRef.current += 1;
       queueLoadingRef.current = false;
+      resumeTime.current = Math.max(0, currentTimeRef.current);
+      recoverOnConnection.current = wantsPlayback.current;
       setError('Audio did not load. Check your connection and retry.');
       setStatus('error');
       playlist.pause();
@@ -398,6 +447,8 @@ export function useQuranAudio(): QuranAudioController {
   }, [playPosition]);
 
   const pause = useCallback(() => {
+    wantsPlayback.current = false;
+    recoverOnConnection.current = false;
     generationRef.current += 1;
     queueLoadingRef.current = false;
     refillForRef.current = null;
@@ -406,11 +457,15 @@ export function useQuranAudio(): QuranAudioController {
   }, [playlist]);
 
   const stop = useCallback(() => {
+    wantsPlayback.current = false;
+    recoverOnConnection.current = false;
+    resumeTime.current = 0;
     generationRef.current += 1;
     queueLoadingRef.current = false;
     refillForRef.current = null;
     playlist.pause();
-    void playlist.seekTo(0).catch(() => undefined);
+    playlist.loop = 'none';
+    playlist.clear();
     quranAudioControls.detach();
     attachedPlaylistRef.current = false;
     currentRef.current = null;
@@ -427,6 +482,7 @@ export function useQuranAudio(): QuranAudioController {
       return;
     }
     if (currentRef.current && queuePositionsRef.current.length && playerStatus.isLoaded) {
+      wantsPlayback.current = true;
       setError(null);
       playlist.play();
       setStatus('loading');
@@ -435,6 +491,8 @@ export function useQuranAudio(): QuranAudioController {
   }, [pause, playPosition, playlist, playerStatus.isLoaded, status]);
 
   const seekToPosition = useCallback(async (position: QuranQueuePosition) => {
+    wantsPlayback.current = true;
+    recoverOnConnection.current = false;
     const index = findQuranQueuePosition(queuePositionsRef.current, position);
     if (index >= 0 && queuePositionsRef.current.length > index) {
       generationRef.current += 1;
@@ -450,6 +508,8 @@ export function useQuranAudio(): QuranAudioController {
   }, [playlist, playPosition, titleFor]);
 
   const replayVerse = useCallback(async () => {
+    wantsPlayback.current = true;
+    recoverOnConnection.current = false;
     const position = currentRef.current;
     if (!position) return;
     if (queuePositionsRef.current.length && playerStatus.isLoaded) {
@@ -511,15 +571,17 @@ export function useQuranAudio(): QuranAudioController {
     } else if (current) void playPosition(current, statusRef.current === 'playing' || statusRef.current === 'loading');
   }, [playPosition]);
 
-  const downloadSurah = useCallback(async (surah: number) => {
+  const downloadSurah = useCallback(async (surah: number, selectedReciter?: ReciterId) => {
     const chapter = getSurah(surah);
     if (!chapter || downloadingRef.current) return;
+    inventoryRevision.current++;
     downloadCanceledRef.current = false;
     setDownloadError(null);
     downloadingRef.current = true;
     setIsDownloading(surah);
     setDownloadProgress(0);
-    const activeReciter = reciterRef.current;
+    const activeReciter = selectedReciter ?? reciterRef.current;
+    setDownloadingReciter(activeReciter);
     const base = surahUri(activeReciter, surah);
     try {
       await FileSystem.makeDirectoryAsync(base, { intermediates: true });
@@ -582,6 +644,7 @@ export function useQuranAudio(): QuranAudioController {
       if (!downloadCanceledRef.current && mountedRef.current) {
         const message = cause instanceof Error ? cause.message : 'Download failed. Retry to continue from saved verses.';
         failedDownloadRef.current = surah;
+        failedDownloadReciter.current = activeReciter;
         setDownloadError(message);
       } else {
         if (temporaryDownloadRef.current) await FileSystem.deleteAsync(temporaryDownloadRef.current, { idempotent: true }).catch(() => undefined);
@@ -591,7 +654,7 @@ export function useQuranAudio(): QuranAudioController {
       downloadTaskRef.current = null;
       temporaryDownloadRef.current = null;
       downloadingRef.current = false;
-      if (mountedRef.current) setIsDownloading(null);
+      if (mountedRef.current) { setIsDownloading(null); setDownloadingReciter(null); }
     }
   }, []);
 
@@ -601,28 +664,59 @@ export function useQuranAudio(): QuranAudioController {
     setDownloadError(null);
   }, []);
 
+  const removeSavedAudio = useCallback(async (items: readonly AudioDownload[]) => {
+    if (downloadingRef.current) throw new Error('Wait for the active download or cancel it first.');
+    inventoryRevision.current++;
+    const known = items.filter(item => reciterById.has(item.reciter as ReciterId) && Boolean(getSurah(item.surah)));
+    if (known.some(item => item.reciter === reciterRef.current && queuePositionsRef.current.some(position => position.surah === item.surah))) stop();
+    for (const item of known) {
+      await FileSystem.deleteAsync(surahUri(item.reciter as ReciterId, item.surah), {idempotent:true});
+      setDownloadsByReciter(existing => ({...existing,[item.reciter]:existing[item.reciter as ReciterId].filter(surah => surah !== item.surah)}));
+      setSavedAudio(existing => existing.filter(saved => saved.reciter !== item.reciter || saved.surah !== item.surah));
+    }
+  }, [stop]);
   const deleteSurahDownload = useCallback(async (surah: number) => {
-    const activeReciter = reciterRef.current;
-    const base = surahUri(activeReciter, surah);
-    if ((await FileSystem.getInfoAsync(base)).exists) await FileSystem.deleteAsync(base, { idempotent: true });
-    if (mountedRef.current) setDownloadsByReciter((existing) => ({ ...existing, [activeReciter]: existing[activeReciter].filter((item) => item !== surah) }));
+    await removeSavedAudio([{reciter:reciterRef.current,surah,bytes:0,verses:0,total:0,complete:false}]);
+  }, [removeSavedAudio]);
+  const refreshDownloads = useCallback(async () => {
+    if (downloadingRef.current) return;
+    const revision = ++inventoryRevision.current;
+    const inventory: AudioDownload[] = [];
+    for (const voice of RECITERS) {
+      const directories = await FileSystem.readDirectoryAsync(`${AUDIO_ROOT}${voice.id}/`).catch(() => [] as string[]);
+      for (const directory of directories) {
+        if (!/^\d{3}$/.test(directory)) continue;
+        const chapter = getSurah(Number(directory));
+        if (!chapter) continue;
+        const base = surahUri(voice.id, chapter.number);
+        const names = await FileSystem.readDirectoryAsync(base);
+        const files = await Promise.all(names.filter(name => /^\d{6}\.mp3$/.test(name)).map(async name => {
+          const info = await FileSystem.getInfoAsync(base + name);
+          return {name,size:info.exists ? info.size : 0};
+        }));
+        const entry = summarizeAudioDownload(voice.id, chapter.number, chapter.verseCount, files);
+        if (entry.verses) inventory.push(entry);
+      }
+    }
+    if (revision !== inventoryRevision.current || downloadingRef.current || !mountedRef.current) return;
+    setSavedAudio(inventory);
+    setDownloadsByReciter(Object.fromEntries(RECITERS.map(voice => [voice.id,inventory.filter(item => item.reciter === voice.id && item.complete).map(item => item.surah).sort((a,b)=>a-b)])) as Record<ReciterId,number[]>);
   }, []);
 
+  const retryPlayback = useCallback(async () => {
+    await refreshOnline();
+    const position = currentRef.current;
+    if (position) await playPosition(position, true, resumeTime.current);
+  }, [playPosition, refreshOnline]);
+  const retryDownload = useCallback(async () => {
+    const target = failedDownloadRef.current;
+    if (target !== null && await refreshOnline()) await downloadSurah(target, failedDownloadReciter.current ?? reciterRef.current);
+  }, [downloadSurah, refreshOnline]);
   const retry = useCallback(async () => {
-    setError(null);
-    if (downloadError && failedDownloadRef.current !== null) {
-      const online = await refreshOnline();
-      if (online) {
-        const target = failedDownloadRef.current;
-        failedDownloadRef.current = null;
-        await downloadSurah(target);
-      }
-    } else if (isDownloading !== null) await downloadSurah(isDownloading);
-    else if (currentRef.current) {
-      const online = await refreshOnline();
-      if (online) await playPosition(currentRef.current);
-    } else await refreshOnline();
-  }, [downloadError, downloadSurah, isDownloading, playPosition, refreshOnline]);
+    if (error) await retryPlayback();
+    else if (downloadError) await retryDownload();
+    else await refreshOnline();
+  }, [error, downloadError, retryPlayback, retryDownload, refreshOnline]);
 
   const downloadedSurahs = downloadsByReciter[reciter];
   const activeSurahDownloaded = useMemo(() => current ? downloadedSurahs.includes(current.surah) : false, [current, downloadedSurahs]);
@@ -638,6 +732,10 @@ export function useQuranAudio(): QuranAudioController {
     downloadError,
     downloadedSurahs,
     isDownloading,
+    downloadingReciter,
+    savedAudio,
+    refreshDownloads,
+    removeSavedAudio,
     downloadProgress,
     isCurrentSurahDownloaded: activeSurahDownloaded,
     isOnline,
@@ -657,5 +755,7 @@ export function useQuranAudio(): QuranAudioController {
     cancelDownload,
     deleteSurahDownload,
     retry,
+    retryPlayback,
+    retryDownload,
   };
 }

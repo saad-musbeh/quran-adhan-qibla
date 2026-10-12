@@ -70,7 +70,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
     <Text style={[styles.hint, alignment]}>{txt.hint}</Text>
     {(['city', 'map', 'manual'] as const).map((key, index) => <View key={key} style={styles.section}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open === key, disabled }} disabled={disabled}
-        onPress={() => choose(key)} style={[styles.choice, open === key && styles.active, disabled && styles.disabled]}>
+        testID={`location-${key}`} onPress={() => choose(key)} style={[styles.choice, open === key && styles.active, disabled && styles.disabled]}>
         <Text style={[styles.choiceText, alignment]}>{index + 1}. {titleFor(key)} {open === key ? '−' : '+'}</Text>
       </Pressable>
       {open === key && <View style={styles.panel}>
@@ -118,13 +118,13 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
         {key === 'map' && <LocationMap language={language} initialCoordinates={coordinates} disabled={disabled} onSelect={value => { onSelect({ ...value, source: 'map' }); setOpen(null); }} />}
         {key === 'manual' && <>
           <Text style={[styles.label, alignment]}>{txt.lat}</Text>
-          <TextInput accessibilityLabel={txt.lat} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={latitude} onChangeText={value => { setLatitude(value); setInvalid(false); }} placeholder="24.7136" placeholderTextColor="#73988D" keyboardType="numbers-and-punctuation" style={[styles.input, styles.ltr]} />
+          <TextInput testID="manual-latitude" accessibilityLabel={txt.lat} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={latitude} onChangeText={value => { setLatitude(value); setInvalid(false); }} placeholder="24.7136" placeholderTextColor="#73988D" keyboardType="numbers-and-punctuation" style={[styles.input, styles.ltr]} />
           <Text style={[styles.label, alignment]}>{txt.lon}</Text>
-          <TextInput accessibilityLabel={txt.lon} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={longitude} onChangeText={value => { setLongitude(value); setInvalid(false); }} placeholder="46.6753" placeholderTextColor="#73988D" keyboardType="numbers-and-punctuation" style={[styles.input, styles.ltr]} />
-          <Pressable accessibilityRole="button" disabled={disabled} onPress={() => { setLatitude('24.7136'); setLongitude('46.6753'); setInvalid(false); }}><Text style={styles.link}>{txt.example}</Text></Pressable>
+          <TextInput testID="manual-longitude" accessibilityLabel={txt.lon} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={longitude} onChangeText={value => { setLongitude(value); setInvalid(false); }} placeholder="46.6753" placeholderTextColor="#73988D" keyboardType="numbers-and-punctuation" style={[styles.input, styles.ltr]} />
+          <Pressable accessibilityRole="button" disabled={disabled} testID="location-example" onPress={() => { setLatitude('24.7136'); setLongitude('46.6753'); setInvalid(false); }}><Text style={styles.link}>{txt.example}</Text></Pressable>
           <Text style={[styles.hint, alignment]}>{txt.exampleNote}</Text>
           {invalid && <Text accessibilityRole="alert" style={styles.error}>{txt.invalid}</Text>}
-          <Pressable accessibilityRole="button" disabled={disabled} style={[styles.apply, disabled && styles.disabled]} onPress={useManual}><Text style={styles.applyText}>{txt.useCoords}</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={disabled} style={[styles.apply, disabled && styles.disabled]} testID="location-confirm" onPress={useManual}><Text style={styles.applyText}>{txt.useCoords}</Text></Pressable>
         </>}
       </View>}
     </View>)}

@@ -43,6 +43,7 @@ async function verifyRelease(book:TafsirBook,signal:AbortSignal){
 export function useTafsirLibrary() {
   const [requested,setRequested]=useState(false);
   const openLibrary=useCallback(()=>setRequested(true),[]);
+  const [bookBytes,setBookBytes]=useState<Record<string,number>>({});
   const [downloadedIds,setDownloadedIds]=useState<string[]>([]);
   const [selectedId,setSelectedId]=useState<string|null>(null);
   const [loaded,setLoaded]=useState<Map<string,TafsirText>|null>(null);
@@ -77,7 +78,7 @@ export function useTafsirLibrary() {
         const ids:string[]=[];
         for(const book of TAFSIR_BOOKS){
           try{const json=await FileSystem.readAsStringAsync(fileFor(book));const envelope=JSON.parse(json) as unknown;
-            if(validEnvelope(envelope,book)){ids.push(book.id);available.current.add(book.id)}
+            if(validEnvelope(envelope,book)){ids.push(book.id);available.current.add(book.id);const info=await FileSystem.getInfoAsync(fileFor(book));if(info.exists&&mounted.current)setBookBytes(values=>({...values,[book.id]:info.size}));}
             else await FileSystem.deleteAsync(fileFor(book),{idempotent:true});
           }catch{const info=await FileSystem.getInfoAsync(fileFor(book)).catch(()=>({exists:false} as FileSystem.FileInfo));if(info.exists)await FileSystem.deleteAsync(fileFor(book),{idempotent:true}).catch(()=>undefined);/* Missing or corrupt downloads stay unavailable. */}
         }
@@ -121,6 +122,7 @@ export function useTafsirLibrary() {
       await FileSystem.moveAsync({from:temp,to:fileFor(book)});temporary.current=null;
       if(cancelled.current||aborter.signal.aborted||!mounted.current){try{const saved=JSON.parse(await FileSystem.readAsStringAsync(fileFor(book))) as {downloadToken?:string};if(saved.downloadToken===downloadToken)await FileSystem.deleteAsync(fileFor(book),{idempotent:true})}catch{/* Preserve any unrelated final file. */}return;}
       available.current.add(id);
+      const info=await FileSystem.getInfoAsync(fileFor(book));if(info.exists)setBookBytes(values=>({...values,[id]:info.size}));
       const ids=[...available.current];setDownloadedIds(ids);setProgress(100);
       if(selectedIdRef.current===id){setLoaded(indexEnvelope(envelope))}
       else if(selectedIdRef.current===null){selectedIdRef.current=id;setSelectedId(id);setLoaded(indexEnvelope(envelope));selectionRevision.current+=1;await persistSelection(id)}
@@ -137,9 +139,10 @@ export function useTafsirLibrary() {
   const deleteBook=useCallback(async(id:string)=>{
     const book=bookById.get(id);if(!book||id===downloadingIdRef.current)return;
     await FileSystem.deleteAsync(fileFor(book),{idempotent:true});available.current.delete(id);
+    setBookBytes(values=>{const next={...values};delete next[id];return next});
     const ids=[...available.current];setDownloadedIds(ids);
     if(selectedIdRef.current===id){const revision=++selectionRevision.current,next=ids[0]??null;selectedIdRef.current=next;setSelectedId(next);setLoaded(null);const records=next?await loadBook(next):null;if(revision===selectionRevision.current){setLoaded(records);await persistSelection(next)}}
   },[bookById,loadBook]);
   const getTafsir=useCallback((surah:number,ayah:number)=>loaded?.get(`${surah}:${ayah}`),[loaded]);
-  return {openLibrary,books:TAFSIR_BOOKS,downloadedIds,selectedId,selectedBook:selectedId?bookById.get(selectedId)??null:null,isDownloading,progress,error,selectBook,downloadBook,cancelDownload,deleteBook,getTafsir,ready} as const;
+  return {bookBytes,openLibrary,books:TAFSIR_BOOKS,downloadedIds,selectedId,selectedBook:selectedId?bookById.get(selectedId)??null:null,isDownloading,progress,error,selectBook,downloadBook,cancelDownload,deleteBook,getTafsir,ready} as const;
 }

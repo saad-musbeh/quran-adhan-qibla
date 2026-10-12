@@ -2,7 +2,7 @@ name: iOS native build
 
 on:
   push:
-    branches: [codex/reader-polish]
+    branches: [codex/reader-polish, codex/test-0.4.0]
     paths-ignore: ['docs/**', '**/*.md']
   pull_request:
   workflow_dispatch:
@@ -49,6 +49,49 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent \
             target/ios-build/Build/Products/Release-iphonesimulator/QuranAdhanQibla.app \
             target/quran-adhan-qibla-ios-simulator.zip
+      - name: Add native UI tests to the generated project
+        run: ruby scripts/prepare-ios-ui-tests.rb
+      - name: Create iPhone simulator
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, os
+          def sim(*args): return subprocess.check_output(['xcrun', 'simctl', *args], text=True)
+          runtimes=json.loads(sim('list','runtimes','--json'))['runtimes']
+          runtime=max((r for r in runtimes if r.get('isAvailable') and '.iOS-' in r['identifier']), key=lambda r:tuple(map(int,r['version'].split('.'))))
+          types=json.loads(sim('list','devicetypes','--json'))['devicetypes']
+          phones=[t for t in types if 'SimDeviceType.iPhone-' in t['identifier']]
+          device=next((t for t in phones if t['name']=='iPhone 17 Pro'), phones[0])
+          identifier=sim('create','Quran UI checks',device['identifier'],runtime['identifier']).strip()
+          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('QURAN_SIMULATOR='+identifier+'\n')
+          PY
+          open -a Simulator
+      - name: Run the app and native UI checks
+        run: |
+          set -o pipefail
+          xcrun simctl boot "$QURAN_SIMULATOR"
+          xcrun simctl bootstatus "$QURAN_SIMULATOR" -b
+          xcrun simctl ui "$QURAN_SIMULATOR" appearance dark
+          xcodebuild test -workspace ios/QuranAdhanQibla.xcworkspace \
+            -scheme QuranAdhanQibla -configuration Release \
+            -destination "platform=iOS Simulator,id=$QURAN_SIMULATOR" \
+            -derivedDataPath target/ios-build -resultBundlePath target/ios-ui.xcresult \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee target/ios-ui.log | xcbeautify
+      - name: Export UI screenshots
+        if: always()
+        run: |
+          if [ -d target/ios-ui.xcresult ]; then
+            xcrun xcresulttool export attachments --path target/ios-ui.xcresult --output-path target/ios-screenshots
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ios-ui-checks
+          path: |
+            target/ios-ui.log
+            target/ios-ui.xcresult
+            target/ios-screenshots
+          if-no-files-found: ignore
+          retention-days: 14
       - uses: actions/upload-artifact@v6
         with:
           name: ios-simulator

@@ -20,13 +20,15 @@ public final class QuranAudioControlsModule: Module {
   private var artist = ""
   private var playbackRate: Float = 1
   private var itemObservation: NSKeyValueObservation?
+  private var statusObservation: NSKeyValueObservation?
+  private var failureObserver: NSObjectProtocol?
   private var rateObservation: NSKeyValueObservation?
   private var timeObserver: Any?
   private var commandTargets: [RemoteCommandRegistration] = []
 
   public func definition() -> ModuleDefinition {
     Name("QuranAudioControls")
-    Events("remoteCommand")
+    Events("remoteCommand", "playbackError")
 
     Function("attach") { (playlist: AudioPlaylist, titles: [String], artist: String) in
       self.scheduleOnMain {
@@ -82,6 +84,7 @@ public final class QuranAudioControlsModule: Module {
 
     itemObservation = playlist.ref.observe(\.currentItem, options: [.initial, .new]) { [weak self] _, _ in
       DispatchQueue.main.async {
+        self?.observePlaybackFailure()
         self?.publishNowPlaying()
       }
     }
@@ -96,7 +99,26 @@ public final class QuranAudioControlsModule: Module {
     }
 
     installRemoteCommands()
+    observePlaybackFailure()
+    failureObserver = NotificationCenter.default.addObserver(
+      forName: .AVPlayerItemFailedToPlayToEndTime, object: nil, queue: .main
+    ) { [weak self] notification in
+      guard let self, let failed = notification.object as? AVPlayerItem,
+            failed === self.player?.currentItem else { return }
+      self.sendEvent("playbackError", ["message": failed.error?.localizedDescription ?? "Audio playback failed."])
+    }
     publishNowPlaying()
+  }
+
+  private func observePlaybackFailure() {
+    statusObservation?.invalidate()
+    statusObservation = player?.currentItem?.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
+      guard item.status == .failed else { return }
+      DispatchQueue.main.async {
+        guard let self, item === self.player?.currentItem else { return }
+        self.sendEvent("playbackError", ["message": item.error?.localizedDescription ?? "Audio playback failed."])
+      }
+    }
   }
 
   private func installRemoteCommands() {
@@ -219,6 +241,10 @@ public final class QuranAudioControlsModule: Module {
   }
 
   private func detach(clearNowPlaying: Bool = true) {
+    statusObservation?.invalidate()
+    statusObservation = nil
+    if let failureObserver { NotificationCenter.default.removeObserver(failureObserver) }
+    failureObserver = nil
     itemObservation?.invalidate()
     itemObservation = nil
     rateObservation?.invalidate()

@@ -10,3 +10,16 @@
 - 1,229,032 bytes; Vorbis, 44.1 kHz, stereo; duration 154.018 seconds.
 
 Expo copies this recording into Android raw resources. It is a notification-channel sound: Android controls its playback, notification volume, DND policy, and interruptions. The app does not promise that every device plays the complete recording. It is included offline; Quran recitation downloads remain separate.
+
+## iOS alert excerpt
+
+`adhan-short.wav` derives from the same CC0 recording: the first 29 seconds,
+with a one-second fade at the end, converted to mono 22,050 Hz signed 16-bit PCM.
+It is an explicitly labelled short notification excerpt, not the full Adhan.
+The original OGG remains unchanged. The conversion command was:
+
+```sh
+ffmpeg -i adhan.ogg -t 29 -af 'afade=t=out:st=28:d=1' -ar 22050 -ac 1 -c:a pcm_s16le adhan-short.wav
+```
+
+Apple's [custom notification sound requirements](https://developer.apple.com/documentation/usernotifications/unnotificationsound) require supported audio formats and a duration below 30 seconds. iOS sound permission, silent mode and Focus remain under system control.

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { isRTL, type Language } from '../i18n';
+import { bilingual, localeFor, isRTL, type Language } from '../i18n';
 import { notificationCopy } from '../notification-i18n';
 import type { usePrayerNotifications } from '../use-prayer-notifications';
 import { useReaderStyles } from '../quran-theme-context';
@@ -12,7 +12,7 @@ type Props = {
 
 export function PrayerNotificationSettings({ language, enabled, ready, onChange, notifications, onChooseLocation }: Props) {
   const { styles } = useReaderStyles(baseStyles);
-  const c = notificationCopy(language), rtl = isRTL(language);
+  const c = notificationCopy(language, Platform.OS), rtl = isRTL(language);
   const [busy, setBusy] = useState(false), [testSent, setTestSent] = useState(false), [failed, setFailed] = useState(false);
   const text = rtl ? styles.rtl : undefined;
   async function toggle(value: boolean) {
@@ -27,14 +27,14 @@ export function PrayerNotificationSettings({ language, enabled, ready, onChange,
     try { const sent = await notifications.testAlert(); setTestSent(sent); setFailed(!sent); } catch { setFailed(true); }
     finally { setBusy(false); }
   }
-  const action = (label: string, onPress: () => void) => <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} disabled={busy} style={styles.button}><Text style={[styles.buttonText, text]}>{label}</Text></Pressable>;
+  const action = (label: string, onPress: () => void, testID?: string) => <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} disabled={busy} style={styles.button}><Text style={[styles.buttonText, text]}>{label}</Text></Pressable>;
   const status = notifications.status;
   return <View style={styles.root}>
     <Text style={[styles.title, text]}>{c.title}</Text>
-    {Platform.OS !== 'android' ? <Text style={[styles.note, text]}>{c.unsupported}</Text> : <>
+    {Platform.OS !== 'android' && Platform.OS !== 'ios' ? <Text style={[styles.note, text]}>{c.unsupported}</Text> : <>
       <View style={[styles.row, rtl && styles.reverse]}>
         <Text style={[styles.label, text]}>{c.toggle}</Text>
-        <Switch accessibilityLabel={c.toggle} value={enabled} disabled={!ready || busy} onValueChange={value => { void toggle(value); }} trackColor={{ false: '#35544B', true: '#D6BA7A' }} thumbColor="#F4EFE4" />
+        <Switch testID="prayer-alert-toggle" accessibilityLabel={c.toggle} value={enabled} disabled={!ready || busy} onValueChange={value => { void toggle(value); }} trackColor={{ false: '#35544B', true: '#D6BA7A' }} thumbColor="#F4EFE4" />
       </View>
       <Text style={[styles.note, text]}>{c.note}</Text>
       {enabled && status === 'needs-location' && action(c.location, onChooseLocation)}
@@ -46,8 +46,9 @@ export function PrayerNotificationSettings({ language, enabled, ready, onChange,
         <Text style={[styles.note, text]}>{c.exact}</Text>
         {action(c.exactSettings, () => { void notifications.openExactAlarmSettings().then(ok => { if (!ok) setFailed(true); }); })}
       </>}
-      {enabled && status === 'ready' && action(c.test, () => { void test(); })}
-      {enabled && testSent && <Text accessibilityRole="alert" style={[styles.note, text]}>{c.testNote}</Text>}
+      {enabled && status === 'ready' && action(c.test, () => { void test(); }, 'prayer-test-alert')}
+      {enabled && notifications.scheduledCount > 0 && <Text testID="prayer-scheduled-count" style={[styles.note,text]}>{bilingual(language,'التنبيهات القادمة: {n}','Upcoming alerts: {n}',{n:notifications.scheduledCount.toLocaleString(localeFor(language))})}</Text>}
+      {enabled && testSent && <Text testID="prayer-test-sent" accessibilityRole="alert" style={[styles.note, text]}>{c.testNote}</Text>}
       {(failed || (enabled && (status === 'error' || status === 'calculation-unavailable'))) && <Text accessibilityRole="alert" style={[styles.error, text]}>{c.error}</Text>}
     </>}
   </View>;

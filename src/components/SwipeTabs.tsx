@@ -149,10 +149,11 @@ export function SwipeTabs({ hideNavigation = false, language, tab, onChange, chi
     onTouchEnd={reading ? undefined : onTouchEnd}
     onTouchCancel={reading ? undefined : onTouchCancel}
   >
-    <View style={[styles.content, theme === 'navy' && styles.navyContent, reading && styles.readingContent]}>{children}</View>
+    <View style={[styles.content,{paddingBottom:0}]}>{children}</View>
     {hideNavigation ? null : (reading ? chromeVisible : dockVisible) ? <View accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, isRTL(language) && styles.dockRtl]}>
       {TABS.map(item => <Pressable
         key={item}
+        testID={`tab-${item}`}
         accessibilityRole="tab"
         accessibilityLabel={copy[item]}
         accessibilityState={{ selected: tab === item }}

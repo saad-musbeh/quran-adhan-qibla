@@ -10,6 +10,7 @@ import { TafsirSheet } from './TafsirSheet';
 import { RepeatRangeSheet } from './RepeatRangeSheet';
 import { VerseRangeIcon } from './VerseRangeIcon';
 import { useVerseLoopPicker } from '../use-verse-loop-picker';
+import { DownloadManager } from './DownloadManager';
 import { useTafsirLibrary } from '../use-tafsir-library';
 import { printedPageVerses, chapterNames, juzArabic } from '../domain/quran-reader';
 import type { QuranBook } from '../domain/quran-books';
@@ -21,7 +22,7 @@ import { useFonts } from 'expo-font';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 export type QuranReaderSettings = { fontSize: number; nightMode: boolean };
-type Props = { book: QuranBook; onBookChange:(change:(book:QuranBook)=>QuranBook)=>void; onCloseBook:()=>void; active?: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onSettingsChange?:(settings:QuranReaderSettings)=>void; onReadingChromeChange?:(visible:boolean)=>void };
+type Props = { tafsirLibrary: ReturnType<typeof useTafsirLibrary>; book: QuranBook; onBookChange:(change:(book:QuranBook)=>QuranBook)=>void; onCloseBook:()=>void; active?: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onSettingsChange?:(settings:QuranReaderSettings)=>void; onReadingChromeChange?:(visible:boolean)=>void };
 type Picker = 'surah' | 'juz' | 'page' | 'search' | 'bookmarks' | null;
 const PAGE_COUNT = 604;
 const labels = {
@@ -29,7 +30,7 @@ const labels = {
   en: { page:'Page', pagePart:'Displayed part', previous:'Previous part', next:'Next part', previousPage:'Previous page', nextPage:'Next page', bookmark:'Bookmark this page', saved:'Remove bookmark', openBook:'Open book reader', bookTitle:'Quran reading', close:'Close', surah:'Surah', juz:'Juz', search:'Search the Quran', bookmarks:'Bookmarks', choose:'Choose', empty:'No results', play:'Play', pause:'Pause', audioControls:'Audio controls', prevVerse:'Previous verse', nextVerse:'Next verse', replay:'Replay verse', stop:'Stop', reciter:'Reciter', speed:'Recitation speed', repeat:'Repeat verse range', font:'Zoomed text size', autoFit:'Page text fits automatically; increase zoom to inspect it.', decreaseFont:'Decrease text size', increaseFont:'Increase text size', night:'Night reading', downloads:'Download surahs for offline listening', download:'Download', delete:'Delete download', confirmDelete:'Delete the saved audio for this surah?', cancel:'Cancel download', online:'Downloads require an internet connection.', offline:'You are offline. Saved downloads remain available.', progress:'Downloading', range:'Range: surah, from verse to verse', from:'From', to:'To', apply:'Apply', clear:'Clear repeat', listening:'Listen to the Quran', unknown:'Audio data is temporarily unavailable', pageOf:'of', invalidRange:'Check the surah and verse range.', activeRange:'Active repeat range', retry:'Retry', attribution:'Quran text: Tanzil — tanzil.net', audioAttribution:'Recitations: EveryAyah', downloadFailed:'Could not download this surah.', deleteFailed:'Could not delete this download.', playbackFailed:'Could not play this recitation.', retryConnection:'Check your connection and try again.' },
 };
 
-export function QuranScreen({ book, onBookChange, onCloseBook, active: readerActive = true, language, audio, settings, onSettingsChange, onReadingChromeChange }: Props) { const {colors,styles}=useReaderStyles(baseStyles);
+export function QuranScreen({ tafsirLibrary, book, onBookChange, onCloseBook, active: readerActive = true, language, audio, settings, onSettingsChange, onReadingChromeChange }: Props) { const {colors,styles}=useReaderStyles(baseStyles);
   const [quranFontLoaded] = useFonts({ AmiriQuran: require('../../assets/quran/AmiriQuran.ttf') });
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const c = localizeCopy(language, labels); const rtl = isRTL(language);
@@ -46,7 +47,6 @@ export function QuranScreen({ book, onBookChange, onCloseBook, active: readerAct
   const [query, setQuery] = useState('');
   const [tafsirKey, setTafsirKey] = useState<string | null>(null);
   const loop = useVerseLoopPicker(language,audio);
-  const tafsirLibrary = useTafsirLibrary();
   const versesOnPage = useMemo(() => printedPageVerses(page), [page]);
   const active = parseVerseKey(audio.currentVerseKey);
   const pageChapterNames = chapterNames(versesOnPage);
@@ -84,7 +84,7 @@ export function QuranScreen({ book, onBookChange, onCloseBook, active: readerAct
   const setPickerAndReset = (value: Picker) => { setQuery(''); setPicker(value); };
   const pageHeight = Math.min(readerSize.height * 0.84, readerSize.width / 0.644);
   const pageWidth = Math.min(readerSize.width - 4, pageHeight * 0.644);
-  return <View style={styles.immersiveRoot} onTouchStart={() => setLastInteraction(Date.now())} onLayout={event => {
+  return <View testID="quran-reader" style={[styles.immersiveRoot,{backgroundColor:colors.appBackground}]} onTouchStart={() => setLastInteraction(Date.now())} onLayout={event => {
     const { width, height } = event.nativeEvent.layout;
     setReaderSize(current => current.width === width && current.height === height ? current : { width, height });
   }}>
@@ -96,7 +96,7 @@ export function QuranScreen({ book, onBookChange, onCloseBook, active: readerAct
     <VerseLoopPrompt loop={loop} language={language}/>
     {chromeVisible&&!loop.pickMode&&<View pointerEvents="box-none" style={styles.chromeLayer}>
       <View style={[styles.immersiveTopControls,rtl&&styles.reverse]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language,"العودة إلى مكتبتي القرآنية","Back to my Quran library")} style={styles.chromeButton} onPress={onCloseBook}><Ionicons name="library-outline" size={22} color={colors.accent}/></Pressable>
+        <Pressable accessibilityRole="button" testID="reader-library" accessibilityLabel={bilingual(language,"العودة إلى مكتبتي القرآنية","Back to my Quran library")} style={styles.chromeButton} onPress={onCloseBook}><Ionicons name="library-outline" size={22} color={colors.accent}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.bookmarks} style={styles.chromeButton} onPress={()=>setPickerAndReset('bookmarks')}><Ionicons name="bookmark-outline" size={23} color={colors.lightPaper}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.search} style={styles.immersiveSearch} onPress={()=>setPickerAndReset('search')}><Ionicons name="search" size={19} color={colors.accent}/><Text style={[styles.immersiveSearchLabel,rtl&&styles.rtl]}>{c.search}</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.surah} style={styles.chromeButton} onPress={()=>setPickerAndReset('surah')}><Ionicons name="list" size={24} color={colors.lightPaper}/></Pressable>
@@ -106,8 +106,8 @@ export function QuranScreen({ book, onBookChange, onCloseBook, active: readerAct
       </View>
       <View style={[styles.immersiveBottomControls,rtl&&styles.reverse]}>
         <Pressable accessibilityRole="button" accessibilityLabel={c.previousPage} disabled={page<=1} style={styles.chromeButton} onPress={()=>go(page-1)}><Ionicons name={rtl?'chevron-forward':'chevron-back'} size={23} color={colors.lightPaper}/></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`${c.page} ${page}`} style={styles.chromePage} onPress={()=>setPickerAndReset('page')}><Text style={styles.chromePageText}>{localDigits(page,language)} / {localDigits(PAGE_COUNT,language)}</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={c.nextPage} disabled={page>=PAGE_COUNT} style={styles.chromeButton} onPress={()=>go(page+1)}><Ionicons name={rtl?'chevron-back':'chevron-forward'} size={23} color={colors.lightPaper}/></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${c.page} ${page}`} style={styles.chromePage} onPress={()=>setPickerAndReset('page')}><Text testID="reader-page-number" style={styles.chromePageText}>{localDigits(page,language)} / {localDigits(PAGE_COUNT,language)}</Text></Pressable>
+        <Pressable accessibilityRole="button" testID="reader-next-page" accessibilityLabel={c.nextPage} disabled={page>=PAGE_COUNT} style={styles.chromeButton} onPress={()=>go(page+1)}><Ionicons name={rtl?'chevron-back':'chevron-forward'} size={23} color={colors.lightPaper}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.bookmark} accessibilityState={{selected:bookmarks.includes(page)}} style={styles.chromeButton} onPress={()=>toggleBookmark()}><Ionicons name={bookmarks.includes(page)?'bookmark':'bookmark-outline'} size={22} color={colors.accent}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={audio.status==='playing'||audio.status==='loading'?c.pause:audio.status==='error'?c.retry:c.play} style={styles.chromeButton} onPress={()=>togglePagePlayback(audio,versesOnPage)}><Ionicons name={audio.status==='playing'?'pause':'play'} size={22} color={colors.lightPaper}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.repeat} accessibilityState={{selected:Boolean(audio.repeatRange)}} style={styles.chromeButton} onPress={loop.open}><VerseRangeIcon color={audio.repeatRange?colors.accent:colors.lightPaper}/></Pressable>
@@ -200,8 +200,9 @@ function AudioDock({language,audio,part,visible,onClose}:{language:Language;audi
       <Text style={[styles.audioMeta,styles.flex]}>{formatTime(audio.currentTime)} / {formatTime(audio.duration)}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={`${c.speed}: ${audio.playbackRate}×`} style={styles.audioRetry} onPress={()=>{const rates=[0.75,1,1.25,1.5,2];audio.setPlaybackRate(rates[(rates.indexOf(audio.playbackRate)+1)%rates.length]);}}><Text style={styles.audioRetryText}>{audio.playbackRate}×</Text></Pressable>
      </View>
+     {audio.status==='loading'&&<Text accessibilityLiveRegion="polite" style={styles.audioMeta}>{bilingual(language,'جارٍ تحميل التلاوة…','Buffering recitation…')}</Text>}
      {!audio.isOnline&&<Text style={styles.audioMeta}>{c.offline}</Text>}
-     {audio.error&&<View style={[styles.audioMetaRow,rtl&&styles.reverse]}><Text accessibilityRole="alert" style={[styles.audioMeta,styles.audioError]}>{localizePlaybackError(audio.error,c)}</Text><Pressable accessibilityRole="button" accessibilityLabel={c.retry} style={styles.audioRetry} onPress={()=>invoke(audio.retry)}><Text style={styles.audioRetryText}>{c.retry}</Text></Pressable></View>}
+     {audio.error&&<View style={[styles.audioMetaRow,rtl&&styles.reverse]}><Text accessibilityRole="alert" style={[styles.audioMeta,styles.audioError]}>{localizePlaybackError(audio.error,c)}</Text><Pressable accessibilityRole="button" accessibilityLabel={c.retry} style={styles.audioRetry} onPress={()=>invoke(audio.retryPlayback)}><Text style={styles.audioRetryText}>{c.retry}</Text></Pressable></View>}
     </View>
    </View>
  </Modal>;
@@ -249,19 +250,14 @@ function BookReaderModal({loop,tafsirLibrary,language,visible,page,bookmarks,set
  </Modal>;
 }
 
-type SettingsProps = { language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onSettingsChange:(value:QuranReaderSettings)=>void };
-export function QuranSettings({language,audio,settings,onSettingsChange}:SettingsProps) { const {colors,styles}=useReaderStyles(baseStyles);
+type SettingsProps = { library:ReturnType<typeof useTafsirLibrary>; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onSettingsChange:(value:QuranReaderSettings)=>void };
+export function QuranSettings({library,language,audio,settings,onSettingsChange}:SettingsProps) { const {colors,styles}=useReaderStyles(baseStyles);
  const c=localizeCopy(language, labels);const rtl=isRTL(language);const [repeatSurah,setRepeatSurah]=useState('1');const [repeatStart,setRepeatStart]=useState('1');const [repeatEnd,setRepeatEnd]=useState('7');
- const [rangeError,setRangeError]=useState(false);const [deleteError,setDeleteError]=useState(false);
+ const [rangeError,setRangeError]=useState(false);
  const set=(key:keyof QuranReaderSettings,value:number|boolean)=>{
   if(key==='fontSize'&&typeof value==='number')onSettingsChange({...settings,fontSize:value});
   else if(key==='nightMode'&&typeof value==='boolean')onSettingsChange({...settings,nightMode:value});
  };
- const removeDownload=(number:number,name:string)=>Alert.alert(c.delete,`${c.confirmDelete} ${name}؟`,[
-  {text:c.close,style:'cancel'},
-  {text:c.delete,style:'destructive',onPress:()=>{void audio.deleteSurahDownload(number).then(()=>setDeleteError(false)).catch(()=>setDeleteError(true));}},
- ]);
- const startDownload=(number:number)=>{void audio.downloadSurah(number).catch(()=>undefined);};
  return <View style={[styles.settings,{backgroundColor:colors.background,padding:12,borderRadius:12}]}>
   <Text style={[styles.settingLabel,rtl&&styles.rtl]}>{c.font}: {settings.fontSize}</Text><Text style={[styles.settingNote,rtl&&styles.rtl]}>{c.autoFit}</Text>
   <View style={[styles.settingRow,rtl&&styles.reverse]}><Pressable accessibilityRole="button" accessibilityLabel={c.decreaseFont} style={styles.settingButton} onPress={()=>set('fontSize',Math.max(16,settings.fontSize-1))}><Text style={styles.settingText}>−</Text></Pressable><View style={styles.flex}/><Pressable accessibilityRole="button" accessibilityLabel={c.increaseFont} style={styles.settingButton} onPress={()=>set('fontSize',Math.min(32,settings.fontSize+1))}><Text style={styles.settingText}>+</Text></Pressable></View>
@@ -272,11 +268,7 @@ export function QuranSettings({language,audio,settings,onSettingsChange}:Setting
   <View style={[styles.settingRow,rtl&&styles.reverse]}><Pressable accessibilityRole="button" style={styles.actionButton} onPress={()=>{const s=parseLocalizedInteger(repeatSurah),a=parseLocalizedInteger(repeatStart),b=parseLocalizedInteger(repeatEnd);if(s!==null&&a!==null&&b!==null&&getSurah(s)&&a>=1&&b>=a&&b<=(getSurah(s)?.verseCount??0)){audio.setRepeatRange({surah:s,start:a,end:b});void audio.playRange(s,a,b).catch(()=>undefined);setRangeError(false);}else setRangeError(true);}}><Text style={styles.settingText}>{c.apply}</Text></Pressable><Pressable accessibilityRole="button" style={styles.actionButton} onPress={()=>{audio.setRepeatRange(null);setRangeError(false);}}><Text style={styles.settingText}>{c.clear}</Text></Pressable></View>
   {rangeError&&<Text accessibilityRole="alert" style={[styles.error,rtl&&styles.rtl]}>{c.invalidRange}</Text>}
   {audio.repeatRange&&<Text style={[styles.settingNote,rtl&&styles.rtl]}>{c.activeRange}: {audio.repeatRange.surah}:{audio.repeatRange.start}–{audio.repeatRange.end}</Text>}
-  <Text style={[styles.settingLabel,rtl&&styles.rtl]}>{c.downloads}</Text><Text style={[styles.settingNote,rtl&&styles.rtl]}>{audio.isOnline?c.online:c.offline}</Text>{audio.isDownloading!==null&&<View style={[styles.settingRow,rtl&&styles.reverse]}><Text style={styles.settingText}>{c.progress} {audio.downloadProgress}%</Text><Pressable accessibilityRole="button" style={styles.actionButton} onPress={audio.cancelDownload}><Text style={styles.settingText}>{c.cancel}</Text></Pressable></View>}
-  {audio.downloadError&&<View style={[styles.settingRow,rtl&&styles.reverse]}><Text accessibilityRole="alert" style={[styles.error,rtl&&styles.rtl]}>{c.downloadFailed}</Text><Pressable accessibilityRole="button" disabled={!audio.isOnline||audio.isDownloading!==null} style={[styles.actionButton,(!audio.isOnline||audio.isDownloading!==null)&&styles.disabled]} onPress={()=>{void audio.retry().catch(()=>undefined);}}><Text style={styles.settingText}>{c.retry}</Text></Pressable></View>}
-  {deleteError&&<Text accessibilityRole="alert" style={[styles.error,rtl&&styles.rtl]}>{c.deleteFailed}</Text>}
-  {audio.error&&<View style={[styles.settingRow,rtl&&styles.reverse]}><Text accessibilityRole="alert" style={[styles.error,rtl&&styles.rtl]}>{c.unknown}</Text><Pressable accessibilityRole="button" style={styles.actionButton} onPress={()=>{void audio.retry().catch(()=>undefined);}}><Text style={styles.settingText}>{c.retry}</Text></Pressable></View>}
-  {surahs.map(s=><View key={s.number} style={[styles.downloadRow,rtl&&styles.reverse]}><Text style={styles.settingText} numberOfLines={1}>{s.arabicName}</Text><View style={styles.flex}/>{audio.downloadedSurahs.includes(s.number)?<Pressable accessibilityRole="button" accessibilityLabel={`${c.delete} ${s.arabicName}`} style={styles.actionButton} onPress={()=>removeDownload(s.number,s.arabicName)}><Text style={styles.trashIcon}>▤</Text></Pressable>:<Pressable accessibilityRole="button" accessibilityLabel={`${c.download} ${s.arabicName}`} disabled={!audio.isOnline||audio.isDownloading!==null} style={[styles.actionButton,(!audio.isOnline||audio.isDownloading!==null)&&styles.disabled]} onPress={()=>startDownload(s.number)}><Text style={styles.settingText}>{audio.isDownloading===s.number?`${audio.downloadProgress}%`:c.download}</Text></Pressable>}</View>)}
+  <DownloadManager language={language} audio={audio} library={library}/>
   <Pressable accessibilityRole="link" onPress={()=>{void Linking.openURL('https://tanzil.net').catch(()=>undefined);}} style={styles.attribution}><Text style={styles.settingNote}>{c.attribution}</Text></Pressable>
   <Pressable accessibilityRole="link" onPress={()=>{void Linking.openURL('https://everyayah.com/').catch(()=>undefined);}} style={styles.attribution}><Text style={styles.settingNote}>{c.audioAttribution}</Text></Pressable>
  </View>;
@@ -284,7 +276,7 @@ export function QuranSettings({language,audio,settings,onSettingsChange}:Setting
 function playKey(audio:QuranAudioController,key:string) {const verse=parseVerseKey(key);if(verse)void audio.playVerse(verse.surah,verse.verse);}
 function parseVerseKey(key:string|null):{surah:number;verse:number}|null { if(!key)return null;const [a,b]=key.split(':').map(Number);return Number.isInteger(a)&&Number.isInteger(b)?{surah:a,verse:b}:null; }
 function togglePagePlayback(audio:QuranAudioController,page:readonly Verse[]) {
- if(audio.status==='error') void audio.retry();
+ if(audio.status==='error') void audio.retryPlayback();
  else if(audio.status==='playing'||audio.status==='loading') audio.pause();
  else { const current=parseVerseKey(audio.currentVerseKey); if(current&&page.some(v=>v.surah===current.surah&&v.number===current.verse)) void audio.togglePlayback(); else if(page[0]) void audio.playVerse(page[0].surah,page[0].number); }
 }

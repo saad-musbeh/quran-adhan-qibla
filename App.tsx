@@ -1,8 +1,10 @@
+import * as SystemUI from 'expo-system-ui';
+import { ScreenLayer } from './src/components/ScreenLayer';
 import { QuranThemeContext } from './src/quran-theme-context';
 import { useQuranTheme } from './src/use-quran-theme';
 import { useEffect, useMemo, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isPrayerTimesAvailable, isQiblaAvailable, prayerTimes, qiblaBearing } from './modules/islamic-core';
 import { AdhanScreen } from './src/components/AdhanScreen';
@@ -17,6 +19,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SettingsSheet } from './src/components/SettingsSheet';
 import { QuranSettings } from './src/components/QuranScreen';
 import { QuranLibrary } from './src/components/QuranLibrary';
+import { useTafsirLibrary } from './src/use-tafsir-library';
 import { useQuranAudio } from './src/use-quran-audio';
 import { usePreferences } from './src/use-preferences';
 import { usePrayerNotifications } from './src/use-prayer-notifications';
@@ -32,7 +35,9 @@ function Main() {
   const { preferences, setPreferences, ready: preferencesReady } = usePreferences();
   const { language, prayer: settings, reader, compassMode } = preferences;
   const audio = useQuranAudio();
+  const tafsirLibrary = useTafsirLibrary();
   const quranTheme = useQuranTheme();
+  useEffect(() => { void SystemUI.setBackgroundColorAsync(quranTheme.theme.appBackground).catch(() => undefined); }, [quranTheme.theme.appBackground]);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsSection, setSettingsSection] = useState<Tab>('quran');
   const [tab, setTab] = useState<Tab>('quran');
@@ -48,7 +53,7 @@ function Main() {
   const notifications = usePrayerNotifications({
     ready: preferencesReady && locationState.ready,
     enabled: preferences.prayerNotifications,
-    location, settings, language, sound: 'adhan.ogg',
+    location, settings, language, sound: Platform.OS === 'ios' ? 'adhan-short.wav' : 'adhan.ogg',
     labels: { title: t.brand, channelName: notificationLabels.title, body: name => t[name], testTitle: notificationLabels.test, testBody: t.brand },
   });
   // Calculations always use Gregorian date components, including in Arabic.
@@ -86,37 +91,42 @@ function Main() {
     return () => clearTimeout(timer);
   }, [schedule.times, now]);
 
-  return <QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }, tab === 'quran' && {backgroundColor:quranTheme.theme.background}] }>
+  return <QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
     <StatusBar style="light" />
-    {(tab !== 'quran' || readingChromeVisible) && <View style={[styles.header, { backgroundColor: quranTheme.theme.appBackground }, tab === 'quran' && [styles.readingHeader, { top: insets.top, backgroundColor:quranTheme.theme.background }], isRTL(language) && styles.reverse]}>
+    <View pointerEvents={tab !== 'quran' || readingChromeVisible ? 'auto' : 'none'}
+      accessibilityElementsHidden={tab === 'quran' && !readingChromeVisible}
+      importantForAccessibility={tab === 'quran' && !readingChromeVisible ? 'no-hide-descendants' : 'auto'}
+      style={[styles.header, styles.readingHeader, {top:insets.top, backgroundColor:quranTheme.theme.appBackground, opacity:tab !== 'quran' || readingChromeVisible ? 1 : 0}, isRTL(language) && styles.reverse]}>
       <Text style={styles.brand}>{t.brand}</Text>
       <View style={[styles.tools, isRTL(language) && styles.reverse]}>
         <Pressable accessibilityRole="button" accessibilityLabel={t.language} style={styles.iconButton}
           onPress={() => setShowLanguages(true)}>
           <Ionicons name="language-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={t.locationTitle} style={styles.iconButton} onPress={() => setShowLocation(true)}>
+        <Pressable accessibilityRole="button" testID="open-location" accessibilityLabel={t.locationTitle} style={styles.iconButton} onPress={() => setShowLocation(true)}>
           <Ionicons name="location-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={t.settings} style={styles.iconButton} onPress={() => { setSettingsSection(tab); setShowSettings(true); }}>
+        <Pressable accessibilityRole="button" testID="open-settings" accessibilityLabel={t.settings} style={styles.iconButton} onPress={() => { setSettingsSection(tab); setShowSettings(true); }}>
           <Ionicons name="settings-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>
       </View>
-    </View>}
+    </View>
     <SwipeTabs hideNavigation={readingBook} language={language} tab={tab} theme={tab === 'quran' ? 'navy' : 'green'} reading={tab === 'quran'} chromeVisible={readingChromeVisible} onChange={next => { setTab(next); setReadingChromeVisible(false); setNow(new Date()); }}>
-      {tab === 'qibla' ? <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
-        calculationAvailable={isQiblaAvailable} calculationError={qibla.error}
-        active={!showLocation && !showSettings && !showLanguages} mode={compassMode}
-        onModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))} />
-        : tab === 'adhan' ? <AdhanScreen language={language} state={locationState} times={schedule.times}
-          error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now} timezone={timezone}
-          />
-        : null}
-      <View style={{ flex: 1, display: tab === 'quran' ? 'flex' : 'none' }}>
-        <QuranLibrary onBookOpenChange={setReadingBook} active={tab === 'quran'} language={language} audio={audio} settings={reader}
+      <ScreenLayer testID="screen-qibla" active={tab === 'qibla'} background={quranTheme.theme.appBackground} top={48} bottom={64}>
+        <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
+          calculationAvailable={isQiblaAvailable} calculationError={qibla.error}
+          active={tab === 'qibla' && !showLocation && !showSettings && !showLanguages} mode={compassMode}
+          onModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))} />
+      </ScreenLayer>
+      <ScreenLayer testID="screen-adhan" active={tab === 'adhan'} background={quranTheme.theme.appBackground} top={48} bottom={64}>
+        <AdhanScreen language={language} state={locationState} times={schedule.times}
+          error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now} timezone={timezone}/>
+      </ScreenLayer>
+      <ScreenLayer testID="screen-quran" active={tab === 'quran'} background={quranTheme.theme.appBackground}>
+        <QuranLibrary tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={tab === 'quran'} language={language} audio={audio} settings={reader}
           onReadingChromeChange={setReadingChromeVisible}
           onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
-      </View>
+      </ScreenLayer>
 
     </SwipeTabs>
     <SettingsSheet language={language} visible={showSettings} section={settingsSection} onSectionChange={setSettingsSection}
@@ -127,7 +137,7 @@ function Main() {
         enabled={preferences.prayerNotifications} notifications={notifications}
         onChange={prayerNotifications => setPreferences(value => ({ ...value, prayerNotifications }))}
         onChooseLocation={() => { setShowSettings(false); setShowLocation(true); }} />}
-      quran={<QuranSettings language={language} audio={audio} settings={reader}
+      quran={<QuranSettings library={tafsirLibrary} language={language} audio={audio} settings={reader}
         onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />} />
     <LanguagePicker language={language} visible={showLanguages} onChoose={language => setPreferences(value => ({ ...value, language }))} onClose={() => setShowLanguages(false)} />
     <LocationSheet language={language} visible={showLocation} state={locationState} onClose={() => setShowLocation(false)} />
