@@ -10,7 +10,8 @@
 - [x] Open-source license and automated host/bundle checks.
 - [x] Compile an Android APK containing ARM64/x86_64 Rust libraries and bundled JavaScript.
 - [x] Verify the Android Rust bridge on an API 36 emulator.
-- [ ] Compile the iOS native app and verify its Rust bridge on a device or simulator.
+- [x] Compile and package a bundled Release iOS simulator app on macOS with the Rust XCFramework.
+- [ ] Verify the iOS Rust bridge and app behavior on a device or simulator.
 - [ ] Check RTL, accessibility, and large text on real devices.
 - [ ] Resolve inherited Expo/Metro/Xcode dependency audit advisories as compatible upstream fixes become available.
 

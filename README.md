@@ -106,7 +106,7 @@ npm run export:mobile
 
 `check` runs TypeScript, coordinate/location/schedule behavior tests, Rust formatting/lint checks, and Rust tests. Reference schedules cover Makkah and London in winter and summer (DST); bridge validation rejects invalid dates, unsupported polar locations, and incomplete schedules. The export builds the JavaScript bundles for both mobile platforms; it does **not** compile Swift, Kotlin, or an installable app. Host checks cover the Rust core and C ABI.
 
-Android test APKs were compiled on Linux with JDK 17. The 0.3.3 reader/audio checks and 0.3.4 icon, language menu, persistence and Android Adhan notification checks are recorded in [READER-COMPASS-QA.md](docs/READER-COMPASS-QA.md), alongside earlier compass and reader results. The iOS native build remains unverified on this Linux host. Physical-device compass/GPS behavior also remains unverified.
+Android test APKs were compiled on Linux with JDK 17. The 0.3.3 reader/audio checks and 0.3.4 icon, language menu, persistence and Android Adhan notification checks are recorded in [READER-COMPASS-QA.md](docs/READER-COMPASS-QA.md), alongside earlier compass and reader results. The [macOS Release simulator build passed on 12 October 2026](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/38219756885), including the Rust XCFramework and bundled Quran assets. iOS runtime and physical-device checks remain pending. Physical-device compass/GPS behavior also remains unverified.
 
 The initial npm audit (10 October 2026) also reports inherited dependency advisories through Expo/Metro/Xcode tooling (`braces`, `node-forge`, and `uuid`). Compatible automatic updates did not resolve them. Updating upstream packages is follow-up work; functional checks do not imply a clean dependency audit.
 
@@ -129,7 +129,7 @@ Expo generates root `android/` and `ios/` projects when needed. They, Rust build
 
 ## Next work
 
-See [the roadmap](docs/ROADMAP.md). Next steps include native-speaker translation review, iOS notifications and branding, advanced high-latitude handling, physical-device compass/audio validation, and iOS native testing.
+See [the roadmap](docs/ROADMAP.md). Next steps include native-speaker translation review, iOS notifications, advanced high-latitude handling, physical-device compass/audio validation, and iOS native testing.
 
 The app adds no analytics and calculates Qibla and prayer times locally. Only foreground location permission is requested, after the user chooses device location. Android notification permission is requested only when prayer alerts are enabled. Locations and preferences are saved locally. Both platforms use the original Quran/direction launcher icon.
 
