@@ -33,7 +33,7 @@ jobs:
         run: npm ci --include=dev
       - name: Create iPhone simulator
         run: |
-          python3 - <<'PY'
+          QURAN_SIMULATOR="$(python3 - <<'PY'
           import json, subprocess, os
           def sim(*args): return subprocess.check_output(['xcrun', 'simctl', *args], text=True)
           runtimes=json.loads(sim('list','runtimes','--json'))['runtimes']
@@ -43,7 +43,9 @@ jobs:
           device=next((t for t in phones if t['name']=='iPhone 17 Pro'), phones[0])
           identifier=sim('create','Quran UI checks',device['identifier'],runtime['identifier']).strip()
           with open(os.environ['GITHUB_ENV'],'a') as f: f.write('QURAN_SIMULATOR='+identifier+'\n')
+          print(identifier)
           PY
+          )"
           xcrun simctl boot "$QURAN_SIMULATOR"
           open -a Simulator
       - name: Build Rust device and simulator libraries
