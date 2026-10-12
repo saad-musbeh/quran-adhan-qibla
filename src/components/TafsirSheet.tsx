@@ -69,7 +69,7 @@ function publicationLabel(book:TafsirBook,language:Language):string {
   const first=book.firstPublicationHijri===null
     ?bilingual(language,'أول نشر للكتاب: غير موثق في المصدر','First book publication: not documented by the source')
     :bilingual(language,'أول نشر للكتاب: {year} هـ','First book publication: {year} AH',{year:book.firstPublicationHijri.toLocaleString(localeFor(language),{useGrouping:false})});
-  const date=new Intl.DateTimeFormat(`${localeFor(language)}-u-ca-islamic-umalqura`,{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'}).format(new Date(`${book.firstDigitalPublication}T12:00:00Z`));
+  const date=new Intl.DateTimeFormat(localeFor(language),{calendar:'islamic-umalqura',year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'}).format(new Date(`${book.firstDigitalPublication}T12:00:00Z`));
   return first+'\n'+bilingual(language,'أول إصدار رقمي على QuranEnc: {date}','First QuranEnc digital edition: {date}',{date});
 }
 const baseStyles=StyleSheet.create({
