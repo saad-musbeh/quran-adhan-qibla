@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { useTafsirLibrary } from '../use-tafsir-library';
 import { ScreenLayer } from './ScreenLayer';
 import { QuranScreen, type QuranReaderSettings } from './QuranScreen';
-import { createQuranBooks, readQuranBooks, QURAN_BOOKS_KEY, type QuranBook } from '../domain/quran-books';
+import { createQuranBooks, readQuranBooks, readLegacyQuranBooks, LEGACY_QURAN_KEYS, QURAN_BOOKS_KEY, type QuranBook } from '../domain/quran-books';
 import { getVerse, getSurah } from '../domain/quran';
 import { getMushafPageVerses } from '../data/mushaf';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
@@ -28,7 +28,12 @@ export function QuranLibrary(props: Props) {
   const nameOf = (book: QuranBook) => book.name || bilingual(language, 'المصحف {n}', 'Quran {n}', { n: (books.indexOf(book) + 1).toLocaleString(localeFor(language)) });
   useEffect(() => {
     let alive = true;
-    void AsyncStorage.getItem(QURAN_BOOKS_KEY).then(json => { if (alive) setBooks(readQuranBooks(json)); }).catch(() => undefined).finally(() => { if (alive) setReady(true); });
+    void AsyncStorage.getItem(QURAN_BOOKS_KEY).then(async json => {
+      // Existing six-book libraries always take precedence over legacy data.
+      if (json !== null) { if (alive) setBooks(readQuranBooks(json)); return; }
+      const legacy = await AsyncStorage.multiGet([...LEGACY_QURAN_KEYS]);
+      if (alive) setBooks(readLegacyQuranBooks(legacy[0][1], legacy[1][1], legacy[2][1]));
+    }).catch(() => undefined).finally(() => { if (alive) setReady(true); });
     return () => { alive = false; };
   }, []);
   useEffect(() => {

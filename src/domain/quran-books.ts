@@ -2,9 +2,18 @@ import { readVerseBookmarks } from './quran-bookmarks.ts';
 
 export type QuranBook = { id: string; name: string; page: number; bookmarks: number[]; verseBookmarks: string[] };
 export const QURAN_BOOKS_KEY = 'quran.reader.books.v1';
+export const LEGACY_QURAN_KEYS = ['quran.reader.lastPage', 'quran.reader.bookmarks', 'quran.reader.verseBookmarks'] as const;
 
 export function createQuranBooks(): QuranBook[] {
   return Array.from({ length: 6 }, (_, i) => ({ id: `book-${i + 1}`, name: '', page: 1, bookmarks: [], verseBookmarks: [] }));
+}
+
+/** Move the pre-library reader into book 1, retaining the original keys. */
+export function readLegacyQuranBooks(page: string | null, bookmarks: string | null, verseBookmarks: string | null): QuranBook[] {
+  const parse = (raw: string | null): unknown => {
+    try { return JSON.parse(raw ?? 'null'); } catch { return null; }
+  };
+  return readQuranBooks(JSON.stringify([{ ...createQuranBooks()[0], page: Number(page), bookmarks: parse(bookmarks), verseBookmarks: parse(verseBookmarks) }]));
 }
 
 export function readQuranBooks(json: string | null): QuranBook[] {
