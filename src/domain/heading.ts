@@ -32,7 +32,7 @@ export function relativeBearing(target: number, current: number): number {
 }
 
 /** Smooth compass samples over the shortest arc to avoid jumps at north. */
-export function smoothHeading(previous: number, next: number, alpha = 0.22): number {
+export function smoothHeading(previous: number, next: number, alpha = 0.55): number {
   const blend = Math.max(0, Math.min(1, alpha));
   return normalizeDegrees(previous + relativeBearing(next, previous) * blend);
 }

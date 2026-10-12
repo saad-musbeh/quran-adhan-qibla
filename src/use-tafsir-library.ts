@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getSurah, surahs } from './domain/quran';
 import { downloadSurahsConcurrently, indexTafsirRecords, isValidTafsirEnvelope, isValidSurahResult, verifyQuranEncRelease, type SourceTafsirRecord, type TafsirBookEnvelope } from './domain/tafsir-download';
+import { isValidRangeTafsirSurah, indexRangeTafsir, type RangeTafsirRecord, type TafsirText } from './domain/range-tafsir';
 import { TAFSIR_BOOKS, type TafsirBook } from './data/tafsir';
 
 const STORAGE_KEY = '@quran-adhan-qibla/tafsir-selected-book-v1';
@@ -17,6 +18,15 @@ const sourceRecords = (payload: unknown, surah: number) => {
   return result;
 };
 const envelopeFor = (book:TafsirBook,records:SourceTafsirRecord[]):TafsirBookEnvelope => ({schema:1,book:{id:book.id,title:book.title,publisher:book.publisher,version:book.version,url:book.url},records});
+type RangeEnvelope = {schema:2;book:TafsirBookEnvelope['book'];chapters:RangeTafsirRecord[][];downloadToken?:string};
+type BookEnvelope = TafsirBookEnvelope | RangeEnvelope;
+function validEnvelope(value:unknown, book:TafsirBook):value is BookEnvelope {
+  if(book.apiKind!=='tafsir')return isValidTafsirEnvelope(value,book,counts);
+  if(!value||typeof value!=='object')return false;
+  const e=value as Partial<RangeEnvelope>, b=e.book;
+  return e.schema===2&&Boolean(b&&b.id===book.id&&b.title===book.title&&b.publisher===book.publisher&&b.version===book.version&&b.url===book.url)&&Array.isArray(e.chapters)&&e.chapters.length===114&&e.chapters.every((rows,i)=>isValidRangeTafsirSurah(rows,i+1,counts[i]));
+}
+function indexEnvelope(e:BookEnvelope):Map<string,TafsirText>{return e.schema===2?indexRangeTafsir(e.chapters):indexTafsirRecords(e.records)}
 async function fetchWithTimeout<T>(url:string,parentSignal:AbortSignal,read:(response:Response)=>Promise<T>):Promise<T>{
   const local=new AbortController();let timedOut=false;
   const abort=()=>local.abort();parentSignal.addEventListener('abort',abort,{once:true});if(parentSignal.aborted)local.abort();
@@ -31,9 +41,11 @@ async function verifyRelease(book:TafsirBook,signal:AbortSignal){
 }
 
 export function useTafsirLibrary() {
+  const [requested,setRequested]=useState(false);
+  const openLibrary=useCallback(()=>setRequested(true),[]);
   const [downloadedIds,setDownloadedIds]=useState<string[]>([]);
   const [selectedId,setSelectedId]=useState<string|null>(null);
-  const [loaded,setLoaded]=useState<Map<string,{text:string;footnotes:string|null}>|null>(null);
+  const [loaded,setLoaded]=useState<Map<string,TafsirText>|null>(null);
   const [isDownloading,setIsDownloading]=useState<string|null>(null);
   const [progress,setProgress]=useState(0);
   const [error,setError]=useState<string|null>(null);
@@ -43,17 +55,18 @@ export function useTafsirLibrary() {
   const persistSelection=(id:string|null)=>{selectionWrites.current=selectionWrites.current.catch(()=>undefined).then(()=>id?AsyncStorage.setItem(STORAGE_KEY,id):AsyncStorage.removeItem(STORAGE_KEY));return selectionWrites.current};
   const bookById=useMemo(()=>new Map(TAFSIR_BOOKS.map(book=>[book.id,book])),[]);
 
-  const loadBook=useCallback(async(id:string):Promise<Map<string,{text:string;footnotes:string|null}>|null>=>{
+  const loadBook=useCallback(async(id:string):Promise<Map<string,TafsirText>|null>=>{
     const book=bookById.get(id);if(!book||!available.current.has(id))return null;
     const json=await FileSystem.readAsStringAsync(fileFor(book));
     const envelope=JSON.parse(json) as unknown;
-    if(!isValidTafsirEnvelope(envelope,{id:book.id,title:book.title,publisher:book.publisher,version:book.version,url:book.url},counts)){
+    if(!validEnvelope(envelope,book)){
       await FileSystem.deleteAsync(fileFor(book),{idempotent:true});available.current.delete(id);if(mounted.current)setDownloadedIds([...available.current]);return null;
     }
-    return indexTafsirRecords(envelope.records);
+    return indexEnvelope(envelope);
   },[bookById]);
 
   useEffect(()=>{
+    if(!requested)return;
     mounted.current=true;
     const startupRevision=selectionRevision.current;
     void (async()=>{
@@ -64,7 +77,7 @@ export function useTafsirLibrary() {
         const ids:string[]=[];
         for(const book of TAFSIR_BOOKS){
           try{const json=await FileSystem.readAsStringAsync(fileFor(book));const envelope=JSON.parse(json) as unknown;
-            if(isValidTafsirEnvelope(envelope,{id:book.id,title:book.title,publisher:book.publisher,version:book.version,url:book.url},counts)){ids.push(book.id);available.current.add(book.id)}
+            if(validEnvelope(envelope,book)){ids.push(book.id);available.current.add(book.id)}
             else await FileSystem.deleteAsync(fileFor(book),{idempotent:true});
           }catch{const info=await FileSystem.getInfoAsync(fileFor(book)).catch(()=>({exists:false} as FileSystem.FileInfo));if(info.exists)await FileSystem.deleteAsync(fileFor(book),{idempotent:true}).catch(()=>undefined);/* Missing or corrupt downloads stay unavailable. */}
         }
@@ -75,7 +88,7 @@ export function useTafsirLibrary() {
       }catch(cause){if(mounted.current){setError(cause instanceof Error?cause.message:'Could not open the offline tafsir library.');setReady(true)}}
     })();
     return()=>{mounted.current=false;cancelled.current=true;controller.current?.abort();};
-  },[loadBook]);
+  },[loadBook,requested]);
 
   const selectBook=useCallback(async(id:string)=>{
     const revision=++selectionRevision.current;setError(null);const book=bookById.get(id);if(!book){if(revision===selectionRevision.current)setError('This tafsir edition is unavailable.');return}
@@ -94,22 +107,23 @@ export function useTafsirLibrary() {
     const temp=`${fileFor(book)}.${Date.now()}-${Math.random().toString(36).slice(2)}.part`,downloadToken=`${Date.now()}-${Math.random().toString(36).slice(2)}`;temporary.current=temp;setError(null);setIsDownloading(id);setProgress(0);
     try{
       await verifyRelease(book,aborter.signal);
-      const records=await downloadSurahsConcurrently<SourceTafsirRecord[]>(114,3,aborter.signal,async(surah,signal)=>{
-      const endpoint=`https://quranenc.com/api/v1/translation/sura/${encodeURIComponent(book.apiKey)}/${surah}`;
-      return await fetchWithTimeout(endpoint,signal,async response=>{if(!response.ok)throw new Error(`Tafsir download failed at surah ${surah} (HTTP ${response.status}).`);return sourceRecords(await response.json() as unknown,surah)});
+      const records=await downloadSurahsConcurrently<SourceTafsirRecord[]|RangeTafsirRecord[]>(114,3,aborter.signal,async(surah,signal)=>{
+      const endpoint=`https://quranenc.com/api/v1/${book.apiKind??'translation'}/sura/${encodeURIComponent(book.apiKey)}/${surah}`;
+      return await fetchWithTimeout(endpoint,signal,async response=>{if(!response.ok)throw new Error(`Tafsir download failed at surah ${surah} (HTTP ${response.status}).`);const payload=await response.json() as {result?:unknown};if(book.apiKind==='tafsir'){if(!isValidRangeTafsirSurah(payload.result,surah,counts[surah-1]))throw new Error(`Incomplete tafsir passages for surah ${surah}.`);return payload.result}return sourceRecords(payload,surah)});
     },completed=>{if(mounted.current)setProgress(Math.floor(100*completed/114))});
       if(cancelled.current||aborter.signal.aborted){const abortError=new Error('Download cancelled');abortError.name='AbortError';throw abortError;}
-      const flattened=records.flat();if(flattened.length!==6236||records.some(rows=>!rows))throw new Error('Tafsir source did not return all 6,236 verses.');
-      const envelope={...envelopeFor(book,flattened),downloadToken};
-      if(!isValidTafsirEnvelope(envelope,{id:book.id,title:book.title,publisher:book.publisher,version:book.version,url:book.url},counts))throw new Error('Downloaded tafsir did not pass complete Quran validation.');
+      const envelope:BookEnvelope=book.apiKind==='tafsir'
+        ?{schema:2,book:{id:book.id,title:book.title,publisher:book.publisher,version:book.version,url:book.url},chapters:records as RangeTafsirRecord[][],downloadToken}
+        :{...envelopeFor(book,(records as SourceTafsirRecord[][]).flat()),downloadToken};
+      if(!validEnvelope(envelope,book))throw new Error('Downloaded tafsir did not pass complete Quran validation.');
       await FileSystem.writeAsStringAsync(temp,JSON.stringify(envelope));
       if(cancelled.current||aborter.signal.aborted||!mounted.current){const abortError=new Error('Download cancelled');abortError.name='AbortError';throw abortError;}
       await FileSystem.moveAsync({from:temp,to:fileFor(book)});temporary.current=null;
       if(cancelled.current||aborter.signal.aborted||!mounted.current){try{const saved=JSON.parse(await FileSystem.readAsStringAsync(fileFor(book))) as {downloadToken?:string};if(saved.downloadToken===downloadToken)await FileSystem.deleteAsync(fileFor(book),{idempotent:true})}catch{/* Preserve any unrelated final file. */}return;}
       available.current.add(id);
       const ids=[...available.current];setDownloadedIds(ids);setProgress(100);
-      if(selectedIdRef.current===id){setLoaded(indexTafsirRecords(flattened))}
-      else if(selectedIdRef.current===null){selectedIdRef.current=id;setSelectedId(id);setLoaded(indexTafsirRecords(flattened));selectionRevision.current+=1;await persistSelection(id)}
+      if(selectedIdRef.current===id){setLoaded(indexEnvelope(envelope))}
+      else if(selectedIdRef.current===null){selectedIdRef.current=id;setSelectedId(id);setLoaded(indexEnvelope(envelope));selectionRevision.current+=1;await persistSelection(id)}
     }catch(cause){
       if(!cancelled.current&&!(cause instanceof Error&&cause.name==='AbortError')&&mounted.current){controller.current?.abort();setError(cause instanceof Error?cause.message:'Tafsir download failed. Retry to continue.')}
     }finally{
@@ -127,5 +141,5 @@ export function useTafsirLibrary() {
     if(selectedIdRef.current===id){const revision=++selectionRevision.current,next=ids[0]??null;selectedIdRef.current=next;setSelectedId(next);setLoaded(null);const records=next?await loadBook(next):null;if(revision===selectionRevision.current){setLoaded(records);await persistSelection(next)}}
   },[bookById,loadBook]);
   const getTafsir=useCallback((surah:number,ayah:number)=>loaded?.get(`${surah}:${ayah}`),[loaded]);
-  return {books:TAFSIR_BOOKS,downloadedIds,selectedId,selectedBook:selectedId?bookById.get(selectedId)??null:null,isDownloading,progress,error,selectBook,downloadBook,cancelDownload,deleteBook,getTafsir,ready} as const;
+  return {openLibrary,books:TAFSIR_BOOKS,downloadedIds,selectedId,selectedBook:selectedId?bookById.get(selectedId)??null:null,isDownloading,progress,error,selectBook,downloadBook,cancelDownload,deleteBook,getTafsir,ready} as const;
 }

@@ -7,6 +7,7 @@ import { isRTL, localizeCopy } from '../i18n';
 export type { Tab } from '../domain/navigation';
 
 type Props = {
+  hideNavigation?: boolean;
   language: Language;
   tab: Tab;
   onChange: (tab: Tab) => void;
@@ -23,7 +24,7 @@ const labels: { en: Record<Tab, string> & { show: string }; ar: Record<Tab, stri
 
 const HIDE_DELAY_MS = 4_000;
 
-export function SwipeTabs({ language, tab, onChange, children, theme = 'green', reading = false, chromeVisible = false }: Props) {
+export function SwipeTabs({ hideNavigation = false, language, tab, onChange, children, theme = 'green', reading = false, chromeVisible = false }: Props) {
   const {styles}=useReaderStyles(baseStyles);
   const [dockVisible, setDockVisible] = useState(true);
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
@@ -149,7 +150,7 @@ export function SwipeTabs({ language, tab, onChange, children, theme = 'green', 
     onTouchCancel={reading ? undefined : onTouchCancel}
   >
     <View style={[styles.content, theme === 'navy' && styles.navyContent, reading && styles.readingContent]}>{children}</View>
-    {(reading ? chromeVisible : dockVisible) ? <View accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, theme === 'navy' && styles.navyDock, isRTL(language) && styles.dockRtl]}>
+    {hideNavigation ? null : (reading ? chromeVisible : dockVisible) ? <View accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, isRTL(language) && styles.dockRtl]}>
       {TABS.map(item => <Pressable
         key={item}
         accessibilityRole="tab"
@@ -157,16 +158,16 @@ export function SwipeTabs({ language, tab, onChange, children, theme = 'green', 
         accessibilityState={{ selected: tab === item }}
         onPress={() => chooseTab(item)}
         onPressIn={revealAndRestartTimer}
-        style={[styles.tab, theme === 'navy' && styles.navyTab, tab === item && styles.tabSelected, theme === 'navy' && tab === item && styles.navyTabSelected]}
+        style={[styles.tab, tab === item && styles.tabSelected]}
       >
-        <Text style={[styles.tabLabel, theme === 'navy' && styles.navyTabLabel, tab === item && styles.tabLabelSelected]}>{copy[item]}</Text>
+        <Text style={[styles.tabLabel, tab === item && styles.tabLabelSelected]}>{copy[item]}</Text>
       </Pressable>)}
     </View> : !reading && <Pressable
       accessibilityRole="button"
       accessibilityLabel={copy.show}
       accessibilityState={{ expanded: false }}
       onPress={revealAndRestartTimer}
-      style={[styles.handleButton, theme === 'navy' && styles.navyHandleButton]}
+      style={styles.handleButton}
     >
       <View style={styles.handle} />
     </Pressable>}
@@ -195,7 +196,7 @@ const baseStyles = StyleSheet.create({
     padding: 5,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#35544B',
+    borderColor: '#DBAB68',
     backgroundColor: '#15342E',
     shadowColor: '#000',
     shadowOpacity: 0.22,
@@ -205,7 +206,7 @@ const baseStyles = StyleSheet.create({
   },
   dockRtl: { flexDirection: 'row-reverse' },
   tab: { flex: 1, minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, borderRadius: 15 },
-  tabSelected: { backgroundColor: '#D6BA7A' },
+  tabSelected: { backgroundColor: '#FAF7EF' },
   tabLabel: { color: '#A8C1B8', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   tabLabelSelected: { color: '#102A25', fontWeight: '700' },
   handleButton: {
@@ -219,7 +220,7 @@ const baseStyles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: '#15342E',
     borderWidth: 1,
-    borderColor: '#35544B',
+    borderColor: '#DBAB68',
     elevation: 5,
   },
   handle: { width: 28, height: 4, borderRadius: 2, backgroundColor: '#D6BA7A' },

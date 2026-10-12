@@ -37,6 +37,13 @@ export function preloadMushafPage(module: number): Promise<string> {
   while (decodedPages.size > 7) decodedPages.delete(decodedPages.keys().next().value!);
   return pending;
 }
+export function preloadMushafResources(module:number):Promise<{svg:string;font:string}> {
+  if (!metadataFont) {
+    metadataFont=readAsset(require('../../assets/quran/AmiriQuran.ttf'),true);
+    metadataFont.catch(()=>{metadataFont=undefined;});
+  }
+  return Promise.all([preloadMushafPage(module),metadataFont]).then(([svg,font])=>({svg,font}));
+}
 function pageDescriptor(page: number) {
   const verses = printedPageVerses(page);
   return {page, asset:MUSHAF_PAGE_ASSETS[page], verses, surahNames:chapterNames(verses), juzName:juzArabic(verses[0]?.juz??1)};
@@ -55,11 +62,7 @@ export function MushafPageView(props: Props) {
     let alive = true;
     const initial = latest.current;
     setError(false); setReady(false); setHtml(null); cached.current.clear();
-    if (!metadataFont) {
-      metadataFont = readAsset(require('../../assets/quran/AmiriQuran.ttf'), true);
-      metadataFont.catch(() => { metadataFont = undefined; });
-    }
-    void Promise.all([preloadMushafPage(initial.asset), metadataFont]).then(([svg,font]) => {
+    void preloadMushafResources(initial.asset).then(({svg,font}) => {
       if (alive) setHtml(buildMushafDocument(initial, svg, font));
     }).catch(() => { if (alive) setError(true); });
     return () => { alive=false; };
@@ -87,6 +90,8 @@ export function MushafPageView(props: Props) {
         if (!alive) break;
         if (n<1||n>604) continue;
         try { await prepare(n); } catch { /* Neighbor failures never hide the current page. */ }
+        // Let the current page paint and accept input between SVG preparations.
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
     })();
     return () => { alive=false; };

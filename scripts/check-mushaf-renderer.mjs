@@ -69,6 +69,9 @@ try {
         assert.equal(heading.glyphFill,'rgb(35, 31, 32)','source glyph fill remains authored');
         assert.equal(heading.frameFill,cssRgb(dark?deep:lightPaper),'heading banner keeps the page paper color');
         assert.equal(heading.frameCount,n===599?2:3,'all source surah headings are framed on page '+n);
+        const numbers=await page.locator('#stage .ayah-mark>g:not(.ayah-mark-ornament) path').evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).fill));
+        assert.ok(numbers.length>0,'source ayah numerals exist');
+        assert.ok(numbers.every(fill=>fill===cssRgb(dark?lightPaper:ink)),id+' ayah numerals stay visible in both modes');
         if(id==='green'&&!dark){
           const alignments=await page.locator('#stage .page-art').evaluate(art=>{
             const svg=art.querySelector(':scope>svg'), source=svg.querySelector('.mushaf-content path'), data=source.getAttribute('d');
@@ -138,6 +141,35 @@ try {
   await page.setViewportSize({width:320,height:568});
   await page.evaluate(()=>window.zoomPage(1));
   assert.equal(await page.locator('#sheet').evaluate(n=>n.getBoundingClientRect().width),320);
+  // The drag follows the finger on both axes and commits only beyond halfway.
+  await page.setViewportSize({width:390,height:606});
+  await page.evaluate(()=>window.zoomPage(1));
+  for(const n of [299,300,301,302])await page.evaluate(info=>window.cachePage(info),descriptor(n));
+  await page.evaluate(()=>window.activatePage(300,{language:'ar',dark:true,activeKey:null,loopPickMode:null},false));
+  const touch=async(kind,x,y)=>page.evaluate(({kind,x,y})=>{
+    if(kind==='touchstart')window.gestureTarget=document.querySelector('#stage .page-art');
+    const target=window.gestureTarget;
+    const t=new Touch({identifier:1,target,clientX:x,clientY:y});
+    target.dispatchEvent(new TouchEvent(kind,{bubbles:true,cancelable:true,touches:kind==='touchend'||kind==='touchcancel'?[]:[t],changedTouches:[t]}));
+  },{kind,x,y});
+  await touch('touchstart',180,500);await touch('touchmove',180,380);
+  await page.waitForTimeout(30);
+  assert.ok(await page.locator('#stage .panel[data-page="300"]').evaluate(n=>n.getBoundingClientRect().top)<-100,'page follows held vertical drag');
+  await touch('touchend',180,380);await page.waitForTimeout(240);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'300','less than half returns to current page');
+  await touch('touchstart',180,550);await touch('touchmove',180,120);await touch('touchend',180,120);
+  assert.equal(await page.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').at(-1).page),300,'bridge records original page');
+  await page.evaluate(()=>window.activatePage(301,{language:'ar',dark:true}));
+  await page.waitForTimeout(250);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','more than half up turns to next page');
+  await touch('touchstart',50,300);await touch('touchmove',320,300);await touch('touchend',320,300);await page.waitForTimeout(250);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'302','horizontal drag remains available');
+  await touch('touchstart',320,300);await touch('touchmove',50,300);await touch('touchcancel',50,300);await page.waitForTimeout(240);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'302','cancelled gesture cannot change the page');
+  await touch('touchstart',180,80);await touch('touchmove',180,500);await touch('touchend',180,500);await page.waitForTimeout(250);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','more than half down turns to previous page');
+  assert.equal(await page.locator('#stage .ayahPolygon').count(),pages[300].verseKeys.length,'drag preserves the complete printed page');
+  await page.setViewportSize({width:320,height:568});
   for (const n of [1,2]) {
     await page.evaluate(info=>window.cachePage(info),descriptor(n));
     await page.evaluate(({n,state})=>window.activatePage(n,state,false),{n,state:{...state,theme:{background:'#5B2938',deep:'#401C28',ink:'#4A2330',lightPaper:'#FAF7EF',pale:'#F1E6E9',accent:'#DBAB68'}}});

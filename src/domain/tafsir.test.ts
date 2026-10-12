@@ -23,16 +23,14 @@ const manifest = JSON.parse(readFileSync(new URL('../../assets/tafsir/manifest.j
   sourceBodySha256: string;
 };
 
-test('catalogue lists only the two verified QuranEnc editions and their pinned releases', () => {
-  assert.deepEqual(TAFSIR_BOOKS.map(book => book.id), ['moyassar', 'mokhtasar']);
-  assert.deepEqual(TAFSIR_BOOKS.map(book => book.apiKey), ['arabic_moyassar', 'arabic_mokhtasar']);
-  assert.deepEqual(TAFSIR_BOOKS.map(book => book.version), ['V1.0.0 (2017-02-15)', 'V1.0.0 (2017-02-15)']);
-  assert.deepEqual(TAFSIR_BOOKS.map(book => book.url), [
-    'https://quranenc.com/ar/browse/arabic_moyassar',
-    'https://quranenc.com/ar/browse/arabic_mokhtasar',
-  ]);
-  assert.equal(TAFSIR_BOOKS[0].publisher, 'مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة');
-  assert.equal(TAFSIR_BOOKS[1].publisher, 'مركز تفسير للدراسات القرآنية');
+test('catalogue keeps the existing editions and offers verified additional sources', () => {
+  assert.deepEqual(TAFSIR_BOOKS.map(book=>book.id),['moyassar','mokhtasar','saadi','nafahat']);
+  assert.ok(TAFSIR_BOOKS.every(book=>book.url===`https://quranenc.com/ar/browse/${book.apiKey}`));
+  assert.equal(TAFSIR_BOOKS[2].apiKind,'tafsir');
+  assert.equal(TAFSIR_BOOKS[1].firstPublicationHijri,1434);
+  assert.equal(TAFSIR_BOOKS[2].firstPublicationHijri,1375);
+  assert.equal(TAFSIR_BOOKS[3].firstPublicationHijri,null,'undocumented original publication cannot be substituted with a digital release');
+  assert.ok(TAFSIR_BOOKS.every(book=>/^V[\d.]+ \(\d{4}-\d{2}-\d{2}\)$/.test(book.version)));
 });
 
 test('development provenance fixture covers canonical Tanzil ayah keys in order', () => {

@@ -15,7 +15,8 @@ import { LanguagePicker } from './src/components/LanguagePicker';
 import { useLocation } from './src/use-location';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SettingsSheet } from './src/components/SettingsSheet';
-import { QuranScreen, QuranSettings } from './src/components/QuranScreen';
+import { QuranSettings } from './src/components/QuranScreen';
+import { QuranLibrary } from './src/components/QuranLibrary';
 import { useQuranAudio } from './src/use-quran-audio';
 import { usePreferences } from './src/use-preferences';
 import { usePrayerNotifications } from './src/use-prayer-notifications';
@@ -35,6 +36,7 @@ function Main() {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsSection, setSettingsSection] = useState<Tab>('quran');
   const [tab, setTab] = useState<Tab>('quran');
+  const [readingBook,setReadingBook]=useState(false);
   const [readingChromeVisible, setReadingChromeVisible] = useState(false);
   const [showLocation, setShowLocation] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
@@ -91,17 +93,17 @@ function Main() {
       <View style={[styles.tools, isRTL(language) && styles.reverse]}>
         <Pressable accessibilityRole="button" accessibilityLabel={t.language} style={styles.iconButton}
           onPress={() => setShowLanguages(true)}>
-          <Ionicons name="language-outline" color={tab === 'quran' ? '#F3EEDC' : quranTheme.theme.accent} size={23} />
+          <Ionicons name="language-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={t.locationTitle} style={styles.iconButton} onPress={() => setShowLocation(true)}>
-          <Ionicons name="location-outline" color={tab === 'quran' ? '#F3EEDC' : quranTheme.theme.accent} size={23} />
+          <Ionicons name="location-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={t.settings} style={styles.iconButton} onPress={() => { setSettingsSection(tab); setShowSettings(true); }}>
-          <Ionicons name="settings-outline" color={tab === 'quran' ? '#F3EEDC' : quranTheme.theme.accent} size={23} />
+          <Ionicons name="settings-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>
       </View>
     </View>}
-    <SwipeTabs language={language} tab={tab} theme={tab === 'quran' ? 'navy' : 'green'} reading={tab === 'quran'} chromeVisible={readingChromeVisible} onChange={next => { setTab(next); setReadingChromeVisible(false); setNow(new Date()); }}>
+    <SwipeTabs hideNavigation={readingBook} language={language} tab={tab} theme={tab === 'quran' ? 'navy' : 'green'} reading={tab === 'quran'} chromeVisible={readingChromeVisible} onChange={next => { setTab(next); setReadingChromeVisible(false); setNow(new Date()); }}>
       {tab === 'qibla' ? <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
         calculationAvailable={isQiblaAvailable} calculationError={qibla.error}
         active={!showLocation && !showSettings && !showLanguages} mode={compassMode}
@@ -109,9 +111,12 @@ function Main() {
         : tab === 'adhan' ? <AdhanScreen language={language} state={locationState} times={schedule.times}
           error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now} timezone={timezone}
           />
-        : <QuranScreen language={language} audio={audio} settings={reader}
+        : null}
+      <View style={{ flex: 1, display: tab === 'quran' ? 'flex' : 'none' }}>
+        <QuranLibrary onBookOpenChange={setReadingBook} active={tab === 'quran'} language={language} audio={audio} settings={reader}
           onReadingChromeChange={setReadingChromeVisible}
-          onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />}
+          onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
+      </View>
 
     </SwipeTabs>
     <SettingsSheet language={language} visible={showSettings} section={settingsSection} onSectionChange={setSettingsSection}

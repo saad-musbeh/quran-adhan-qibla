@@ -5,6 +5,7 @@ import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, T
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getSurah, getVerse } from '../domain/quran';
+import type { TafsirBook } from '../data/tafsir';
 import type { useTafsirLibrary } from '../use-tafsir-library';
 
 type Props = { library: ReturnType<typeof useTafsirLibrary>; verseKey: string | null; language: Language; dark: boolean; quranFontLoaded: boolean; onClose: () => void };
@@ -48,20 +49,28 @@ export function TafsirSheet({ library, verseKey, language, dark, quranFontLoaded
                 {loading?<Text style={[styles.progress,{color:ink}]}>{library.progress}%</Text>:saved?<Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={`${c.remove}: ${item.title}`} onPress={()=>{setPendingBook(null);void library.deleteBook(item.id).catch(()=>setRemoveError(true))}}><Ionicons name="trash-outline" size={18} color={ink}/></Pressable>:null}
               </View>
               <Pressable style={styles.bookDetails} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{selected,disabled:!library.ready||Boolean(library.isDownloading&&!loading)}} disabled={!library.ready||Boolean(library.isDownloading&&!loading)} onPress={()=>{if(loading){choiceRevision.current+=1;setPendingBook(null);library.cancelDownload()}else void choose(item.id)}}>
-                <Text style={[styles.bookTitle,{color:ink}]}>{item.title}</Text><Text style={[styles.publisher,{color:ink}]}>{item.publisher}</Text><Text style={[styles.edition,{color:ink}]}>QuranEnc.com · {item.version}</Text>
+                <Text style={[styles.bookTitle,{color:ink}]}>{item.title}</Text><Text style={[styles.publisher,{color:ink}]}>{item.publisher}</Text><Text style={[styles.edition,{color:ink}]}>{publicationLabel(item,language)}</Text><Text style={[styles.edition,{color:ink}]}>QuranEnc.com · {item.version}</Text>
               </Pressable>
             </View>;
           })}
           {library.error||removeError?<Text accessibilityRole="alert" style={[styles.error,{textAlign:ar?'right':'left',writingDirection:ar?'rtl':'ltr'}]}>{c.failure}</Text>:null}
         </ScrollView>:<ScrollView key={`${verseKey}-${book?.id}`} contentContainerStyle={styles.content}>
           <Text style={[styles.verse,quranFontLoaded&&{fontFamily:'AmiriQuran'},{color:ink}]}>{verse?.text}</Text>
+          {tafsir?.passage&&<Text style={[styles.edition,{color:ink}]}>{bilingual(language,'تفسير المقطع: الآيات {from}–{to}','Passage commentary: verses {from}–{to}',{from:tafsir.passage.start.toLocaleString(localeFor(language)),to:tafsir.passage.end.toLocaleString(localeFor(language))})}</Text>}
           <Text style={[styles.explanation,{color:ink}]}>{tafsir?.text??c.unavailable}</Text>
           {tafsir?.footnotes?<Text style={[styles.footnotes,{color:ink}]}>{tafsir.footnotes}</Text>:null}
-          <Pressable accessibilityRole="link" onPress={()=>{if(book)void Linking.openURL(book.url).catch(()=>undefined)}} style={styles.source}><Text style={[styles.edition,{color:ink}]}>{book?.publisher} · QuranEnc.com · {book?.version}</Text></Pressable>
+          <Pressable accessibilityRole="link" onPress={()=>{if(book)void Linking.openURL(book.url).catch(()=>undefined)}} style={styles.source}><Text style={[styles.edition,{color:ink}]}>{book&&publicationLabel(book,language)}{`\n`}{book?.publisher} · QuranEnc.com · {book?.version}</Text></Pressable>
         </ScrollView>}
       </View>
     </View>
   </Modal>;
+}
+function publicationLabel(book:TafsirBook,language:Language):string {
+  const first=book.firstPublicationHijri===null
+    ?bilingual(language,'أول نشر للكتاب: غير موثق في المصدر','First book publication: not documented by the source')
+    :bilingual(language,'أول نشر للكتاب: {year} هـ','First book publication: {year} AH',{year:book.firstPublicationHijri.toLocaleString(localeFor(language),{useGrouping:false})});
+  const date=new Intl.DateTimeFormat(`${localeFor(language)}-u-ca-islamic-umalqura`,{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'}).format(new Date(`${book.firstDigitalPublication}T12:00:00Z`));
+  return first+'\n'+bilingual(language,'أول إصدار رقمي على QuranEnc: {date}','First QuranEnc digital edition: {date}',{date});
 }
 const baseStyles=StyleSheet.create({
   overlay:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(12,28,40,.55)',paddingHorizontal:8},sheet:{maxHeight:'85%',borderTopLeftRadius:22,borderTopRightRadius:22,borderWidth:StyleSheet.hairlineWidth,overflow:'hidden'},header:{minHeight:76,flexDirection:'row',alignItems:'center',paddingHorizontal:8,borderBottomWidth:StyleSheet.hairlineWidth},icon:{width:44,height:44,alignItems:'center',justifyContent:'center'},titleGroup:{flex:1,paddingHorizontal:8,gap:4},title:{fontSize:20,fontWeight:'600',textAlign:'right',writingDirection:'rtl'},reference:{fontSize:14,textAlign:'right',writingDirection:'rtl'},content:{padding:22,gap:22},verse:{fontSize:25,lineHeight:48,textAlign:'right',writingDirection:'rtl'},explanation:{fontSize:20,lineHeight:36,textAlign:'right',writingDirection:'rtl'},footnotes:{fontSize:17,lineHeight:30,textAlign:'right',writingDirection:'rtl'},source:{minHeight:44,justifyContent:'center'},catalogue:{paddingBottom:18},hint:{fontSize:14,lineHeight:23,padding:16,textAlign:'right',writingDirection:'rtl'},bookRow:{flexDirection:'row',alignItems:'center',borderBottomWidth:StyleSheet.hairlineWidth,paddingVertical:12,paddingHorizontal:10,gap:8},statusColumn:{alignItems:'center',width:44},progress:{fontSize:12},bookDetails:{flex:1,gap:8,minHeight:70,justifyContent:'center'},bookTitle:{fontSize:22,fontWeight:'700',textAlign:'right',writingDirection:'rtl'},publisher:{fontSize:15,lineHeight:24,textAlign:'right',writingDirection:'rtl'},edition:{fontSize:12,lineHeight:22,opacity:.75,textAlign:'right',writingDirection:'rtl'},error:{color:'#A44130',fontSize:14,lineHeight:22,textAlign:'right',padding:16},

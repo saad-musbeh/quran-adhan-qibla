@@ -12,12 +12,8 @@ import {
 import { findQuranQueuePosition, initialQuranQueue, nextQuranQueueChapter, type QuranQueuePosition } from './domain/quran-audio-queue';
 import { quranAudioControls } from './quran-audio-controls';
 
-export type ReciterId = 'alafasy' | 'husary' | 'sudais';
-export const RECITERS: { id: ReciterId; name: string; arabicName: string; directory: string }[] = [
-  { id: 'alafasy', name: 'Mishary Rashid Alafasy', arabicName: 'مشاري العفاسي', directory: 'Alafasy_128kbps' },
-  { id: 'husary', name: 'Mahmoud Khalil Al-Husary', arabicName: 'محمود خليل الحصري', directory: 'Husary_128kbps' },
-  { id: 'sudais', name: 'Abdurrahmaan As-Sudais', arabicName: 'عبدالرحمن السديس', directory: 'Abdurrahmaan_As-Sudais_64kbps' },
-];
+import { RECITERS, emptyReciterDownloads, type ReciterId } from './data/reciters';
+export { RECITERS, type ReciterId } from './data/reciters';
 
 export type AudioRange = DomainAudioRange;
 export type QuranAudioController = {
@@ -43,6 +39,7 @@ export type QuranAudioController = {
   nextVerse(): Promise<void>;
   previousVerse(): Promise<void>;
   seekBy(seconds: number): void;
+  replayVerse(): Promise<void>;
   setReciter(id: ReciterId): void;
   setPlaybackRate(rate: number): void;
   setRepeatRange(range: AudioRange | null): void;
@@ -99,7 +96,7 @@ export function useQuranAudio(): QuranAudioController {
   const [status, setStatus] = useState<QuranAudioController['status']>('idle');
   const statusRef = useRef<QuranAudioController['status']>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [downloadsByReciter, setDownloadsByReciter] = useState<Record<ReciterId, number[]>>({ alafasy: [], husary: [], sudais: [] });
+  const [downloadsByReciter, setDownloadsByReciter] = useState<Record<ReciterId, number[]>>(emptyReciterDownloads);
   const [isDownloading, setIsDownloading] = useState<number | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
@@ -184,11 +181,7 @@ export function useQuranAudio(): QuranAudioController {
           if (Array.isArray(saved)) setDownloadsByReciter((state) => ({ ...state, alafasy: cleanDownloadedSurahs(saved) }));
           else if (saved && typeof saved === 'object') {
             const byReciter = saved as Record<string, unknown>;
-            setDownloadsByReciter({
-              alafasy: cleanDownloadedSurahs(byReciter.alafasy),
-              husary: cleanDownloadedSurahs(byReciter.husary),
-              sudais: cleanDownloadedSurahs(byReciter.sudais),
-            });
+            setDownloadsByReciter(Object.fromEntries(RECITERS.map(reciter => [reciter.id, cleanDownloadedSurahs(byReciter[reciter.id])])) as Record<ReciterId, number[]>);
           }
         }
       } catch {
@@ -456,6 +449,21 @@ export function useQuranAudio(): QuranAudioController {
     } else await playPosition(position);
   }, [playlist, playPosition, titleFor]);
 
+  const replayVerse = useCallback(async () => {
+    const position = currentRef.current;
+    if (!position) return;
+    if (queuePositionsRef.current.length && playerStatus.isLoaded) {
+      const generation=++generationRef.current;
+      queueLoadingRef.current=false;
+      refillForRef.current=null;
+      setError(null);
+      await playlist.seekTo(0);
+      if(generation!==generationRef.current)return;
+      playlist.play();
+      setStatus('loading');
+    } else await playPosition(position);
+  }, [playlist, playerStatus.isLoaded, playPosition]);
+
   const nextVerse = useCallback(async () => {
     const position = currentRef.current;
     if (!position) return;
@@ -641,6 +649,7 @@ export function useQuranAudio(): QuranAudioController {
     nextVerse,
     previousVerse,
     seekBy,
+    replayVerse,
     setReciter,
     setPlaybackRate,
     setRepeatRange,

@@ -41,7 +41,8 @@ function tintReaderStyles<T extends Record<string, object>>(base: T, theme: Qura
   return Object.fromEntries(Object.entries(base).map(([name, style]) => [name,
       Object.fromEntries(Object.entries(style).map(([key, value]) => [key,
       typeof value === 'string'
-        ? key === 'color' && value === '#102A25' ? theme.appAccentInk
+        ? key === 'borderColor' && value !== 'transparent' && map[value] ? theme.border
+          : key === 'color' && value === '#102A25' ? theme.appAccentInk
           : key === 'color' && value === '#18382F' ? theme.appAccentInk
             : map[value] ?? value
         : value])),

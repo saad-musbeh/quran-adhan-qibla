@@ -1,6 +1,6 @@
 import { requireOptionalNativeModule } from 'expo';
 import type { AudioPlaylist } from 'expo-audio';
-import type { ReciterId } from './use-quran-audio';
+import { RECITERS, type ReciterId } from './data/reciters';
 
 type NativeQuranAudioControls = {
   attach(playlist: AudioPlaylist, titles: string[], artist: string): void;
@@ -12,11 +12,7 @@ type NativeQuranAudioControls = {
 };
 
 const native = requireOptionalNativeModule<NativeQuranAudioControls>('QuranAudioControls');
-const reciterNames: Record<ReciterId, string> = {
-  alafasy: 'Mishary Rashid Alafasy',
-  husary: 'Mahmoud Khalil Al-Husary',
-  sudais: 'Abdurrahmaan As-Sudais',
-};
+const reciterNames = Object.fromEntries(RECITERS.map(reciter => [reciter.id, reciter.name])) as Record<ReciterId, string>;
 
 export const quranAudioControls = {
   get available() { return native !== null; },

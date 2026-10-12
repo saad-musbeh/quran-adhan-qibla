@@ -1,5 +1,20 @@
 # Reader and compass verification
 
+## 0.3.6 — six reading copies and reader polish
+
+The Quran tab now opens six reading copies. All new copies start at Al-Fatiha. Each copy has its own name, last printed page, page bookmarks and ayah bookmarks; the model rejects malformed/out-of-range saved state. The reader stays mounted between the library and other app sections, with its expensive assets warmed from the library. Saved tafsir books are loaded only when the tafsir library is opened. Android Back returns from reading to the library. Section tabs are hidden while a Quran copy is open.
+
+The shared screens/cards/navigation use gold outlines and the selected app palette. Night reading separately tints the original ayah numeral paths because they live outside the source calligraphy group. Vertical and horizontal page gestures follow the finger: beyond half the page advances; shorter/cancelled gestures return. The same gestures work with reader controls visible. Zoom continues to pan rather than change pages.
+
+Playback controls are previous ayah, replay, play/pause, next ayah, and stop. A ten-voice selector is available directly in the player. Source catalogue entries and first/last ayah endpoints were checked for all ten voices. Al-Saadi and Al-Nafahat expand the tafsir library to four books; 114 surahs from each new source were validated. Al-Saadi's source passages, including the overlap at Al-Kahf 99, are kept intact and labelled with their ayah range. See the tafsir provenance notice for publication dates and source digests.
+
+Compass changes reduce smoothing delay during deliberate turns, coalesce display updates to animation frames, and calculate WMM magnetic correction once per subscription. Calibrated true north, permission handling and foreground-only sensor use remain required. Improved response on the user's physical compass has not been verified.
+
+Validation: 74 JavaScript behavior/data tests and 14 Rust tests pass, alongside TypeScript, formatting and Clippy. The standalone browser renderer passes complete page content, all theme/day/night numeral colors, live drag tracking, short drag cancellation, halfway commit in both axes, gesture cancellation, prepared-panel reuse, ayah actions, bounded cache and opening-page checks. Android/iOS JavaScript and asset exports pass. The Android version 0.3.6 / versionCode 9 test APK builds successfully with ARM64/x86_64 Rust libraries.
+
+The Android emulator exits with a segmentation fault during boot on this host, including without hardware acceleration. This prevented fresh native UI/audio/compass runtime checks for this version. Native iOS compilation and physical Android/iOS checks remain pending. Browser/data checks and successful APK compilation do not establish physical-device sensor accuracy or playback behavior.
+
+
 ## 0.3.3 — reader themes, centered opening pages, and native audio queues
 
 The Quran reader offers Green, Maroon, Blue, Black, and Brown in the top gear sheet. The saved choice applies to reader backgrounds, frames, metadata, menus, and controls in both reading views. Every page has equal horizontal artwork margins. Pages 1 and 2 use a tighter runtime viewBox around the existing vector paths and an original geometric opening frame; the source calligraphy, ayah polygons, printed line breaks, and bundled asset hashes are unchanged.

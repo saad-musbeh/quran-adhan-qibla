@@ -12,6 +12,7 @@ let ui=initial.ui??defaultUi(language);
 let loopPickMode=initial.loopPickMode??null,loopStartKey=initial.loopStartKey??null,loopEndKey=initial.loopEndKey??null;
 let theme=initial.theme??{background:'#18334A',deep:'#14293C',ink:'#18334A',lightPaper:'#FAF7EF',pale:'#E5EDF2',accent:'#DBAB68'};
 let zoom = 1, start = null, timer = null, held = false, transitionTimer = null;
+let drag = null, dragFrame = null;
 const keyOf = node => node.getAttribute('surah') + ':' + node.getAttribute('ayah');
 const send = data => window.ReactNativeWebView.postMessage(JSON.stringify({ ...data, page: shownPage }));
 const acknowledge = () => send({ type: 'cache', pages: [...cache.keys()] });
@@ -119,7 +120,9 @@ function updateState(state) {
   document.getElementById('sheet').setAttribute('aria-label', ui.page + ' ' + shownPage);
 }
 function settle() {
-  clearTimeout(transitionTimer);
+  clearTimeout(transitionTimer); transitionTimer = null;
+  if (dragFrame !== null) cancelAnimationFrame(dragFrame);
+  dragFrame = null; drag = null;
   for (const panel of [...stage.children]) {
     panel.style.transition = ''; panel.style.transform = '';
     if (Number(panel.dataset.page) !== shownPage) {
@@ -131,7 +134,7 @@ window.cachePage = item => {
   if (cache.has(item.page)) return;
   cache.set(item.page, makePanel(item));
   while (cache.size > 5) {
-    const victim = [...cache.keys()].find(n => n !== shownPage && n !== item.page);
+    const victim = [...cache.keys()].find(n => n !== shownPage && n !== item.page && n !== drag?.target);
     if (victim === undefined) break;
     cache.get(victim).remove(); cache.delete(victim);
   }
@@ -140,31 +143,86 @@ window.cachePage = item => {
 window.activatePage = (page, state, animate = true) => {
   const next = cache.get(page);
   if (!next) return;
-  settle(); closeMenu();
+  // Native acknowledgement of a gesture must not cut its animation short.
+  if (page === shownPage && next.parentElement === stage) {
+    updateState(state); acknowledge(); return;
+  }
+  const fromDrag = drag && drag.target === page ? drag : null;
+  if (fromDrag) {
+    if (dragFrame !== null) cancelAnimationFrame(dragFrame);
+    dragFrame = null; paintDrag(); drag = null;
+  } else settle();
+  start = null; clearTimeout(timer); closeMenu();
   const previousPage = shownPage, old = stage.firstElementChild;
   shownPage = page;
   cache.delete(page); cache.set(page, next);
   updateState(state);
   next.removeAttribute('aria-hidden'); next.inert = false;
-  if (old === next) { acknowledge(); return; }
-  next.style.transition = ''; next.style.transform = '';
-  const shouldAnimate = animate && old && page !== previousPage && zoom === 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const shouldAnimate = animate && old && old !== next && page !== previousPage && zoom === 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!shouldAnimate) {
-    if (old) { old.setAttribute('aria-hidden','true'); old.inert = true; prepared.appendChild(old); }
+    if (old && old !== next) { old.setAttribute('aria-hidden','true'); old.inert = true; prepared.appendChild(old); }
+    next.style.transition = ''; next.style.transform = '';
     stage.appendChild(next); acknowledge(); return;
   }
-  const direction = page > previousPage ? 1 : -1;
-  next.style.transform = 'translateX(' + (-direction * innerWidth) + 'px)';
+  const axis = fromDrag?.axis || 'x';
+  const extent = axis === 'x' ? innerWidth : innerHeight;
+  const direction = axis === 'x' ? (page > previousPage ? 1 : -1) : (page > previousPage ? -1 : 1);
+  if (!fromDrag) {
+    next.style.transition = ''; next.style.transform = translate(axis, -direction * extent);
+    stage.appendChild(next); next.getBoundingClientRect();
+  }
   old.setAttribute('aria-hidden','true'); old.inert = true;
-  stage.appendChild(next);
-  // Force the prepared starting position before a single paired slide; both pages remain painted.
-  next.getBoundingClientRect();
-  next.style.transition = old.style.transition = 'transform 190ms ease-out';
-  old.style.transform = 'translateX(' + (direction * innerWidth) + 'px)';
-  next.style.transform = 'translateX(0)';
-  transitionTimer = setTimeout(settle, 210);
+  next.style.transition = old.style.transition = 'transform 210ms ease-out';
+  old.style.transform = translate(axis, direction * extent);
+  next.style.transform = translate(axis, 0);
+  transitionTimer = setTimeout(settle, 230);
   acknowledge();
 };
+function translate(axis, offset) { return axis === 'x' ? 'translate3d('+offset+'px,0,0)' : 'translate3d(0,'+offset+'px,0)'; }
+function paintDrag() {
+  if (!drag) return;
+  const old = cache.get(shownPage), next = cache.get(drag.target);
+  old.style.transform = translate(drag.axis, drag.offset);
+  if (next) next.style.transform = translate(drag.axis, drag.offset - drag.sign * drag.extent);
+}
+function moveDrag(origin, dx, dy) {
+  if (!origin.axis) {
+    if (Math.max(Math.abs(dx),Math.abs(dy)) < 8) return;
+    origin.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    closeMenu(); settle();
+  }
+  const axis = origin.axis, extent = axis === 'x' ? innerWidth : innerHeight;
+  const offset = axis === 'x' ? dx : dy, sign = offset >= 0 ? 1 : -1;
+  const delta = axis === 'x' ? sign : -sign, target = shownPage + delta;
+  const next = cache.get(target);
+  if (drag && drag.target !== target) {
+    const abandoned = cache.get(drag.target);
+    if (abandoned) { abandoned.style.transform = ''; prepared.appendChild(abandoned); }
+  }
+  drag = {axis,extent,sign,target,offset:next?Math.max(-extent,Math.min(extent,offset)):offset*.16};
+  const old = cache.get(shownPage); old.style.transition = '';
+  if (next) {
+    updatePanel(next); next.style.transition = '';
+    next.setAttribute('aria-hidden','true'); next.inert = true;
+    stage.appendChild(next);
+  }
+  if (dragFrame === null) dragFrame = requestAnimationFrame(() => { dragFrame = null; paintDrag(); });
+}
+function returnDrag() {
+  if (!drag) return;
+  if (dragFrame !== null) cancelAnimationFrame(dragFrame);
+  dragFrame = null; paintDrag();
+  const old = cache.get(shownPage), next = cache.get(drag.target);
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  old.style.transition = reduceMotion ? '' : 'transform 180ms ease-out';
+  old.style.transform = translate(drag.axis, 0);
+  if (next) {
+    next.style.transition = old.style.transition;
+    next.style.transform = translate(drag.axis, -drag.sign * drag.extent);
+  }
+  drag = null;
+  transitionTimer = setTimeout(settle, reduceMotion ? 0 : 200);
+}
 window.updateState = updateState;
 window.zoomPage = value => {
   settle(); closeMenu(); zoom = Math.max(1, Math.min(3,value));
@@ -184,32 +242,42 @@ function showMenu(node,x,y) {
 }
 document.addEventListener('touchstart', event => {
   clearTimeout(timer);
-  if (event.touches.length !== 1) { start = null; return; }
+  if (event.touches.length !== 1 || event.target.closest('#verse-menu')) { returnDrag(); start = null; return; }
+  if (transitionTimer !== null) settle();
   const t = event.touches[0];
-  start = { x:t.clientX, y:t.clientY, page:shownPage, menu:menu.classList.contains('show') }; held = false;
+  start = { x:t.clientX, y:t.clientY, page:shownPage, menu:menu.classList.contains('show'), axis:null }; held = false;
   const node = event.target.closest('.ayahPolygon');
   if (node && !loopPickMode) timer = setTimeout(() => {
-    if (start && start.page === shownPage) { held = true; showMenu(node,t.clientX,t.clientY); }
+    if (start && !start.axis && start.page === shownPage) { held = true; showMenu(node,t.clientX,t.clientY); }
   }, 500);
 }, {passive:true});
 document.addEventListener('touchmove', event => {
-  if (!start || event.touches.length !== 1) { start = null; clearTimeout(timer); return; }
-  const t = event.touches[0];
-  if (Math.abs(t.clientX-start.x)>8 || Math.abs(t.clientY-start.y)>8) clearTimeout(timer);
-}, {passive:true});
+  if (!start || event.touches.length !== 1) { returnDrag(); start = null; clearTimeout(timer); return; }
+  const t = event.touches[0], dx=t.clientX-start.x, dy=t.clientY-start.y;
+  if (Math.abs(dx)>8 || Math.abs(dy)>8) clearTimeout(timer);
+  if (!held && zoom===1 && (window.visualViewport?.scale??1)===1) {
+    moveDrag(start,dx,dy);
+    if (start.axis) event.preventDefault();
+  }
+}, {passive:false});
 document.addEventListener('touchend', event => {
   clearTimeout(timer);
   const origin = start; start = null;
-  if (!origin || held || origin.page !== shownPage || !event.changedTouches.length) return;
+  if (!origin || held || origin.page !== shownPage || !event.changedTouches.length) { returnDrag(); return; }
   const t = event.changedTouches[0], dx=t.clientX-origin.x, dy=t.clientY-origin.y;
-  if (zoom===1 && (window.visualViewport?.scale??1)===1 && Math.abs(dx)>56 && Math.abs(dx)>Math.abs(dy)*1.5) {
-    closeMenu(); send({type:'swipe',delta:dx>0?1:-1});
+  if (origin.axis) {
+    moveDrag(origin,dx,dy);
+    if (drag && Math.abs(drag.offset) > drag.extent/2 && cache.has(drag.target)) {
+      const target = drag.target, delta=target-shownPage;
+      send({type:'swipe',delta});
+      window.activatePage(target,{},true);
+    } else returnDrag();
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && !event.target.closest('#verse-menu')) {
     const node=event.target.closest('.ayahPolygon');
     if(loopPickMode&&node){closeMenu();send({type:'looppick',key:keyOf(node)});}else if(origin.menu)closeMenu();else send({type:'tap'});
   }
 }, {passive:true});
-document.addEventListener('touchcancel', () => { start=null; clearTimeout(timer); });
+document.addEventListener('touchcancel', () => { start=null; clearTimeout(timer); returnDrag(); });
 menu.addEventListener('click', event => {
   const button = event.target.closest('[data-action]');
   if (!button || button.disabled || !selected) return;
