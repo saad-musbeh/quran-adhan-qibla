@@ -53,7 +53,7 @@ function Main() {
   const notifications = usePrayerNotifications({
     ready: preferencesReady && locationState.ready,
     enabled: preferences.prayerNotifications,
-    location, settings, language, sound: Platform.OS === 'ios' ? 'adhan-short.wav' : 'adhan.ogg',
+    location, settings, language, sound: Platform.OS === 'ios' ? 'adhan_short.wav' : 'adhan.ogg',
     labels: { title: t.brand, channelName: notificationLabels.title, body: name => t[name], testTitle: notificationLabels.test, testBody: t.brand },
   });
   // Calculations always use Gregorian date components, including in Arabic.

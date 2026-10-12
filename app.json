@@ -75,7 +75,7 @@
         {
           "sounds": [
             "./assets/adhan/adhan.ogg",
-            "./assets/adhan/adhan-short.wav"
+            "./assets/adhan/adhan_short.wav"
           ],
           "enableBackgroundRemoteNotifications": false,
           "icon": "./assets/branding/notification-icon.png",

@@ -28,7 +28,7 @@ target.build_configurations.each do |configuration|
 end
 project.save
 scheme = Xcodeproj::XCScheme.new(File.join(project_path, 'xcshareddata/xcschemes/QuranAdhanQibla.xcscheme'))
-scheme.add_build_target(target)
+scheme.add_build_target(target, false)
 scheme.add_test_target(target)
 scheme.test_action.build_configuration = 'Release'
 scheme.save_as(project_path, 'QuranAdhanQibla', true)

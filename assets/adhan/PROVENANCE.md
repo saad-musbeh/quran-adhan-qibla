@@ -13,13 +13,14 @@ Expo copies this recording into Android raw resources. It is a notification-chan
 
 ## iOS alert excerpt
 
-`adhan-short.wav` derives from the same CC0 recording: the first 29 seconds,
+`adhan_short.wav` derives from the same CC0 recording: the first 29 seconds,
 with a one-second fade at the end, converted to mono 22,050 Hz signed 16-bit PCM.
+Its SHA-256 is `8af512873bb5380dc2564bfff7d113c2ce3367534d8fa9ce1569e4e88288d085`.
 It is an explicitly labelled short notification excerpt, not the full Adhan.
 The original OGG remains unchanged. The conversion command was:
 
 ```sh
-ffmpeg -i adhan.ogg -t 29 -af 'afade=t=out:st=28:d=1' -ar 22050 -ac 1 -c:a pcm_s16le adhan-short.wav
+ffmpeg -i adhan.ogg -t 29 -af 'afade=t=out:st=28:d=1' -ar 22050 -ac 1 -c:a pcm_s16le adhan_short.wav
 ```
 
 Apple's [custom notification sound requirements](https://developer.apple.com/documentation/usernotifications/unnotificationsound) require supported audio formats and a duration below 30 seconds. iOS sound permission, silent mode and Focus remain under system control.
