@@ -44,12 +44,40 @@ final class QuranUITests: XCTestCase {
     XCTAssertTrue(app.buttons["open-book-1"].label.contains("Simulator reading"))
     XCTAssertTrue(app.buttons["open-book-1"].label.hasSuffix("2"))
     XCTAssertTrue(app.buttons["open-book-2"].label.hasSuffix("1"))
+    app.buttons["open-book-2"].tap()
+    revealReader()
+    XCTAssertTrue(app.staticTexts["reader-page-number"].label.hasPrefix("١"))
+    screenshot("Independent book 2 at Al-Fatiha")
+    app.buttons["reader-library"].tap()
     app.terminate()
     app.launch()
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 30))
     XCTAssertTrue(app.buttons["open-book-1"].label.contains("Simulator reading"))
     XCTAssertTrue(app.buttons["open-book-1"].label.hasSuffix("2"))
     XCTAssertTrue(app.buttons["open-book-2"].label.hasSuffix("1"))
+  }
+
+  func testDefaultVoiceAndNativePlaybackControls() {
+    app.buttons["open-book-2"].tap()
+    revealReader()
+    app.buttons["reader-audio-controls"].tap()
+    XCTAssertTrue(app.staticTexts["سعد الغامدي"].waitForExistence(timeout: 10))
+    app.buttons["audio-play-pause"].tap()
+    let status=app.staticTexts["audio-status"]
+    let playing=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in ["Playing","جارٍ التشغيل"].contains(status.label) },object:status)
+    XCTAssertEqual(XCTWaiter.wait(for:[playing],timeout:20),.completed)
+    let elapsed=app.staticTexts["audio-time"]
+    let advances=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in !elapsed.label.hasPrefix("0:00") },object:elapsed)
+    XCTAssertEqual(XCTWaiter.wait(for:[advances],timeout:10),.completed)
+    app.buttons["audio-play-pause"].tap()
+    let paused=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in ["Paused","متوقف مؤقتًا"].contains(status.label) },object:status)
+    XCTAssertEqual(XCTWaiter.wait(for:[paused],timeout:5),.completed)
+    screenshot("Saad Al-Ghamdi native playback paused")
+    app.buttons["audio-next"].tap()
+    app.buttons["audio-replay"].tap()
+    app.buttons["audio-stop"].tap()
+    XCTAssertTrue(["Tap Play to listen","اختر تشغيل للاستماع"].contains(status.label))
+    app.terminate()
   }
 
   func testLocalPrayerAlertsAndDownloadManager() {
@@ -64,7 +92,7 @@ final class QuranUITests: XCTestCase {
     app.buttons["location-confirm"].tap()
     XCTAssertTrue(app.buttons["open-settings"].waitForExistence(timeout: 10))
     app.buttons["open-settings"].tap()
-    app.buttons["settings-adhan"].tap()
+    app.descendants(matching: .any)["settings-adhan"].tap()
     let toggle = app.switches["prayer-alert-toggle"]
     XCTAssertTrue(toggle.waitForExistence(timeout: 10))
     if toggle.value as? String != "1" { toggle.tap() }
@@ -84,11 +112,13 @@ final class QuranUITests: XCTestCase {
     toggle.tap()
     let cancelled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: count)
     XCTAssertEqual(XCTWaiter.wait(for: [cancelled], timeout: 20), .completed)
-    app.buttons["settings-quran"].tap()
+    app.descendants(matching: .any)["settings-quran"].tap()
     let downloads = app.buttons["manage-downloads"]
     for _ in 0..<8 { if downloads.isHittable { break }; app.scrollViews.firstMatch.swipeUp() }
     downloads.tap()
     XCTAssertTrue(app.buttons["downloads-close"].waitForExistence(timeout: 10))
+    XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].waitForExistence(timeout: 15))
+    XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].label.contains("7/7"))
     screenshot("Download manager")
     app.buttons["downloads-close"].tap()
     app.buttons["settings-close"].tap()
@@ -96,13 +126,13 @@ final class QuranUITests: XCTestCase {
 
   func testRepeatedTabTransitions() {
     for _ in 0..<6 {
-      app.buttons["tab-adhan"].tap()
+      app.descendants(matching: .any)["tab-adhan"].tap()
       XCTAssertTrue(app.buttons["open-settings"].waitForExistence(timeout: 5))
-      app.buttons["tab-quran"].tap()
+      app.descendants(matching: .any)["tab-quran"].tap()
       XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 5))
-      app.buttons["tab-qibla"].tap()
+      app.descendants(matching: .any)["tab-qibla"].tap()
       XCTAssertTrue(app.buttons["open-settings"].waitForExistence(timeout: 5))
-      app.buttons["tab-quran"].tap()
+      app.descendants(matching: .any)["tab-quran"].tap()
       XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 5))
     }
     screenshot("Quran after repeated tab switches")

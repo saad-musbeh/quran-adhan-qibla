@@ -111,7 +111,7 @@ export function QuranScreen({ tafsirLibrary, book, onBookChange, onCloseBook, ac
         <Pressable accessibilityRole="button" accessibilityLabel={c.bookmark} accessibilityState={{selected:bookmarks.includes(page)}} style={styles.chromeButton} onPress={()=>toggleBookmark()}><Ionicons name={bookmarks.includes(page)?'bookmark':'bookmark-outline'} size={22} color={colors.accent}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={audio.status==='playing'||audio.status==='loading'?c.pause:audio.status==='error'?c.retry:c.play} style={styles.chromeButton} onPress={()=>togglePagePlayback(audio,versesOnPage)}><Ionicons name={audio.status==='playing'?'pause':'play'} size={22} color={colors.lightPaper}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.repeat} accessibilityState={{selected:Boolean(audio.repeatRange)}} style={styles.chromeButton} onPress={loop.open}><VerseRangeIcon color={audio.repeatRange?colors.accent:colors.lightPaper}/></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={c.audioControls} style={styles.chromeButton} onPress={()=>setAudioVisible(true)}><Ionicons name="ellipsis-horizontal" size={23} color={colors.lightPaper}/></Pressable>
+        <Pressable accessibilityRole="button" testID="reader-audio-controls" accessibilityLabel={c.audioControls} style={styles.chromeButton} onPress={()=>setAudioVisible(true)}><Ionicons name="ellipsis-horizontal" size={23} color={colors.lightPaper}/></Pressable>
       </View>
     </View>}
     <ReaderPicker language={language} visible={picker !== null} type={picker} query={query} setQuery={setQuery} page={page} quranFontLoaded={quranFontLoaded} onClose={() => setPicker(null)} onChoosePage={go} onChooseSurah={n => go(getMushafVersePage(n,1) ?? 1)} onChooseVerse={v => { go(getMushafVersePage(v.surah,v.number) ?? 1); onSelectVerse(v); }} bookmarks={bookmarks} verseBookmarks={verseBookmarks} onChooseBookmark={v=>go(getMushafVersePage(v.surah,v.number)??1)} onRemoveVerseBookmark={toggleVerseBookmark} />
@@ -190,33 +190,41 @@ function AudioDock({language,audio,part,visible,onClose}:{language:Language;audi
       <ReciterChoices language={language} audio={audio} onChoose={()=>setChoosingReciter(false)}/>
      </ScrollView>}
      <View style={[styles.audioControls,rtl&&styles.reverse]}>
-      <AudioButton label={c.prevVerse} icon={rtl?'play-skip-forward':'play-skip-back'} disabled={!current||(!audio.repeatRange&&current.surah===1&&current.verse===1)} onPress={()=>invoke(audio.previousVerse)}/>
-      <AudioButton label={c.replay} icon="refresh" onPress={()=>shown&&invoke(()=>current?audio.replayVerse():audio.playVerse(shown.surah,shown.number))}/>
-      <AudioButton label={playing?c.pause:c.play} icon={playing?'pause':'play'} primary onPress={()=>togglePagePlayback(audio,part)}/>
-      <AudioButton label={c.nextVerse} icon={rtl?'play-skip-back':'play-skip-forward'} disabled={!current} onPress={()=>invoke(audio.nextVerse)}/>
-      <AudioButton label={c.stop} icon="stop" disabled={!current} onPress={audio.stop}/>
+      <AudioButton testID="audio-previous" label={c.prevVerse} icon={rtl?'play-skip-forward':'play-skip-back'} disabled={!current||(!audio.repeatRange&&current.surah===1&&current.verse===1)} onPress={()=>invoke(audio.previousVerse)}/>
+      <AudioButton testID="audio-replay" label={c.replay} icon="refresh" onPress={()=>shown&&invoke(()=>current?audio.replayVerse():audio.playVerse(shown.surah,shown.number))}/>
+      <AudioButton testID="audio-play-pause" label={playing?c.pause:c.play} icon={playing?'pause':'play'} primary onPress={()=>togglePagePlayback(audio,part)}/>
+      <AudioButton testID="audio-next" label={c.nextVerse} icon={rtl?'play-skip-back':'play-skip-forward'} disabled={!current} onPress={()=>invoke(audio.nextVerse)}/>
+      <AudioButton testID="audio-stop" label={c.stop} icon="stop" disabled={!current} onPress={audio.stop}/>
      </View>
      <View style={[styles.audioMetaRow,rtl&&styles.reverse]}>
-      <Text style={[styles.audioMeta,styles.flex]}>{formatTime(audio.currentTime)} / {formatTime(audio.duration)}</Text>
+      <Text testID="audio-time" style={[styles.audioMeta,styles.flex]}>{formatTime(audio.currentTime)} / {formatTime(audio.duration)}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={`${c.speed}: ${audio.playbackRate}×`} style={styles.audioRetry} onPress={()=>{const rates=[0.75,1,1.25,1.5,2];audio.setPlaybackRate(rates[(rates.indexOf(audio.playbackRate)+1)%rates.length]);}}><Text style={styles.audioRetryText}>{audio.playbackRate}×</Text></Pressable>
      </View>
-     {audio.status==='loading'&&<Text accessibilityLiveRegion="polite" style={styles.audioMeta}>{bilingual(language,'جارٍ تحميل التلاوة…','Buffering recitation…')}</Text>}
+     <Text testID="audio-status" accessibilityLiveRegion="polite" style={styles.audioMeta}>{audio.status==='loading'?bilingual(language,'جارٍ تحميل التلاوة…','Buffering recitation…'):audio.status==='playing'?bilingual(language,'جارٍ التشغيل','Playing'):audio.status==='paused'?bilingual(language,'متوقف مؤقتًا','Paused'):audio.status==='error'?bilingual(language,'تعذّر التشغيل','Playback failed'):bilingual(language,'اختر تشغيل للاستماع','Tap Play to listen')}</Text>
      {!audio.isOnline&&<Text style={styles.audioMeta}>{c.offline}</Text>}
      {audio.error&&<View style={[styles.audioMetaRow,rtl&&styles.reverse]}><Text accessibilityRole="alert" style={[styles.audioMeta,styles.audioError]}>{localizePlaybackError(audio.error,c)}</Text><Pressable accessibilityRole="button" accessibilityLabel={c.retry} style={styles.audioRetry} onPress={()=>invoke(audio.retryPlayback)}><Text style={styles.audioRetryText}>{c.retry}</Text></Pressable></View>}
     </View>
    </View>
  </Modal>;
 }
-function AudioButton({label,icon,onPress,primary,disabled=false}:{label:string;icon:React.ComponentProps<typeof Ionicons>['name'];onPress:()=>void;primary?:boolean;disabled?:boolean}) {
+function AudioButton({testID,label,icon,onPress,primary,disabled=false}:{testID?:string;label:string;icon:React.ComponentProps<typeof Ionicons>['name'];onPress:()=>void;primary?:boolean;disabled?:boolean}) {
  const {colors,styles}=useReaderStyles(baseStyles);
- return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={[styles.audioButton,primary&&styles.audioPrimary,disabled&&styles.disabled]}>
+ return <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={[styles.audioButton,primary&&styles.audioPrimary,disabled&&styles.disabled]}>
   <Ionicons name={icon} size={23} color={primary?colors.deep:colors.lightPaper}/>
   <Text numberOfLines={2} style={[styles.audioButtonText,primary&&styles.audioPrimaryText]}>{label}</Text>
  </Pressable>;
 }
 function ReciterChoices({language,audio,onChoose}:{language:Language;audio:QuranAudioController;onChoose?:()=>void}) {
  const {colors,styles}=useReaderStyles(baseStyles), rtl=isRTL(language);
- return <>{RECITERS.map(r=><Pressable key={r.id} accessibilityRole="radio" accessibilityLabel={rtl?r.arabicName:r.name} accessibilityState={{checked:audio.reciter===r.id}} style={[styles.settingChoice,audio.reciter===r.id&&styles.selected,rtl&&styles.reverse]} onPress={()=>{audio.setReciter(r.id);onChoose?.();}}><Text style={[styles.settingText,{flex:1}]}>{rtl?r.arabicName:r.name}</Text><Ionicons name={audio.reciter===r.id?'radio-button-on':'radio-button-off'} color={colors.accent} size={20}/></Pressable>)}</>;
+ const [query,setQuery]=useState('');
+ const match=normalizeQuranSearch(query).toLocaleLowerCase();
+ const voices=RECITERS.filter(reader=>normalizeQuranSearch(`${reader.name} ${reader.arabicName}`).toLocaleLowerCase().includes(match));
+ const searchLabel=bilingual(language,'بحث عن قارئ','Search reciters');
+ return <View style={{gap:8}}>
+  <TextInput accessibilityLabel={searchLabel} value={query} onChangeText={setQuery} placeholder={searchLabel} placeholderTextColor={colors.appMuted} autoCorrect={false} style={[styles.rangeInput,rtl&&styles.rtl]}/>
+  {voices.map(r=><Pressable key={r.id} testID={`reciter-${r.id}`} accessibilityRole="radio" accessibilityLabel={rtl?r.arabicName:r.name} accessibilityState={{checked:audio.reciter===r.id}} style={[styles.settingChoice,audio.reciter===r.id&&styles.selected,rtl&&styles.reverse]} onPress={()=>{audio.setReciter(r.id);onChoose?.();}}><Text style={[styles.settingText,{flex:1}]}>{rtl?r.arabicName:r.name}</Text><Ionicons name={audio.reciter===r.id?'radio-button-on':'radio-button-off'} color={colors.accent} size={20}/></Pressable>)}
+  {!voices.length&&<Text style={styles.settingNote}>{bilingual(language,'لا يوجد قارئ مطابق','No matching reciter')}</Text>}
+ </View>;
 }
 
 type BookReaderProps={loop:ReturnType<typeof useVerseLoopPicker>;tafsirLibrary:ReturnType<typeof useTafsirLibrary>;language:Language;visible:boolean;page:number;bookmarks:number[];settings:QuranReaderSettings;audio:QuranAudioController;onClose:()=>void;onNavigate:(page:number)=>void;onToggleBookmark:(page?:number)=>void;verseBookmarks:string[];onToggleVerseBookmark:(key:string)=>void;quranFontLoaded:boolean};

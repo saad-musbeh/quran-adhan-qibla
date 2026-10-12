@@ -13,7 +13,7 @@ import { findQuranQueuePosition, initialQuranQueue, nextQuranQueueChapter, type 
 import { summarizeAudioDownload, type AudioDownload } from './domain/audio-downloads';
 import { quranAudioControls } from './quran-audio-controls';
 
-import { RECITERS, emptyReciterDownloads, type ReciterId } from './data/reciters';
+import { DEFAULT_RECITER_ID, RECITERS, emptyReciterDownloads, type ReciterId } from './data/reciters';
 export { RECITERS, type ReciterId } from './data/reciters';
 
 export type AudioRange = DomainAudioRange;
@@ -96,7 +96,7 @@ async function cancelDownloadTask(task: FileSystem.DownloadResumable): Promise<v
 export function useQuranAudio(): QuranAudioController {
   const playlist = useAudioPlaylist({ sources: [], updateInterval: 250 });
   const playerStatus = useAudioPlaylistStatus(playlist);
-  const [reciter, setReciterState] = useState<ReciterId>('alafasy');
+  const [reciter, setReciterState] = useState<ReciterId>(DEFAULT_RECITER_ID);
   const [playbackRate, setPlaybackRateState] = useState(1);
   const [repeatRange, setRepeatRangeState] = useState<AudioRange | null>(null);
   const [current, setCurrent] = useState<{ surah: number; verse: number } | null>(null);

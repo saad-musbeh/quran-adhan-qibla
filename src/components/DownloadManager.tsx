@@ -51,7 +51,7 @@ export function DownloadManager({language, audio, library}: {
             {!audio.savedAudio.length&&<Text style={[styles.note,text]}>{say('لا توجد تلاوات محفوظة. اختر التلاوات لتنزيل سورة.','No saved recitations. Choose Recitations to download a surah.')}</Text>}
             {audio.savedAudio.map(item=><View key={`${item.reciter}:${item.surah}`} style={styles.panel}>
               <Text style={[styles.label,text]}>{surahs.find(s=>s.number===item.surah)?.arabicName} · {voiceName(item.reciter)}</Text>
-              <Text style={[styles.note,text]}>{size(item.bytes)} · {item.complete?say('مكتمل','Complete'):say('تنزيل جزئي','Partial download')} · {item.verses}/{item.total}</Text>
+              <Text testID={`saved-audio-${item.reciter}-${item.surah}`} style={[styles.note,text]}>{size(item.bytes)} · {item.complete?say('مكتمل','Complete'):say('تنزيل جزئي','Partial download')} · {item.verses}/{item.total}</Text>
               <View style={[styles.row,rtl&&styles.reverse]}>{!item.complete&&button(say('إكمال التنزيل','Continue download'),()=>{void audio.downloadSurah(item.surah,item.reciter as ReciterId);},!audio.isOnline||audio.isDownloading!==null||busy)}{button(say('حذف','Delete'),()=>remove([item]),!canDelete)}</View>
             </View>)}
             {audio.savedAudio.length>0&&button(say('حذف جميع التلاوات المحفوظة','Remove all saved recitations'),()=>remove(audio.savedAudio),!canDelete)}

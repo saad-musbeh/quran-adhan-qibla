@@ -1,5 +1,6 @@
 # 0.4.0-test — Notifications, offline storage and screen transitions
 
+- Twenty reciters, including ten new voices. سعد الغامدي (Saad Al-Ghamdi) is the default when no valid saved choice exists; each voice keeps separate offline downloads.
 - Local iOS prayer alerts, foreground display, permission/settings recovery, an eight-date rolling schedule and a five-second test. iOS uses a labelled 29-second CC0 Adhan excerpt. Full Adhan alert sound remains Android-specific and system-controlled.
 - Retained, laid-out tab screens and a stable header/content viewport, with one shared app background to address the blank-frame flash and brightness change when returning to Quran. Inactive layers receive no touches/accessibility focus; Qibla sensor subscriptions remain active only while visible.
 - Native Android/iOS playback failure reporting, explicit playback retry independent from download retry, saved-position recovery and one recovery attempt after the network returns while playback is still requested. Pause/stop cancel recovery; stop clears the native queue.

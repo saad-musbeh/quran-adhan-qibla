@@ -21,3 +21,12 @@ Expo app configuration must enable `expo-audio` background playback (`enableBack
 The player presents previous ayah, replay the current ayah, play/pause, next ayah and stop, in reading order for the selected UI direction. Replay restarts the current recording. The reciter field opens a ten-voice selector directly in the player; switching retains the selected ayah and the playing/paused state. Offline audio indexes remain separate for each reciter, including the existing three reciters.
 
 The EveryAyah `recitations.js` catalogue and the first (`001001.mp3`) and last (`114006.mp3`) ayah URLs were checked for all ten voices on 12 October 2026: Alafasy, Husary, Sudais, Abdul Basit, Minshawi, Shuraym, Maher Al-Muaiqly, Ahmed Al-Ajamy, Ali Al-Hudhaify, and Abdullah Basfar. All sample URLs returned HTTP 200. These endpoint checks do not certify every recording. No MP3s are bundled or republished as release assets.
+
+
+## 0.4.0 voices and recovery
+
+Ten more distinct Hafs voices bring the catalogue to twenty. Saad Al-Ghamdi is the initial default; valid saved reciter choices are retained. The other additions are Fares Abbad, Yasser Ad-Dossary, Nasser Al-Qatami, Muhsin Al-Qasim, Salah Al-Budair, Hani Ar-Rifai, Muhammad Jibreel, Ali Jaber and Abu Bakr Ash-Shatri. Settings and the player support searching by Arabic or English name.
+
+The primary EveryAyah catalogue, each new directory's coverage of all 6,236 canonical filenames, and first/last ayah HTTP responses were checked on 12 October 2026. The checked metadata is in `assets/quran/reciter-verification-2026-10-12.json`. This verifies source listing/endpoint availability, not the decoding or contents of every recording. No MP3 is bundled or published. Simulator test downloads are placed only in that simulator's private document directory and excluded from CI artifacts.
+
+Native playback failures include the current recording URI/time so retries resume the failed ayah, independent from download failures. A network reconnection gets one recovery attempt while playback is still requested. Explicit pause/stop, including supported system transport commands, cancels recovery. The download manager measures saved final ayah files across voices, identifies partial surahs, and supports continuation and confirmed removal. Selecting a download voice does not change the current playback voice.
