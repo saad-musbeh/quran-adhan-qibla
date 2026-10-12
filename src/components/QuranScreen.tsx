@@ -2,7 +2,7 @@ import { parseLocalizedInteger } from '../domain/localized-number';
 import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Alert, BackHandler, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { getSurah, getVerse, surahs, verses, type Verse } from '../domain/quran';
 import { normalizeQuranSearch, searchQuran } from '../domain/quran-search';
 import { MushafPageView } from './MushafPageView';
@@ -259,28 +259,24 @@ function BookReaderModal({loop,tafsirLibrary,language,visible,page,bookmarks,set
 }
 
 type SettingsProps = { library:ReturnType<typeof useTafsirLibrary>; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onSettingsChange:(value:QuranReaderSettings)=>void };
-export function QuranSettings({library,language,audio,settings,onSettingsChange}:SettingsProps) { const {colors,styles}=useReaderStyles(baseStyles);
- const c=localizeCopy(language, labels);const rtl=isRTL(language);const [repeatSurah,setRepeatSurah]=useState('1');const [repeatStart,setRepeatStart]=useState('1');const [repeatEnd,setRepeatEnd]=useState('7');
- const [rangeError,setRangeError]=useState(false);
+export function QuranSettings({library,language,audio,settings,onSettingsChange}:SettingsProps) {
+ const {colors,styles}=useReaderStyles(baseStyles), c=localizeCopy(language,labels), rtl=isRTL(language);
+ const [choosingReciter,setChoosingReciter]=useState(false);
+ const reciter=RECITERS.find(reader=>reader.id===audio.reciter)!;
  const set=(key:keyof QuranReaderSettings,value:number|boolean)=>{
   if(key==='fontSize'&&typeof value==='number')onSettingsChange({...settings,fontSize:value});
   else if(key==='nightMode'&&typeof value==='boolean')onSettingsChange({...settings,nightMode:value});
  };
- return <View style={[styles.settings,{backgroundColor:colors.background,padding:12,borderRadius:12}]}>
-  <Text style={[styles.settingLabel,rtl&&styles.rtl]}>{c.font}: {settings.fontSize}</Text><Text style={[styles.settingNote,rtl&&styles.rtl]}>{c.autoFit}</Text>
-  <View style={[styles.settingRow,rtl&&styles.reverse]}><Pressable accessibilityRole="button" accessibilityLabel={c.decreaseFont} style={styles.settingButton} onPress={()=>set('fontSize',Math.max(16,settings.fontSize-1))}><Text style={styles.settingText}>−</Text></Pressable><View style={styles.flex}/><Pressable accessibilityRole="button" accessibilityLabel={c.increaseFont} style={styles.settingButton} onPress={()=>set('fontSize',Math.min(32,settings.fontSize+1))}><Text style={styles.settingText}>+</Text></Pressable></View>
+ return <View style={styles.settings}>
   <View style={[styles.settingRow,rtl&&styles.reverse]}><Text style={styles.settingText}>{c.night}</Text><Switch accessibilityLabel={c.night} value={settings.nightMode} onValueChange={v=>set('nightMode',v)} trackColor={{false:colors.border,true:colors.accent}} thumbColor={colors.lightPaper}/></View>
-  <Text style={[styles.settingLabel,rtl&&styles.rtl]}>{c.reciter}</Text><ReciterChoices language={language} audio={audio}/>
-  <Text style={[styles.settingLabel,rtl&&styles.rtl]}>{c.speed}</Text><View style={[styles.wrap,rtl&&styles.reverse]}>{[0.75,1,1.25,1.5,2].map(n=><Pressable key={n} accessibilityRole="radio" accessibilityState={{checked:audio.playbackRate===n}} onPress={()=>audio.setPlaybackRate(n)} style={[styles.speedButton,audio.playbackRate===n&&styles.selected]}><Text style={styles.settingText}>{n}×</Text></Pressable>)}</View>
-  <Text style={[styles.settingLabel,rtl&&styles.rtl]}>{c.repeat}</Text><Text style={[styles.settingNote,rtl&&styles.rtl]}>{c.range}</Text><View style={[styles.rangeRow,rtl&&styles.reverse]}>{[[repeatSurah,setRepeatSurah,c.surah],[repeatStart,setRepeatStart,c.from],[repeatEnd,setRepeatEnd,c.to]].map(([value,change,label])=><View key={String(label)} style={styles.rangeField}><Text style={styles.settingNote}>{String(label)}</Text><TextInput value={String(value)} onChangeText={change as (s:string)=>void} keyboardType="number-pad" style={styles.rangeInput}/></View>)}</View>
-  <View style={[styles.settingRow,rtl&&styles.reverse]}><Pressable accessibilityRole="button" style={styles.actionButton} onPress={()=>{const s=parseLocalizedInteger(repeatSurah),a=parseLocalizedInteger(repeatStart),b=parseLocalizedInteger(repeatEnd);if(s!==null&&a!==null&&b!==null&&getSurah(s)&&a>=1&&b>=a&&b<=(getSurah(s)?.verseCount??0)){audio.setRepeatRange({surah:s,start:a,end:b});void audio.playRange(s,a,b).catch(()=>undefined);setRangeError(false);}else setRangeError(true);}}><Text style={styles.settingText}>{c.apply}</Text></Pressable><Pressable accessibilityRole="button" style={styles.actionButton} onPress={()=>{audio.setRepeatRange(null);setRangeError(false);}}><Text style={styles.settingText}>{c.clear}</Text></Pressable></View>
-  {rangeError&&<Text accessibilityRole="alert" style={[styles.error,rtl&&styles.rtl]}>{c.invalidRange}</Text>}
-  {audio.repeatRange&&<Text style={[styles.settingNote,rtl&&styles.rtl]}>{c.activeRange}: {audio.repeatRange.surah}:{audio.repeatRange.start}–{audio.repeatRange.end}</Text>}
+  <Text style={[styles.settingLabel,rtl&&styles.rtl]}>{c.font}: {settings.fontSize}</Text>
+  <View style={[styles.settingRow,rtl&&styles.reverse]}><Pressable accessibilityRole="button" accessibilityLabel={c.decreaseFont} style={styles.settingButton} disabled={settings.fontSize<=16} onPress={()=>set('fontSize',Math.max(16,settings.fontSize-1))}><Text style={styles.settingText}>−</Text></Pressable><View style={styles.flex}/><Pressable accessibilityRole="button" accessibilityLabel={c.increaseFont} style={styles.settingButton} disabled={settings.fontSize>=32} onPress={()=>set('fontSize',Math.min(32,settings.fontSize+1))}><Text style={styles.settingText}>+</Text></Pressable></View>
+  <Pressable testID="settings-reciter-picker" accessibilityRole="button" accessibilityState={{expanded:choosingReciter}} accessibilityLabel={`${c.reciter}: ${rtl?reciter.arabicName:reciter.name}`} onPress={()=>setChoosingReciter(value=>!value)} style={[styles.settingChoice,rtl&&styles.reverse]}><Text style={[styles.settingText,styles.flex]}>{c.reciter} · {rtl?reciter.arabicName:reciter.name}</Text><Ionicons name={choosingReciter?'chevron-up':'chevron-down'} size={20} color={colors.accent}/></Pressable>
+  {choosingReciter&&<ReciterChoices language={language} audio={audio} onChoose={()=>setChoosingReciter(false)}/>}
   <DownloadManager language={language} audio={audio} library={library}/>
-  <Pressable accessibilityRole="link" onPress={()=>{void Linking.openURL('https://tanzil.net').catch(()=>undefined);}} style={styles.attribution}><Text style={styles.settingNote}>{c.attribution}</Text></Pressable>
-  <Pressable accessibilityRole="link" onPress={()=>{void Linking.openURL('https://everyayah.com/').catch(()=>undefined);}} style={styles.attribution}><Text style={styles.settingNote}>{c.audioAttribution}</Text></Pressable>
  </View>;
 }
+
 function playKey(audio:QuranAudioController,key:string) {const verse=parseVerseKey(key);if(verse)void audio.playVerse(verse.surah,verse.verse);}
 function parseVerseKey(key:string|null):{surah:number;verse:number}|null { if(!key)return null;const [a,b]=key.split(':').map(Number);return Number.isInteger(a)&&Number.isInteger(b)?{surah:a,verse:b}:null; }
 function togglePagePlayback(audio:QuranAudioController,page:readonly Verse[]) {

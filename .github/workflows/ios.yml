@@ -6,16 +6,55 @@ on:
     paths-ignore: ['docs/**', '**/*.md']
   pull_request:
   workflow_dispatch:
+    inputs:
+      diagnostic_run:
+        description: 'Inspect an existing UI result instead of rebuilding'
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
-  group: ios-${{ github.ref }}
+  group: ios-${{ github.ref }}-${{ inputs.diagnostic_run || 'build' }}
   cancel-in-progress: true
 
 jobs:
+  previous-diagnostics:
+    if: ${{ inputs.diagnostic_run != '' }}
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          name: ios-ui-checks
+          run-id: ${{ inputs.diagnostic_run }}
+          github-token: ${{ github.token }}
+          path: previous-ui
+      - name: Export previous simulator diagnostics
+        run: |
+          mkdir -p previous-diagnostics
+          xcrun xcresulttool get test-results summary --path previous-ui/ios-ui.xcresult > previous-diagnostics/summary.json
+          xcrun xcresulttool export diagnostics --path previous-ui/ios-ui.xcresult --output-path previous-diagnostics
+          python3 - <<'PY'
+          import pathlib, zipfile
+          for archive in pathlib.Path('previous-diagnostics').rglob('*.zip'):
+            with zipfile.ZipFile(archive) as bundle:
+              for name in bundle.namelist():
+                if name.endswith(('.ips','.crash')):
+                  report=bundle.read(name).decode('utf-8',errors='replace')
+                  if 'QuranAdhanQibla' in report:
+                    print(name+'\n'+report[:40000])
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ios-previous-diagnostics
+          path: previous-diagnostics
+          retention-days: 7
   simulator:
+    if: ${{ !inputs.diagnostic_run }}
     runs-on: macos-26
     timeout-minutes: 60
     env:

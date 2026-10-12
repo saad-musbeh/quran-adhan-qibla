@@ -31,17 +31,19 @@ export function DownloadManager({language, audio, library}: {
     {text:say('حذف','Delete'),style:'destructive',onPress:()=>{void library.deleteBook(id).catch(()=>setFailed(true));}},
   ]);
   const total = audio.savedAudio.reduce((sum,item)=>sum+item.bytes,0)+Object.values(library.bookBytes).reduce((a,b)=>a+b,0);
+  const wholeQuranSaved = audio.savedAudio.filter(item=>item.reciter===voice&&item.complete).length===surahs.length;
   return <>
     {button(say('إدارة التنزيلات','Manage downloads'),()=>{setVoice(audio.reciter);setVisible(true);},false,'manage-downloads')}
     <Modal visible={visible} animationType="slide" onRequestClose={()=>setVisible(false)}>
       <View style={[styles.root,{paddingTop:insets.top,paddingBottom:insets.bottom}]} accessibilityViewIsModal>
         <View style={[styles.row,rtl&&styles.reverse]}><Text accessibilityRole="header" style={[styles.title,text]}>{say('التنزيلات','Downloads')}</Text>{button(say('إغلاق','Close'),()=>setVisible(false),false,'downloads-close')}</View>
         <Text style={[styles.note,text]}>{say('مساحة الصوت والتفسير المحفوظ','Saved audio and tafsir storage')}: {size(total)}</Text>
-        <View style={[styles.row,rtl&&styles.reverse]}>{(['saved','audio','tafsir'] as const).map(value=><Pressable key={value} accessibilityRole="tab" accessibilityState={{selected:section===value}} onPress={()=>setSection(value)} style={[styles.button,section===value&&styles.selected]}><Text style={[styles.buttonText,text]}>{value==='saved'?say('المحفوظ','Saved'):value==='audio'?say('التلاوات','Recitations'):say('التفسير','Tafsir')}</Text></Pressable>)}</View>
+        <View style={[styles.row,rtl&&styles.reverse]}>{(['saved','audio','tafsir'] as const).map(value=><Pressable key={value} testID={`downloads-${value}`} accessibilityRole="tab" accessibilityState={{selected:section===value}} onPress={()=>setSection(value)} style={[styles.button,section===value&&styles.selected]}><Text style={[styles.buttonText,text]}>{value==='saved'?say('المحفوظ','Saved'):value==='audio'?say('التلاوات','Recitations'):say('التفسير','Tafsir')}</Text></Pressable>)}</View>
         {busy&&<ActivityIndicator color={colors.accent}/>}
         {audio.isDownloading!==null&&<View style={styles.panel}>
+          {audio.downloadScope==='quran'&&<Text testID="whole-quran-progress" accessibilityLiveRegion="polite" style={[styles.label,text]}>{say('تنزيل القرآن كاملًا','Downloading whole Quran')} · {audio.downloadOverallProgress}% · {audio.downloadCompletedSurahs}/114 {say('سورة','surahs')}</Text>}
           <Text accessibilityLiveRegion="polite" style={[styles.note,text]}>{voiceName(audio.downloadingReciter??audio.reciter)} · {surahs.find(s=>s.number===audio.isDownloading)?.arabicName} · {audio.downloadProgress}%</Text>
-          {button(say('إلغاء التنزيل','Cancel download'),audio.cancelDownload)}
+          {button(say('إلغاء التنزيل','Cancel download'),audio.cancelDownload,false,'audio-download-cancel')}
         </View>}
         {audio.downloadError&&<View style={styles.panel}><Text accessibilityRole="alert" style={[styles.note,text]}>{say('تعذر التنزيل. المحفوظ من الآيات سيبقى لإكمال التنزيل.','Download failed. Saved ayahs are kept so retry can continue.')}</Text>{button(say('إعادة محاولة التنزيل','Retry download'),()=>{void audio.retryDownload();},!audio.isOnline||audio.isDownloading!==null||busy)}</View>}
         {(failed||library.error)&&<Text accessibilityRole="alert" style={[styles.note,text]}>{say('تعذر إكمال العملية. حاول مجددًا.','Could not complete the operation. Try again.')}</Text>}
@@ -57,6 +59,11 @@ export function DownloadManager({language, audio, library}: {
             {audio.savedAudio.length>0&&button(say('حذف جميع التلاوات المحفوظة','Remove all saved recitations'),()=>remove(audio.savedAudio),!canDelete)}
           </>}
           {section==='audio'&&<>
+            <View style={styles.panel}>
+              <Text style={[styles.label,text]}>{voiceName(voice)}</Text>
+              {button(wholeQuranSaved?say('القرآن كاملًا محفوظ','Whole Quran saved'):say('تنزيل القرآن كاملًا','Download whole Quran'),()=>{void audio.downloadQuran(voice);},wholeQuranSaved||busy||audio.isDownloading!==null||!audio.isOnline,'download-whole-quran')}
+              <Text style={[styles.note,text]}>{say('تنزيل السور الـ١١٤ بصوت القارئ المختار. أبقِ التطبيق مفتوحًا. يمكنك الإلغاء ثم الضغط مجددًا للإكمال؛ ستبقى الآيات المحفوظة ولن تُنزّل مرة أخرى.','Download all 114 surahs for this voice. Keep the app open. Cancel anytime, then tap again to continue; saved ayahs are kept and skipped.')}</Text>
+            </View>
             <Text style={[styles.note,text]}>{audio.isOnline?say('اختر قارئ التنزيل. تغيير هذا الخيار لا يغيّر التلاوة الحالية.','Choose a download voice. This does not change the current playback voice.'):say('التنزيل يحتاج إلى اتصال بالإنترنت.','An internet connection is needed to download.')}</Text>
             <View style={styles.choices}>{RECITERS.map(reader=><Pressable key={reader.id} accessibilityRole="radio" accessibilityState={{checked:voice===reader.id}} style={[styles.button,voice===reader.id&&styles.selected]} onPress={()=>setVoice(reader.id)}><Text style={[styles.buttonText,text]}>{rtl?reader.arabicName:reader.name}</Text></Pressable>)}</View>
             {surahs.map(surah=>{

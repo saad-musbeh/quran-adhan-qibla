@@ -61,12 +61,28 @@ function makePanel(item) {
   prepared.appendChild(panel);
   if (item.page <= 2) {
     panel.classList.add('opening');
-    // Crop only the empty source canvas. The source paths, verse polygons,
-    // title and basmala remain unchanged and scale together.
+    // Move only the verified title glyph group into the floral cartouche.
+    // All verse glyphs, basmala, markers and hit polygons stay together.
+    const content = svg.querySelector('.mushaf-content');
+    if (content?.children.length === 2 && content.firstElementChild.tagName.toLowerCase() === 'g') {
+      const heading = document.createElement('div');
+      heading.className = 'opening-title'; heading.setAttribute('aria-hidden','true');
+      const title = svg.cloneNode(true);
+      title.querySelectorAll('.ayahPolygon,.ayah_markers').forEach(node=>node.remove());
+      const titleContent = title.querySelector('.mushaf-content');
+      titleContent.lastElementChild.remove();
+      prefixIds(title,'title'+item.page);
+      heading.appendChild(title); panel.insertBefore(heading,art);
+      const box = title.getBBox(), pad = 2;
+      title.setAttribute('viewBox',[box.x-pad,box.y-pad,box.width+pad*2,box.height+pad*2].join(' '));
+      title.setAttribute('preserveAspectRatio','xMidYMid meet');
+      content.firstElementChild.remove();
+    }
+    // Crop empty source canvas without changing the verified glyph paths.
     const bounds = svg.getBBox(), padding = 7;
     svg.setAttribute('viewBox', [bounds.x-padding,bounds.y-padding,bounds.width+padding*2,bounds.height+padding*2].join(' '));
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    art.style.left = art.style.right = '14%';
+    art.style.left = art.style.right = '16%';
     const decoration = document.createElement('div');
     decoration.className = 'opening-frame'; decoration.setAttribute('aria-hidden','true');
     decoration.innerHTML = initial.openingFrame;
@@ -96,6 +112,7 @@ function updatePanel(panel) {
   // colors. Invert only the source glyph group so dark ink stays legible on
   // the night page while the pale banner center remains pale.
   panel.querySelector('.page-art').classList.toggle('night', dark);
+  panel.querySelector('.opening-title')?.classList.toggle('night',dark);
   for (const node of panel.querySelectorAll('.ayahPolygon')) {node.classList.toggle('active',keyOf(node)===activeKey);node.classList.toggle('loopstart',keyOf(node)===loopStartKey);node.classList.toggle('loopend',keyOf(node)===loopEndKey);}
 }
 function updateState(state) {
@@ -108,6 +125,9 @@ function updateState(state) {
   if ('loopEndKey' in state) loopEndKey=state.loopEndKey;
   theme=state.theme??theme;
   for(const [name,value] of Object.entries({paper:dark?theme.deep:theme.lightPaper,ink:dark?theme.lightPaper:theme.ink,mint:theme.lightPaper,green:theme.ink,primary:theme.background,pale:theme.pale,accent:theme.accent})) document.documentElement.style.setProperty('--'+name,value);
+  for (const [name,value] of Object.entries(dark
+    ? {green:'#254B46',rose:'#B56F82',leaf:'#67927D',gold:'#B4915D',scroll:'#ADC8BF',outline:'#93ABA1'}
+    : {green:'#286248',rose:'#C9516A',leaf:'#A4AD75',gold:'#C69A50',scroll:'#E8DEC0',outline:'#374E43'})) document.documentElement.style.setProperty('--illum-'+name,value);
   const labels = ui.menu;
   menu.setAttribute('aria-label', ui.actions);
   menu.style.direction=ui.rtl?'rtl':'ltr';
@@ -132,7 +152,9 @@ function settle() {
 }
 window.cachePage = item => {
   if (cache.has(item.page)) return;
-  cache.set(item.page, makePanel(item));
+  const panel = makePanel(item);
+  updatePanel(panel);
+  cache.set(item.page,panel);
   while (cache.size > 5) {
     const victim = [...cache.keys()].find(n => n !== shownPage && n !== item.page && n !== drag?.target);
     if (victim === undefined) break;

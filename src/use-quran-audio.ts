@@ -4,7 +4,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { addNetworkStateListener, getNetworkStateAsync } from 'expo-network';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { getSurah, getVerse } from './domain/quran';
+import { getSurah, getVerse, surahs } from './domain/quran';
 import {
   audioCacheKey, isValidAudioDownloadResponse, nextVersePosition, previousPositionInRange, verseKey,
   type AudioRange as DomainAudioRange,
@@ -34,6 +34,9 @@ export type QuranAudioController = {
   refreshDownloads(): Promise<void>;
   removeSavedAudio(items: readonly AudioDownload[]): Promise<void>;
   downloadProgress: number;
+  downloadScope: 'surah' | 'quran' | null;
+  downloadOverallProgress: number;
+  downloadCompletedSurahs: number;
   isCurrentSurahDownloaded: boolean;
   isOnline: boolean;
   playVerse(surah: number, verse: number): Promise<void>;
@@ -49,6 +52,7 @@ export type QuranAudioController = {
   setPlaybackRate(rate: number): void;
   setRepeatRange(range: AudioRange | null): void;
   downloadSurah(surah: number, reciter?: ReciterId): Promise<void>;
+  downloadQuran(reciter?: ReciterId): Promise<void>;
   cancelDownload(): void;
   deleteSurahDownload(surah: number): Promise<void>;
   retry(): Promise<void>;
@@ -108,6 +112,9 @@ export function useQuranAudio(): QuranAudioController {
   const [downloadingReciter, setDownloadingReciter] = useState<ReciterId | null>(null);
   const [savedAudio, setSavedAudio] = useState<AudioDownload[]>([]);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadScope, setDownloadScope] = useState<'surah' | 'quran' | null>(null);
+  const [downloadOverallProgress, setDownloadOverallProgress] = useState(0);
+  const [downloadCompletedSurahs, setDownloadCompletedSurahs] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
@@ -120,10 +127,12 @@ export function useQuranAudio(): QuranAudioController {
   const downloadCanceledRef = useRef(false);
   const failedDownloadRef = useRef<number | null>(null);
   const failedDownloadReciter = useRef<ReciterId | null>(null);
+  const failedDownloadScope = useRef<'surah' | 'quran'>('surah');
   const generationRef = useRef(0);
   const mountedRef = useRef(false);
   const onlineRef = useRef(true);
   const downloadingRef = useRef(false);
+  const downloadGenerationRef = useRef(0);
   const inventoryRevision = useRef(0);
   const queuePositionsRef = useRef<QuranQueuePosition[]>([]);
   const queueTitlesRef = useRef<string[]>([]);
@@ -589,92 +598,121 @@ export function useQuranAudio(): QuranAudioController {
     } else if (current) void playPosition(current, statusRef.current === 'playing' || statusRef.current === 'loading');
   }, [playPosition]);
 
-  const downloadSurah = useCallback(async (surah: number, selectedReciter?: ReciterId) => {
-    const chapter = getSurah(surah);
-    if (!chapter || downloadingRef.current) return;
+  const downloadChapters = useCallback(async (numbers: readonly number[], activeReciter: ReciterId, scope: 'surah' | 'quran') => {
+    const chapters = numbers.map(getSurah).filter(chapter => chapter !== undefined);
+    if (!chapters.length || !reciterById.has(activeReciter) || downloadingRef.current || !mountedRef.current) return;
+    // One lock and cancellation flag cover the entire job, including chapter boundaries.
+    downloadingRef.current = true;
+    const job = ++downloadGenerationRef.current;
     inventoryRevision.current++;
     downloadCanceledRef.current = false;
+    failedDownloadRef.current = chapters[0].number;
+    failedDownloadReciter.current = activeReciter;
+    failedDownloadScope.current = scope;
     setDownloadError(null);
-    downloadingRef.current = true;
-    setIsDownloading(surah);
+    setIsDownloading(chapters[0].number);
+    setDownloadScope(scope);
     setDownloadProgress(0);
-    const activeReciter = selectedReciter ?? reciterRef.current;
+    setDownloadOverallProgress(0);
+    setDownloadCompletedSurahs(0);
     setDownloadingReciter(activeReciter);
-    const base = surahUri(activeReciter, surah);
+    const totalVerses = chapters.reduce((sum, chapter) => sum + chapter.verseCount, 0);
+    let completedVerses = 0;
+    let completedSurahs = 0;
     try {
-      await FileSystem.makeDirectoryAsync(base, { intermediates: true });
-      for (let verse = 1; verse <= chapter.verseCount; verse += 1) {
+      for (const chapter of chapters) {
         if (downloadCanceledRef.current) break;
-        const destination = localUri(activeReciter, surah, verse);
-        const existingInfo = await FileSystem.getInfoAsync(destination);
-        if (existingInfo.exists && typeof existingInfo.size === 'number' && Number.isFinite(existingInfo.size) && existingInfo.size > 0) {
-          if (mountedRef.current) setDownloadProgress(Math.floor(100 * verse / chapter.verseCount));
-          continue;
+        const surah = chapter.number;
+        failedDownloadRef.current = surah;
+        if (mountedRef.current) { setIsDownloading(surah); setDownloadProgress(0); }
+        const progress = (position: number) => {
+          if (!mountedRef.current || downloadCanceledRef.current || job !== downloadGenerationRef.current) return;
+          setDownloadProgress(Math.floor(100 * position / chapter.verseCount));
+          setDownloadOverallProgress(Math.floor(100 * (completedVerses + position) / totalVerses));
+        };
+        await FileSystem.makeDirectoryAsync(surahUri(activeReciter, surah), { intermediates: true });
+        for (let verse = 1; verse <= chapter.verseCount; verse += 1) {
+          if (downloadCanceledRef.current) break;
+          const destination = localUri(activeReciter, surah, verse);
+          const existingInfo = await FileSystem.getInfoAsync(destination);
+          if (downloadCanceledRef.current) break;
+          if (existingInfo.exists && typeof existingInfo.size === 'number' && Number.isFinite(existingInfo.size) && existingInfo.size > 0) {
+            progress(verse);
+            continue;
+          }
+          if (existingInfo.exists) await FileSystem.deleteAsync(destination, { idempotent: true });
+          const temporary = `${destination}.${job}.part`;
+          await FileSystem.deleteAsync(`${destination}.part`, { idempotent: true });
+          temporaryDownloadRef.current = temporary;
+          if ((await FileSystem.getInfoAsync(temporary)).exists) await FileSystem.deleteAsync(temporary, { idempotent: true });
+          if (downloadCanceledRef.current) break;
+          const task = FileSystem.createDownloadResumable(audioUri(activeReciter, surah, verse), temporary, {}, ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
+            if (totalBytesExpectedToWrite > 0) progress(verse - 1 + Math.min(1, Math.max(0, totalBytesWritten / totalBytesExpectedToWrite)));
+          });
+          downloadTaskRef.current = task;
+          let deadline: ReturnType<typeof setTimeout> | undefined;
+          const downloadPromise = task.downloadAsync();
+          const timeoutPromise = new Promise<never>((_resolve, reject) => {
+            deadline = setTimeout(() => {
+              void cancelDownloadTask(task);
+              reject(new Error(`Download timed out at verse ${verse}. Retry to continue.`));
+            }, DOWNLOAD_FILE_TIMEOUT_MS);
+          });
+          let result: FileSystem.FileSystemDownloadResult | undefined;
+          try {
+            result = await Promise.race([downloadPromise, timeoutPromise]);
+          } finally {
+            if (deadline) clearTimeout(deadline);
+          }
+          downloadTaskRef.current = null;
+          if (downloadCanceledRef.current) break;
+          if (!result?.uri || !isValidAudioDownloadResponse(result.status, result.mimeType, result.headers)) {
+            throw new Error(`The audio server returned an unexpected file at verse ${verse}.`);
+          }
+          const temporaryInfo = await FileSystem.getInfoAsync(temporary);
+          if (!temporaryInfo.exists || !temporaryInfo.size || temporaryInfo.size <= 0) throw new Error(`Empty audio file at verse ${verse}.`);
+          if (downloadCanceledRef.current) break;
+          await FileSystem.moveAsync({ from: temporary, to: destination });
+          temporaryDownloadRef.current = null;
+          progress(verse);
         }
-        if (existingInfo.exists) await FileSystem.deleteAsync(destination, { idempotent: true });
-        const temporary = `${destination}.part`;
-        temporaryDownloadRef.current = temporary;
-        if ((await FileSystem.getInfoAsync(temporary)).exists) await FileSystem.deleteAsync(temporary, { idempotent: true });
-        const task = FileSystem.createDownloadResumable(audioUri(activeReciter, surah, verse), temporary, {}, ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
-          if (mountedRef.current && totalBytesExpectedToWrite > 0) setDownloadProgress(Math.floor(100 * (verse - 1 + totalBytesWritten / totalBytesExpectedToWrite) / chapter.verseCount));
-        });
-        downloadTaskRef.current = task;
-        let deadline: ReturnType<typeof setTimeout> | undefined;
-        const downloadPromise = task.downloadAsync();
-        const timeoutPromise = new Promise<never>((_resolve, reject) => {
-          deadline = setTimeout(() => {
-            void cancelDownloadTask(task);
-            reject(new Error(`Download timed out at verse ${verse}. Retry to continue.`));
-          }, DOWNLOAD_FILE_TIMEOUT_MS);
-        });
-        let result: FileSystem.FileSystemDownloadResult | undefined;
-        try {
-          result = await Promise.race([downloadPromise, timeoutPromise]);
-        } finally {
-          if (deadline) clearTimeout(deadline);
-        }
-        downloadTaskRef.current = null;
         if (downloadCanceledRef.current) break;
-        if (!result?.uri || !isValidAudioDownloadResponse(result.status, result.mimeType, result.headers)) {
-          throw new Error(`The audio server returned an unexpected file at verse ${verse}.`);
+        completedVerses += chapter.verseCount;
+        completedSurahs++;
+        if (mountedRef.current) {
+          setDownloadsByReciter(existing => ({ ...existing, [activeReciter]: existing[activeReciter].includes(surah) ? existing[activeReciter] : [...existing[activeReciter], surah].sort((a, b) => a - b) }));
+          setDownloadCompletedSurahs(completedSurahs);
         }
-        const temporaryInfo = await FileSystem.getInfoAsync(temporary);
-        if (!temporaryInfo.exists || !temporaryInfo.size || temporaryInfo.size <= 0) throw new Error(`Empty audio file at verse ${verse}.`);
-        await FileSystem.moveAsync({ from: temporary, to: destination });
-        temporaryDownloadRef.current = null;
-        if (mountedRef.current) setDownloadProgress(Math.floor(100 * verse / chapter.verseCount));
       }
-      if (downloadCanceledRef.current) {
-        if (downloadTaskRef.current) await cancelDownloadTask(downloadTaskRef.current);
-        if (temporaryDownloadRef.current) await FileSystem.deleteAsync(temporaryDownloadRef.current, { idempotent: true }).catch(() => undefined);
-        temporaryDownloadRef.current = null;
-      }
-      if (!downloadCanceledRef.current && mountedRef.current) {
-        setDownloadsByReciter((existing) => ({ ...existing, [activeReciter]: existing[activeReciter].includes(surah) ? existing[activeReciter] : [...existing[activeReciter], surah].sort((a, b) => a - b) }));
-        setDownloadProgress(100);
+      if (!downloadCanceledRef.current) {
+        failedDownloadRef.current = null;
+        failedDownloadReciter.current = null;
+        if (mountedRef.current) { setDownloadProgress(100); setDownloadOverallProgress(100); }
       }
     } catch (cause) {
+      if (!downloadCanceledRef.current && mountedRef.current) {
+        setDownloadError(cause instanceof Error ? cause.message : 'Download failed. Retry to continue from saved verses.');
+      }
+    } finally {
+      // Finish native cancellation before allowing a new job to reuse its .part path.
       const pendingTask = downloadTaskRef.current;
       if (pendingTask) await cancelDownloadTask(pendingTask);
       downloadTaskRef.current = null;
       if (temporaryDownloadRef.current) await FileSystem.deleteAsync(temporaryDownloadRef.current, { idempotent: true }).catch(() => undefined);
       temporaryDownloadRef.current = null;
-      if (!downloadCanceledRef.current && mountedRef.current) {
-        const message = cause instanceof Error ? cause.message : 'Download failed. Retry to continue from saved verses.';
-        failedDownloadRef.current = surah;
-        failedDownloadReciter.current = activeReciter;
-        setDownloadError(message);
-      } else {
-        if (temporaryDownloadRef.current) await FileSystem.deleteAsync(temporaryDownloadRef.current, { idempotent: true }).catch(() => undefined);
-        temporaryDownloadRef.current = null;
-      }
-    } finally {
-      downloadTaskRef.current = null;
-      temporaryDownloadRef.current = null;
+      if (downloadCanceledRef.current) { failedDownloadRef.current = null; failedDownloadReciter.current = null; }
       downloadingRef.current = false;
-      if (mountedRef.current) { setIsDownloading(null); setDownloadingReciter(null); }
+      if (mountedRef.current) { setIsDownloading(null); setDownloadingReciter(null); setDownloadScope(null); }
     }
   }, []);
+
+  const downloadSurah = useCallback(async (surah: number, selectedReciter?: ReciterId) => {
+    await downloadChapters([surah], selectedReciter ?? reciterRef.current, 'surah');
+  }, [downloadChapters]);
+
+  const downloadQuran = useCallback(async (selectedReciter?: ReciterId) => {
+    await downloadChapters(surahs.map(chapter => chapter.number), selectedReciter ?? reciterRef.current, 'quran');
+  }, [downloadChapters]);
 
   const cancelDownload = useCallback(() => {
     downloadCanceledRef.current = true;
@@ -728,8 +766,11 @@ export function useQuranAudio(): QuranAudioController {
   }, [playPosition, refreshOnline]);
   const retryDownload = useCallback(async () => {
     const target = failedDownloadRef.current;
-    if (target !== null && await refreshOnline()) await downloadSurah(target, failedDownloadReciter.current ?? reciterRef.current);
-  }, [downloadSurah, refreshOnline]);
+    if (target === null || !await refreshOnline()) return;
+    const voice = failedDownloadReciter.current ?? reciterRef.current;
+    if (failedDownloadScope.current === 'quran') await downloadQuran(voice);
+    else await downloadSurah(target, voice);
+  }, [downloadSurah, downloadQuran, refreshOnline]);
   const retry = useCallback(async () => {
     if (error) await retryPlayback();
     else if (downloadError) await retryDownload();
@@ -755,6 +796,9 @@ export function useQuranAudio(): QuranAudioController {
     refreshDownloads,
     removeSavedAudio,
     downloadProgress,
+    downloadScope,
+    downloadOverallProgress,
+    downloadCompletedSurahs,
     isCurrentSurahDownloaded: activeSurahDownloaded,
     isOnline,
     playVerse,
@@ -770,6 +814,7 @@ export function useQuranAudio(): QuranAudioController {
     setPlaybackRate,
     setRepeatRange,
     downloadSurah,
+    downloadQuran,
     cancelDownload,
     deleteSurahDownload,
     retry,

@@ -11,7 +11,6 @@ type Props = {
   language: Language;
   tab: Tab;
   onChange: (tab: Tab) => void;
-  theme?: 'green' | 'navy';
   reading?: boolean;
   chromeVisible?: boolean;
   children: ReactNode;
@@ -24,7 +23,7 @@ const labels: { en: Record<Tab, string> & { show: string }; ar: Record<Tab, stri
 
 const HIDE_DELAY_MS = 4_000;
 
-export function SwipeTabs({ hideNavigation = false, language, tab, onChange, children, theme = 'green', reading = false, chromeVisible = false }: Props) {
+export function SwipeTabs({ hideNavigation = false, language, tab, onChange, children, reading = false, chromeVisible = false }: Props) {
   const {styles}=useReaderStyles(baseStyles);
   const [dockVisible, setDockVisible] = useState(true);
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
@@ -78,7 +77,7 @@ export function SwipeTabs({ hideNavigation = false, language, tab, onChange, chi
       if (state.numberActiveTouches > 1) multiTouch.current = true;
       return false;
     },
-    onMoveShouldSetPanResponder: (_event, state) => {
+    onMoveShouldSetPanResponderCapture: (_event, state) => {
       if (state.numberActiveTouches > 1) multiTouch.current = true;
       return !multiTouch.current && neighborForSwipe(current.current.tab, state.dx, state.dy, current.current.language) !== null;
     },
@@ -137,6 +136,7 @@ export function SwipeTabs({ hideNavigation = false, language, tab, onChange, chi
   };
 
   const copy = localizeCopy(language, labels);
+  const showDock = (tab === 'quran' && !reading) || (reading ? chromeVisible : dockVisible);
   const chooseTab = (next: Tab) => {
     revealAndRestartTimer();
     if (next !== current.current.tab) current.current.onChange(next);
@@ -149,8 +149,8 @@ export function SwipeTabs({ hideNavigation = false, language, tab, onChange, chi
     onTouchEnd={reading ? undefined : onTouchEnd}
     onTouchCancel={reading ? undefined : onTouchCancel}
   >
-    <View style={[styles.content,{paddingBottom:0}]}>{children}</View>
-    {hideNavigation ? null : (reading ? chromeVisible : dockVisible) ? <View accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, isRTL(language) && styles.dockRtl]}>
+    <View style={styles.content}>{children}</View>
+    {hideNavigation ? null : showDock ? <View accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, isRTL(language) && styles.dockRtl]}>
       {TABS.map(item => <Pressable
         key={item}
         testID={`tab-${item}`}
@@ -177,15 +177,9 @@ export function SwipeTabs({ hideNavigation = false, language, tab, onChange, chi
 
 const baseStyles = StyleSheet.create({
   root: { flex: 1 },
-  content: { flex: 1, paddingBottom: 64 },
-  navyContent: { paddingBottom: 54 },
-  readingContent: { paddingBottom: 0 },
-  navyDock: { minHeight: 48, padding: 2, backgroundColor: '#18334A', borderColor: '#516C80' },
-  navyTab: { minHeight: 44 },
-  navyTabSelected: { backgroundColor: '#FAF7EF' },
-  navyTabLabel: { color: '#BCD0DF' },
-  navyHandleButton: { backgroundColor: '#18334A', borderColor: '#516C80' },
+  content: { flex: 1, zIndex: 0 },
   dock: {
+    zIndex: 2,
     position: 'absolute',
     bottom: 6,
     alignSelf: 'center',
@@ -211,6 +205,7 @@ const baseStyles = StyleSheet.create({
   tabLabel: { color: '#A8C1B8', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   tabLabelSelected: { color: '#102A25', fontWeight: '700' },
   handleButton: {
+    zIndex: 2,
     position: 'absolute',
     bottom: 4,
     alignSelf: 'center',

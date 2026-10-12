@@ -39,7 +39,6 @@ function Main() {
   const quranTheme = useQuranTheme();
   useEffect(() => { void SystemUI.setBackgroundColorAsync(quranTheme.theme.appBackground).catch(() => undefined); }, [quranTheme.theme.appBackground]);
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<Tab>('quran');
   const [tab, setTab] = useState<Tab>('quran');
   const [readingBook,setReadingBook]=useState(false);
   const [readingChromeVisible, setReadingChromeVisible] = useState(false);
@@ -106,12 +105,12 @@ function Main() {
         <Pressable accessibilityRole="button" testID="open-location" accessibilityLabel={t.locationTitle} style={styles.iconButton} onPress={() => setShowLocation(true)}>
           <Ionicons name="location-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>
-        <Pressable accessibilityRole="button" testID="open-settings" accessibilityLabel={t.settings} style={styles.iconButton} onPress={() => { setSettingsSection(tab); setShowSettings(true); }}>
+        <Pressable accessibilityRole="button" testID="open-settings" accessibilityLabel={t.settings} style={styles.iconButton} onPress={() => setShowSettings(true)}>
           <Ionicons name="settings-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>
       </View>
     </View>
-    <SwipeTabs hideNavigation={readingBook} language={language} tab={tab} theme={tab === 'quran' ? 'navy' : 'green'} reading={tab === 'quran'} chromeVisible={readingChromeVisible} onChange={next => { setTab(next); setReadingChromeVisible(false); setNow(new Date()); }}>
+    <SwipeTabs hideNavigation={tab === 'quran' && readingBook} language={language} tab={tab} reading={tab === 'quran' && readingBook} chromeVisible={readingChromeVisible} onChange={next => { setTab(next); setReadingChromeVisible(false); setNow(new Date()); }}>
       <ScreenLayer testID="screen-qibla" active={tab === 'qibla'} background={quranTheme.theme.appBackground} top={48} bottom={64}>
         <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
           calculationAvailable={isQiblaAvailable} calculationError={qibla.error}
@@ -129,7 +128,7 @@ function Main() {
       </ScreenLayer>
 
     </SwipeTabs>
-    <SettingsSheet language={language} visible={showSettings} section={settingsSection} onSectionChange={setSettingsSection}
+    <SettingsSheet language={language} visible={showSettings}
       onClose={() => setShowSettings(false)} prayer={settings} timezone={timezone}
       onPrayerChange={prayer => setPreferences(value => ({ ...value, prayer }))}
       compassMode={compassMode} onCompassModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))}
