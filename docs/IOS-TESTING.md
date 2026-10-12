@@ -1,7 +1,6 @@
 # iOS testing on a Mac
 
-Use **`codex/reader-polish`**. The repository's `main` branch is older and does
-not contain the 0.3.6 reader improvements.
+Use **`codex/test-0.4.0`** for the current test version. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged. The repository’s `main` branch is older.
 
 ## Requirements
 
@@ -26,7 +25,7 @@ If the developer directory is `/Library/Developer/CommandLineTools`, select the 
 ## Current source and development build
 
 ```sh
-git clone --branch codex/reader-polish --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
+git clone --branch codex/test-0.4.0 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
 cd quran-adhan-qibla
 git log -1 --oneline
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -67,12 +66,14 @@ For a bundled device build, use `npx expo run:ios --device --configuration Relea
 3. **Reader:** first opening, gold borders, night ayah numbers, long-press actions and enlarged reading. Up/right beyond halfway advances; shorter drags return. Check down/left and zoom/pan.
 4. **Audio:** reciter switching, previous/replay/play-pause/next/stop, speeds, multi-ayah loops across several cycles, downloaded audio in airplane mode, screen lock, lock-screen controls, headphones and interruptions.
 5. **Tafsir:** download/select each book, check publication dates and passage ranges, then read offline after restarting.
-6. **Layout:** Arabic RTL, English, iPhone safe areas, iPad and larger text.
+6. **Prayer alerts:** choose a location, enable alerts in Settings → Adhan, allow notifications and confirm upcoming alerts appear. Try the five-second test and disable alerts to cancel the schedule. iOS plays a labelled 29-second Adhan excerpt; check Silent Mode, Focus and notification sound settings on the phone. Reopen at least weekly to refresh the eight-date schedule.
+7. **Downloads:** download a surah, change voices, continue a partial download, then remove a saved surah. Audio/tafsir totals and saved counts should follow the files. Confirm offline playback after restart.
+8. **Layout:** Arabic RTL, English, iPhone safe areas, iPad and larger text.
 
 ## Current status
 
-Version **0.3.6**, iOS build **9**. The latest Quran library, gestures, themes, reciters, tafsir, prayer calculations and compass changes share source with Android. Scheduled Adhan alerts are **Android-only** and iOS settings say so. iOS now uses the Quran/direction launcher icon.
+Version **0.4.0**, iOS build **10**, on `codex/test-0.4.0`. Android and iOS share the six-book reader, twenty reciters, Saad Al-Ghamdi default, download manager, playback recovery, themes and retained screen layers. Local iOS prayer notifications are implemented with a 29-second sound; no APNs entitlement is requested.
 
-On 12 October 2026, [the macOS native build passed](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/38219756885) for commit `82bb4b0204fba765a98c0684e7b4086fd2a74308`: Rust device/simulator libraries, CocoaPods, Swift compilation and packaging of a bundled Release simulator app. The **iOS native build** workflow saves the simulator ZIP and build log. The checked source ZIP is attached to the 0.3.6 release. Physical-device signing, compass accuracy, audio behavior and Xcode 27 remain for the tester to verify.
+The 0.4.0 Release simulator app compiles with the Rust XCFramework. Runtime checks are being run in the [iOS native build workflow](https://github.com/saad-musbeh/quran-adhan-qibla/actions/workflows/ios.yml): book persistence, native playback, notification scheduling/cancellation, saved audio inventory and repeated tab changes. The workflow saves screenshots, the simulator app and logs. Physical-device signing, compass accuracy, lock-screen audio, interruptions and notification sound policy remain for the tester.
 
-Linux checks also passed: 74 JavaScript tests, 14 Rust tests, TypeScript, formatting/Clippy and Android/iOS bundle exports. The generated iOS project was checked for version/build, foreground-only location permission, background audio, scene lifecycle, patched source compilation and no push entitlement. The first Mac build caught an optional-value assignment in the lock-screen module; the linked successful build includes its fix.
+Linux checks passed: 78 JavaScript tests, 14 Rust tests, TypeScript, formatting/Clippy and Android/iOS bundle exports. The Android 0.4.0 test APK is built with the same test signing certificate as 0.3.6. Simulator checks cannot establish physical compass accuracy or device sound/background behavior.

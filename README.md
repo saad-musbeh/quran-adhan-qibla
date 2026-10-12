@@ -2,12 +2,12 @@
 
 **قرآن · أذان · قبلة** — an open-source app for iOS and Android, built with React Native, TypeScript, Expo, and a shared Rust core.
 
-This app includes an offline Arabic Quran reader with verse audio, menus/settings in 35 languages, saved foreground location, shared Rust calculations for Qibla and today’s prayer times, and optional Android prayer notifications with a bundled Adhan recording.
+This app includes an offline Arabic Quran reader with verse audio, menus/settings in 35 languages, saved foreground location, shared Rust calculations for Qibla and today’s prayer times, and optional local prayer notifications on Android and iOS with bundled Adhan sounds.
 
 ## What is ready
 
 - Arabic by default, a searchable language menu with 35 native-name choices, and layouts that follow the selected language. The 33 new menu/settings translations are machine-assisted drafts awaiting native-speaker review; Quran text and surah names remain Arabic.
-- Compact tabs that hide after inactivity. In Quran reading, tap the page to reveal tabs and tools; swipe the page to turn Mushaf pages, or swipe the revealed tab dock to switch screens.
+- Compact tabs that hide after inactivity. In Quran reading, tap the page to reveal tabs and tools; swipe the page to turn Mushaf pages, then return to the library to switch app sections.
 - Main screens fit without vertical scrolling; location choices and calculation settings open separately.
 - A compact top row with language, location-pin, and settings icons, revealed by tapping during Quran reading. Reading, audio, prayer, and compass preferences share the gear sheet.
 - An illustrated Qibla scene with a live phone compass and an optional fixed true-north view, without camera access. Poor sensor readings show calibration guidance and a clearly labelled fixed fallback.
@@ -24,7 +24,7 @@ This app includes an offline Arabic Quran reader with verse audio, menus/setting
 - iOS C ABI/XCFramework and Android JNI bridge source and build scripts.
 - MIT license, contribution guide, roadmap, and CI checks.
 
-Quran playback is separate from Adhan. In **Settings → Adhan**, enable **Play Adhan at prayer times**, allow notifications, and grant **Alarms and reminders** access for exact scheduling. The test button schedules an alert in five seconds. Remaining prayers today and the following seven dates are scheduled locally; open the app at least weekly to refresh them. Android controls notification volume, Do Not Disturb and sound duration. See [prayer notification behavior](docs/PRAYER-NOTIFICATIONS.md) and [recording provenance](assets/adhan/PROVENANCE.md). The Qibla bearing is clockwise from **true north**. Live mode rotates the scene relative to a reliable phone heading; fixed mode keeps north at the top.
+Quran playback is separate from Adhan. In **Settings → Adhan**, enable **Play Adhan at prayer times**, allow notifications, and on Android grant **Alarms and reminders** access for exact scheduling. The test button schedules an alert in five seconds. Remaining prayers today and the following seven dates are scheduled locally; open the app at least weekly to refresh them. Android controls notification volume, Do Not Disturb and sound duration. iOS uses a 29-second excerpt and follows notification sound, Silent Mode and Focus settings. See [prayer notification behavior](docs/PRAYER-NOTIFICATIONS.md) and [recording provenance](assets/adhan/PROVENANCE.md). The Qibla bearing is clockwise from **true north**. Live mode rotates the scene relative to a reliable phone heading; fixed mode keeps north at the top.
 
 ## Location and prayer times
 
@@ -87,7 +87,7 @@ The explicit bundle step refreshes JSON catalogs too; Gradle can otherwise reuse
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use `codex/reader-polish` for the current 0.3.6 source. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use `codex/test-0.4.0` for 0.4.0-test. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -129,9 +129,9 @@ Expo generates root `android/` and `ios/` projects when needed. They, Rust build
 
 ## Next work
 
-See [the roadmap](docs/ROADMAP.md). Next steps include native-speaker translation review, iOS notifications, advanced high-latitude handling, physical-device compass/audio validation, and iOS native testing.
+See [the roadmap](docs/ROADMAP.md). Next steps include native-speaker translation review, advanced high-latitude handling, and physical-device compass, notifications and audio validation.
 
-The app adds no analytics and calculates Qibla and prayer times locally. Only foreground location permission is requested, after the user chooses device location. Android notification permission is requested only when prayer alerts are enabled. Locations and preferences are saved locally. Both platforms use the original Quran/direction launcher icon.
+The app adds no analytics and calculates Qibla and prayer times locally. Only foreground location permission is requested, after the user chooses device location. Notification permission on either platform is requested only when prayer alerts are enabled. Locations and preferences are saved locally. Both platforms use the original Quran/direction launcher icon.
 
 ## Contributing and license
 
