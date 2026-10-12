@@ -39,6 +39,15 @@ jobs:
           xcrun xcresulttool export diagnostics --path previous-ui/ios-ui.xcresult --output-path previous-diagnostics
           python3 - <<'PY'
           import pathlib, zipfile
+          root=pathlib.Path('previous-diagnostics')
+          for path in root.rglob('*'):
+            if path.is_file() and path.suffix in ('.ips','.crash','.txt','.log'):
+              report=path.read_text(errors='replace')
+              if path.suffix in ('.ips','.crash') and 'QuranAdhanQibla' in report:
+                print(str(path)+'\n'+report[:40000])
+              else:
+                lines=[line for line in report.splitlines() if any(term in line for term in ('RCTFatal','Unhandled JS Exception','Terminating app','NSException','Fatal error','QuranAdhanQibla crashed'))]
+                if lines: print(str(path)+'\n'+'\n'.join(lines)[:20000])
           for archive in pathlib.Path('previous-diagnostics').rglob('*.zip'):
             with zipfile.ZipFile(archive) as bundle:
               for name in bundle.namelist():
