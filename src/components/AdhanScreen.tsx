@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Linking,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -34,7 +35,9 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
   const rtl = isRTL(language);
   const locale = localeFor(language);
   const [settingsError, setSettingsError] = useState(false);
-  const [availableHeight, setAvailableHeight] = useState(0);
+  const [viewport, setViewport] = useState({width:0,height:0});
+  const availableHeight=viewport.height;
+  const landscape=viewport.width>=680&&viewport.width>viewport.height;
   const compact = availableHeight > 0 && availableHeight <= 500;
   const upcoming = useMemo(() => times?.length === prayerNames.length ? nextPrayer(times, now) : null, [times, now]);
   const location = state.location;
@@ -43,7 +46,7 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
   const retryLocation = () => { void state.locate(); };
   const locationError = state.error ? t[state.error] : null;
 
-  return <View onLayout={event => setAvailableHeight(event.nativeEvent.layout.height)} style={[styles.container, compact && styles.containerCompact]}>
+  return <ScrollView style={styles.viewport} onLayout={event => setViewport(event.nativeEvent.layout)} contentContainerStyle={[styles.container, compact && styles.containerCompact,landscape&&styles.containerWide]}>
     <View style={[styles.heading, rtl && styles.rowRtl]}>
       <View style={styles.headingCopy}>
         <Text style={[styles.title, compact && styles.titleCompact, rtl && styles.textRtl]}>{t.adhanTitle}</Text>
@@ -78,6 +81,7 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
           <Text style={styles.retryText}>{t.useLocation}</Text>
         </Pressable>}
       </View> : <>
+        <View style={[styles.schedule,landscape&&styles.scheduleWide,landscape&&rtl&&styles.rowRtl]}><View style={landscape?styles.nextColumn:undefined}>
         {upcoming ? <View style={[styles.nextCard, compact && styles.nextCardCompact, rtl && styles.rowRtl]}>
           <View style={styles.nextCopy}>
             <Text style={[styles.nextLabel, compact && styles.nextLabelCompact, rtl && styles.textRtl]}>{t.next}</Text>
@@ -86,7 +90,7 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
           <Text style={[styles.nextTime, compact && styles.nextTimeCompact]}>{times[prayerNames.indexOf(upcoming)]!.toLocaleTimeString(locale, {hour: '2-digit', minute: '2-digit'})}</Text>
         </View> : <View style={styles.finishedCard}><Text style={[styles.finishedText, rtl && styles.textRtl]}>{t.finishedToday}</Text></View>}
 
-        <View style={styles.prayerList}>
+        </View><View style={[styles.prayerList,landscape&&styles.listWide]}>
           {prayerNames.map((name, index) => {
             const isNext = name === upcoming;
             return <View key={name} style={[styles.prayerRow, compact && styles.prayerRowCompact, rtl && styles.rowRtl, isNext && styles.prayerRowNext]}>
@@ -96,15 +100,17 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
           })}
         </View>
 
+        </View>
         {!compact && <Text numberOfLines={1} style={[styles.timezone, rtl && styles.textRtl]}>{t.phoneTimezone}: {timezone}</Text>}
       </>}
     </>}
 
-  </View>;
+  </ScrollView>;
 }
 
 const baseStyles = StyleSheet.create({
-  container: {flex: 1, width: '100%', maxWidth: 620, alignSelf: 'center', paddingHorizontal: 22, paddingTop: 12, paddingBottom: 8, gap: 10},
+  viewport:{flex:1},schedule:{gap:10},scheduleWide:{flexDirection:'row',gap:24,alignItems:'center'},nextColumn:{flex:1},listWide:{flex:1},containerWide:{maxWidth:1100},
+  container: {flexGrow: 1, width: '100%', maxWidth: 620, alignSelf: 'center', paddingHorizontal: 22, paddingTop: 12, paddingBottom: 8, gap: 10},
   containerCompact: {paddingHorizontal: 18, paddingTop: 4, paddingBottom: 4, gap: 3},
   heading: {minHeight: 44, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10},
   headingCopy: {flex: 1, gap: 2},

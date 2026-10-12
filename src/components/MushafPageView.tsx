@@ -15,6 +15,7 @@ type Props = {
   theme?:QuranTheme;
   page: number; asset: number; verses: readonly Verse[]; surahNames: string; juzName: string;
   language: Language; dark: boolean; activeKey: string | null; zoom?: number;
+  pageStep?: 1 | 2;
   onTap: () => void; onPlayVerse: (key: string) => void; onPageSwipe: (delta: number) => void;
   loopPickMode?: 'start'|'end'|null; loopStartKey?:string|null; loopEndKey?:string|null; onLoopStart?:(key:string)=>void; onLoopEnd?:(key:string)=>void; onLoopPick?:(key:string)=>void;
   onTafsirVerse?: (key: string) => void; onBookmarkVerse?: (key: string) => void; bookmarkedKeys?: readonly string[];
@@ -66,7 +67,7 @@ export function MushafPageView(props: Props) {
       if (alive) setHtml(buildMushafDocument(initial, svg, font));
     }).catch(() => { if (alive) setError(true); });
     return () => { alive=false; };
-  }, [attempt]);
+  }, [attempt, props.pageStep]);
   useEffect(() => {
     if (!ready) return;
     let alive = true;
@@ -85,7 +86,8 @@ export function MushafPageView(props: Props) {
         if (!alive) return;
         activate();
       } catch { if (alive) setError(true); return; }
-      for (const offset of [-1,1,-2,2]) {
+      const step=props.pageStep??1;
+      for (const offset of [-step,step,-2*step,2*step]) {
         const n=page+offset;
         if (!alive) break;
         if (n<1||n>604) continue;
@@ -95,7 +97,7 @@ export function MushafPageView(props: Props) {
       }
     })();
     return () => { alive=false; };
-  }, [ready, props.page, props.asset]);
+  }, [ready, props.page, props.asset, props.pageStep]);
   useEffect(() => { if (ready) web.current?.injectJavaScript(`window.updateState(${JSON.stringify(state())});true;`); }, [ready, props.activeKey, props.bookmarkedKeys, props.language, props.dark, props.theme, props.loopPickMode, props.loopStartKey, props.loopEndKey]);
   useEffect(() => { if (ready) web.current?.injectJavaScript(`window.zoomPage(${props.zoom??1});true;`); }, [ready, props.zoom]);
   const message = (event: WebViewMessageEvent) => {

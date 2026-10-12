@@ -2,9 +2,10 @@ import * as SystemUI from 'expo-system-ui';
 import { ScreenLayer } from './src/components/ScreenLayer';
 import { QuranThemeContext } from './src/quran-theme-context';
 import { useQuranTheme } from './src/use-quran-theme';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, BackHandler, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { MainMenu } from './src/components/MainMenu';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isPrayerTimesAvailable, isQiblaAvailable, prayerTimes, qiblaBearing } from './modules/islamic-core';
 import { AdhanScreen } from './src/components/AdhanScreen';
@@ -32,6 +33,8 @@ export default function App() {
 
 function Main() {
   const insets = useSafeAreaInsets();
+  const {width,height}=useWindowDimensions();
+  const largeScreen=width>=720||Math.min(width,height)>=600;
   const { preferences, setPreferences, ready: preferencesReady } = usePreferences();
   const { language, prayer: settings, reader, compassMode } = preferences;
   const audio = useQuranAudio();
@@ -41,14 +44,31 @@ function Main() {
   const [showSettings, setShowSettings] = useState(false);
   const [tab, setTab] = useState<Tab>('quran');
   const [readingBook,setReadingBook]=useState(false);
+  const [homeVisible,setHomeVisible]=useState(largeScreen);
+  const menuLoaded=useRef(false);
+  const menuEnabled=largeScreen||preferences.mainMenuOnPhones;
+  useEffect(()=>{
+    if (!preferencesReady||menuLoaded.current) return;
+    menuLoaded.current=true;
+    if (largeScreen||preferences.mainMenuOnPhones) setHomeVisible(true);
+  },[preferencesReady,largeScreen,preferences.mainMenuOnPhones]);
   const [readingChromeVisible, setReadingChromeVisible] = useState(false);
   const [showLocation, setShowLocation] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const locationState = useLocation(tab !== 'quran' || showLocation || preferences.prayerNotifications);
+  const locationState = useLocation((!homeVisible&&tab !== 'quran') || showLocation || preferences.prayerNotifications);
   const { location } = locationState;
   const t = translations[language];
   const notificationLabels = notificationCopy(language);
+  const headerVisible=homeVisible||tab!=='quran'||readingChromeVisible;
+  const chooseSection=(next:Tab)=>{setHomeVisible(false);setTab(next);setReadingChromeVisible(false);setNow(new Date());};
+  useEffect(()=>{
+    const subscription=BackHandler.addEventListener('hardwareBackPress',()=>{
+      if (!menuEnabled||homeVisible||readingBook||showSettings||showLocation||showLanguages) return false;
+      setHomeVisible(true);return true;
+    });
+    return()=>subscription.remove();
+  },[menuEnabled,homeVisible,readingBook,showSettings,showLocation,showLanguages]);
   const notifications = usePrayerNotifications({
     ready: preferencesReady && locationState.ready,
     enabled: preferences.prayerNotifications,
@@ -92,12 +112,13 @@ function Main() {
 
   return <QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
     <StatusBar style="light" />
-    <View pointerEvents={tab !== 'quran' || readingChromeVisible ? 'auto' : 'none'}
-      accessibilityElementsHidden={tab === 'quran' && !readingChromeVisible}
-      importantForAccessibility={tab === 'quran' && !readingChromeVisible ? 'no-hide-descendants' : 'auto'}
-      style={[styles.header, styles.readingHeader, {top:insets.top, backgroundColor:quranTheme.theme.appBackground, opacity:tab !== 'quran' || readingChromeVisible ? 1 : 0}, isRTL(language) && styles.reverse]}>
+    <View pointerEvents={headerVisible ? 'auto' : 'none'}
+      accessibilityElementsHidden={!headerVisible}
+      importantForAccessibility={!headerVisible ? 'no-hide-descendants' : 'auto'}
+      style={[styles.header, styles.readingHeader, {top:insets.top, backgroundColor:quranTheme.theme.appBackground, opacity:headerVisible ? 1 : 0}, isRTL(language) && styles.reverse]}>
       <Text style={styles.brand}>{t.brand}</Text>
       <View style={[styles.tools, isRTL(language) && styles.reverse]}>
+        {menuEnabled&&!readingBook&&<Pressable testID="open-main-menu" accessibilityRole="button" accessibilityLabel={isRTL(language)?'القائمة الرئيسية':'Main menu'} style={styles.iconButton} onPress={()=>setHomeVisible(true)}><Ionicons name="home-outline" color={quranTheme.theme.accent} size={23}/></Pressable>}
         <Pressable accessibilityRole="button" accessibilityLabel={t.language} style={styles.iconButton}
           onPress={() => setShowLanguages(true)}>
           <Ionicons name="language-outline" color={quranTheme.theme.accent} size={23} />
@@ -110,25 +131,27 @@ function Main() {
         </Pressable>
       </View>
     </View>
-    <SwipeTabs hideNavigation={tab === 'quran' && readingBook} language={language} tab={tab} reading={tab === 'quran' && readingBook} chromeVisible={readingChromeVisible} onChange={next => { setTab(next); setReadingChromeVisible(false); setNow(new Date()); }}>
-      <ScreenLayer testID="screen-qibla" active={tab === 'qibla'} background={quranTheme.theme.appBackground} top={48} bottom={64}>
+    <SwipeTabs hideNavigation={homeVisible||(tab === 'quran' && readingBook)} language={language} tab={tab} reading={homeVisible||(tab === 'quran' && readingBook)} chromeVisible={readingChromeVisible} onChange={chooseSection}>
+      <ScreenLayer testID="screen-qibla" active={!homeVisible&&tab === 'qibla'} background={quranTheme.theme.appBackground} top={48} bottom={64}>
         <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
           calculationAvailable={isQiblaAvailable} calculationError={qibla.error}
-          active={tab === 'qibla' && !showLocation && !showSettings && !showLanguages} mode={compassMode}
+          active={!homeVisible&&tab === 'qibla' && !showLocation && !showSettings && !showLanguages} mode={compassMode}
           onModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))} />
       </ScreenLayer>
-      <ScreenLayer testID="screen-adhan" active={tab === 'adhan'} background={quranTheme.theme.appBackground} top={48} bottom={64}>
+      <ScreenLayer testID="screen-adhan" active={!homeVisible&&tab === 'adhan'} background={quranTheme.theme.appBackground} top={48} bottom={64}>
         <AdhanScreen language={language} state={locationState} times={schedule.times}
           error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now} timezone={timezone}/>
       </ScreenLayer>
-      <ScreenLayer testID="screen-quran" active={tab === 'quran'} background={quranTheme.theme.appBackground}>
-        <QuranLibrary tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={tab === 'quran'} language={language} audio={audio} settings={reader}
+      <ScreenLayer testID="screen-quran" active={!homeVisible&&tab === 'quran'} background={quranTheme.theme.appBackground}>
+        <QuranLibrary tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} audio={audio} settings={reader}
           onReadingChromeChange={setReadingChromeVisible}
           onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
       </ScreenLayer>
+      <ScreenLayer testID="screen-home" active={homeVisible} background={quranTheme.theme.appBackground} top={48}><MainMenu language={language} onChoose={chooseSection} onLocation={()=>setShowLocation(true)} onSettings={()=>setShowSettings(true)}/></ScreenLayer>
 
     </SwipeTabs>
     <SettingsSheet language={language} visible={showSettings}
+      mainMenuOnPhones={preferences.mainMenuOnPhones} onMainMenuChange={enabled=>{setPreferences(value=>({...value,mainMenuOnPhones:enabled}));if(!largeScreen){setHomeVisible(enabled&&!readingBook);if(enabled&&!readingBook)setShowSettings(false);}}}
       onClose={() => setShowSettings(false)} prayer={settings} timezone={timezone}
       onPrayerChange={prayer => setPreferences(value => ({ ...value, prayer }))}
       compassMode={compassMode} onCompassModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))}

@@ -2,24 +2,24 @@
   "expo": {
     "name": "Quran Adhan Qibla",
     "slug": "quran-adhan-qibla",
-    "version": "0.4.2",
+    "version": "0.4.3",
     "scheme": "quranadhanqibla",
     "platforms": [
       "ios",
       "android"
     ],
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.saadmusbeh.quranadhanqibla",
       "icon": "./assets/branding/android-icon-v1.png",
-      "buildNumber": "12"
+      "buildNumber": "13"
     },
     "android": {
       "package": "org.saadmusbeh.quranadhanqibla",
-      "versionCode": 12,
+      "versionCode": 13,
       "adaptiveIcon": {
         "backgroundColor": "#1A3D2E",
         "foregroundImage": "./assets/branding/android-icon-v1.png"

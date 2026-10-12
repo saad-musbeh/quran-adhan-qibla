@@ -4,7 +4,7 @@ import type { Verse } from '../domain/quran';
 import { MUSHAF_RUNTIME } from './mushaf-runtime.ts';
 import { OPENING_FRAME } from './mushaf-decoration/opening-frame.ts';
 import { SURAH_BANNER } from './mushaf-decoration/surah-banner.ts';
-export type DocumentProps = { theme?:QuranTheme; page:number; verses:readonly Verse[]; surahNames:string; juzName:string; language:Language; dark:boolean; activeKey:string|null; bookmarkedKeys?:readonly string[]; loopPickMode?:'start'|'end'|null;loopStartKey?:string|null;loopEndKey?:string|null };
+export type DocumentProps = { theme?:QuranTheme; page:number; pageStep?:1|2; verses:readonly Verse[]; surahNames:string; juzName:string; language:Language; dark:boolean; activeKey:string|null; bookmarkedKeys?:readonly string[]; loopPickMode?:'start'|'end'|null;loopStartKey?:string|null;loopEndKey?:string|null };
 export function mushafLabels(language: Language) {
   return {
     page: bilingual(language, 'الصفحة', 'Page'),

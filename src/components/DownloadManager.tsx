@@ -1,3 +1,4 @@
+import { tafsirBooksForLanguage } from '../data/tafsir';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -71,9 +72,9 @@ export function DownloadManager({language, audio, library}: {
               return <View key={surah.number} style={[styles.row,styles.panel,rtl&&styles.reverse]}><Text style={[styles.label,text]}>{surah.arabicName}</Text>{button(saved?.complete?say('محفوظ','Saved'):say('تنزيل','Download'),()=>{void audio.downloadSurah(surah.number,voice);},Boolean(saved?.complete)||busy||audio.isDownloading!==null||!audio.isOnline)}</View>;
             })}
           </>}
-          {section==='tafsir'&&library.books.map(book=>{
+          {section==='tafsir'&&tafsirBooksForLanguage(library.books,language).map(book=>{
             const saved=library.downloadedIds.includes(book.id), loading=library.isDownloading===book.id;
-            return <View key={book.id} style={styles.panel}><Text style={[styles.label,styles.rtl]}>{book.title}</Text><Text style={[styles.note,text]}>{book.publisher}{saved?` · ${size(library.bookBytes[book.id]??0)}`:''}{loading?` · ${library.progress}%`:''}</Text>
+            return <View key={book.id} style={styles.panel}><Text style={[styles.label,isRTL(book.language??'ar')?styles.rtl:{textAlign:'left',writingDirection:'ltr'}]}>{book.shortTitle??book.title}</Text><Text style={[styles.note,text]}>{book.publisher}{saved?` · ${size(library.bookBytes[book.id]??0)}`:''}{loading?` · ${library.progress}%`:''}</Text>
               <View style={[styles.row,rtl&&styles.reverse]}>{loading?button(say('إلغاء التنزيل','Cancel download'),library.cancelDownload):saved?<>{button(library.selectedId===book.id?say('التفسير المختار','Selected tafsir'):say('اختيار','Select'),()=>{void library.selectBook(book.id);},Boolean(library.isDownloading))}{button(say('حذف','Delete'),()=>removeBook(book.id,book.title),Boolean(library.isDownloading))}</>:button(say('تنزيل','Download'),()=>{void library.downloadBook(book.id);},!library.ready||Boolean(library.isDownloading)||!audio.isOnline)}</View>
             </View>;
           })}

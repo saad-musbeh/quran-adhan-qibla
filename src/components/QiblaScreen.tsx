@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import { ActivityIndicator, ScrollView, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import type { useLocation } from '../use-location';
 import { isFacingTarget, relativeBearing } from '../domain/heading';
 import { useHeading } from '../use-heading';
@@ -105,6 +105,8 @@ function VirtualQiblaScene({ bearing, trueBearing, language, mode, heading }: { 
 export function QiblaScreen({ language, state, bearing, calculationAvailable, calculationError, active = true, mode = 'live' }: Props) {
   const { styles } = useReaderStyles(baseStyles);
   const rtl = isRTL(language);
+  const [viewport,setViewport]=useState({width:0,height:0});
+  const landscape=viewport.width>=680&&viewport.width>viewport.height;
   const location = state.location;
   const headingState = useHeading(Boolean(active && mode === 'live' && location?.source === 'device' && bearing !== null && calculationAvailable && !calculationError), location?.source === 'device' ? location : undefined);
   const canUseLiveHeading = mode === 'live' && headingState.status === 'ready' && headingState.heading !== null;
@@ -147,11 +149,13 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
       : headingState.reason === 'permission' || (location?.source !== 'device' && mode === 'live') ? t.permission
         : headingState.status === 'loading' || headingState.status === 'idle' ? t.headingLoading : t.headingUnavailable;
 
-  return <View style={styles.screen}>
+  return <ScrollView style={{flex:1}} onLayout={event=>setViewport(event.nativeEvent.layout)} contentContainerStyle={[styles.screen,landscape&&styles.screenWide]}>
     <Text style={[styles.eyebrow, align]}>{t.title}</Text>
     {location ? <>
-      {bearing !== null && calculationAvailable && !calculationError ? <View style={styles.mainArea}>
+      {bearing !== null && calculationAvailable && !calculationError ? <View style={[styles.mainArea,landscape&&styles.areaWide,landscape&&rtl&&styles.rowRtl]}>
+        <View style={[styles.sceneArea,{minHeight:landscape?Math.max(240,viewport.height-95):Math.max(240,viewport.height-150)}]}>
         <VirtualQiblaScene bearing={guideBearing} trueBearing={bearing} language={language} mode={canUseLiveHeading ? 'live' : 'north'} heading={canUseLiveHeading ? headingState.heading : null} />
+        </View><View style={[styles.guideArea,landscape&&styles.guideWide]}>
         <View style={[styles.readout, rtl && styles.readoutRtl]}>
           <Text style={[styles.direction, align]}>{direction}</Text>
           <Text style={styles.degrees}>{degrees}</Text>
@@ -159,6 +163,7 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
         {canUseLiveHeading && turn !== null
           ? <Text accessibilityLiveRegion="polite" style={[styles.instruction, facingQibla ? styles.aligned : styles.turning]}>{facingQibla ? t.liveFacing : `${turn < 0 ? t.turnLeft : t.turnRight} ${Math.round(Math.abs(turn)).toLocaleString(localeFor(language))}°`}</Text>
           : <Text style={[styles.instruction, align]}>{mode === 'live' ? headingHint : t.instruction}</Text>}
+        </View>
       </View> : <View style={[styles.errorPanel, styles.mainArea]}>
         <Text style={[styles.errorHeading, align]}>{t.title}</Text>
         <Text accessibilityRole="alert" style={[styles.error, align]}>{calculationError ? t.calcError : t.unavailable}</Text>
@@ -178,11 +183,12 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
       </Pressable>
       {errorCopy && <Text accessibilityRole="alert" style={[styles.error, align]}>{errorCopy}</Text>}
     </View>}
-  </View>;
+  </ScrollView>;
 }
 
 const baseStyles = StyleSheet.create({
-  screen: { flex: 1, minHeight: 0, gap: 8, paddingHorizontal: 14, paddingVertical: 8, width: '100%', maxWidth: 620, alignSelf: 'center' },
+  sceneArea:{flex:1},guideArea:{gap:8},guideWide:{flex:0.8,justifyContent:'center'},areaWide:{flexDirection:'row',gap:24,alignItems:'stretch'},screenWide:{maxWidth:1100},
+  screen: { flexGrow: 1, minHeight: 0, gap: 8, paddingHorizontal: 14, paddingVertical: 8, width: '100%', maxWidth: 620, alignSelf: 'center' },
   eyebrow: { color: '#D6BA7A', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
   mainArea: { flex: 1, minHeight: 0 },
   frame: { flex: 1, minHeight: 180, overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: '#35564C', backgroundColor: '#102A25' },

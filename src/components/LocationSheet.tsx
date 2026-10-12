@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { bilingual, isRTL, localeFor, translations, type Language } from '../i18n';
 import type { useLocation } from '../use-location';
@@ -37,9 +38,9 @@ export function LocationSheet({ language, visible, state, onClose }: Props) {
             <Text style={styles.primaryText}>{loading ? t.locating : location?.source === 'device' ? t.refreshLocation : t.useLocation}</Text>
           </Pressable>
           {(error || settingsError) && <Text accessibilityRole="alert" style={[styles.error, align]}>{t[settingsError ? 'locationError' : error ?? 'locationError']}</Text>}
-          {error === 'blocked' && <Pressable accessibilityRole="button" style={styles.settings}
-            onPress={() => { void Linking.openSettings().catch(() => setSettingsError(true)); }}>
-            <Text style={[styles.link, align]}>{t.openSettings}</Text>
+          {(error === 'blocked'||error==='servicesDisabled') && <Pressable accessibilityRole="button" style={styles.settings}
+            onPress={() => { void (error==='servicesDisabled'&&Platform.OS==='android'?IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.LOCATION_SOURCE_SETTINGS):Linking.openSettings()).catch(() => setSettingsError(true)); }}>
+            <Text style={[styles.link, align]}>{error==='servicesDisabled'?bilingual(language,'افتح إعدادات الموقع','Open location settings'):t.openSettings}</Text>
           </Pressable>}
           <LocationAlternatives language={language} disabled={loading} coordinates={location ?? undefined}
             onSelect={selection => { state.useAlternative(selection); onClose(); }} />

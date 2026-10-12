@@ -1,6 +1,7 @@
 /** Runs inside the persistent offline reader; no external resources or scripts. */
 export const MUSHAF_RUNTIME = String.raw`
 const initial = window.readerInitial;
+const pageStep = initial.pageStep === 2 ? 2 : 1;
 const stage = document.getElementById('stage');
 const prepared = document.getElementById('prepared');
 const menu = document.getElementById('verse-menu');
@@ -215,7 +216,7 @@ function moveDrag(origin, dx, dy) {
   }
   const axis = origin.axis, extent = axis === 'x' ? innerWidth : innerHeight;
   const offset = axis === 'x' ? dx : dy, sign = offset >= 0 ? 1 : -1;
-  const delta = axis === 'x' ? sign : -sign, target = shownPage + delta;
+  const delta = axis === 'x' ? sign : -sign, target = shownPage + delta * pageStep;
   const next = cache.get(target);
   if (drag && drag.target !== target) {
     const abandoned = cache.get(drag.target);
@@ -290,7 +291,7 @@ document.addEventListener('touchend', event => {
   if (origin.axis) {
     moveDrag(origin,dx,dy);
     if (drag && Math.abs(drag.offset) > drag.extent/2 && cache.has(drag.target)) {
-      const target = drag.target, delta=target-shownPage;
+      const target = drag.target, delta=(target-shownPage)/pageStep;
       send({type:'swipe',delta});
       window.activatePage(target,{},true);
     } else returnDrag();

@@ -1,3 +1,6 @@
+import * as Crypto from 'expo-crypto';
+import { gunzipSync,strFromU8 } from 'fflate';
+import { isQuranpediaDump,indexQuranpediaDump } from './domain/quranpedia-tafsir';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -11,22 +14,56 @@ const ROOT = `${FileSystem.documentDirectory ?? FileSystem.cacheDirectory ?? ''}
 const REQUEST_TIMEOUT_MS = 30_000;
 const fileFor = (book: TafsirBook) => `${ROOT}${encodeURIComponent(book.id)}.json`;
 const counts = surahs.map(surah => surah.verseCount);
-const sourceRecords = (payload: unknown, surah: number) => {
+const sourceRecords = (payload: unknown, surah: number,book:TafsirBook) => {
   const result = payload && typeof payload === 'object' ? (payload as {result?:unknown}).result : undefined;
   const chapter = getSurah(surah);
-  if (!chapter || !isValidSurahResult(result, surah, chapter.verseCount)) throw new Error(`Tafsir source returned incomplete or out-of-order verses for surah ${surah}.`);
+  if (!chapter || !isValidSurahResult(result, surah, chapter.verseCount,book.allowedEmptyVerseKeys)) throw new Error(`Tafsir source returned incomplete or out-of-order verses for surah ${surah}.`);
   return result;
 };
 const envelopeFor = (book:TafsirBook,records:SourceTafsirRecord[]):TafsirBookEnvelope => ({schema:1,book:{id:book.id,title:book.title,publisher:book.publisher,version:book.version,url:book.url},records});
 type RangeEnvelope = {schema:2;book:TafsirBookEnvelope['book'];chapters:RangeTafsirRecord[][];downloadToken?:string};
-type BookEnvelope = TafsirBookEnvelope | RangeEnvelope;
+type DumpEnvelope={schema:3;book:TafsirBookEnvelope['book'];compressed:string;sha256:string;downloadToken?:string};
+type BookEnvelope = TafsirBookEnvelope | RangeEnvelope | DumpEnvelope;
 function validEnvelope(value:unknown, book:TafsirBook):value is BookEnvelope {
+  if((book.apiKind==='quranpedia'||book.apiKind==='archive')){
+    if(!value||typeof value!=='object'||!book.dump)return false;
+    const e=value as Partial<DumpEnvelope>,b=e.book;
+    return e.schema===3&&Boolean(b&&b.id===book.id&&b.title===book.title&&b.publisher===book.publisher&&b.version===book.version&&b.url===book.url)&&e.sha256===book.dump.sha256&&typeof e.compressed==='string'&&e.compressed.length===4*Math.ceil(book.dump.bytes/3)&&/^[A-Za-z0-9+/]*={0,2}$/.test(e.compressed);
+  }
   if(book.apiKind!=='tafsir')return isValidTafsirEnvelope(value,book,counts);
   if(!value||typeof value!=='object')return false;
   const e=value as Partial<RangeEnvelope>, b=e.book;
-  return e.schema===2&&Boolean(b&&b.id===book.id&&b.title===book.title&&b.publisher===book.publisher&&b.version===book.version&&b.url===book.url)&&Array.isArray(e.chapters)&&e.chapters.length===114&&e.chapters.every((rows,i)=>isValidRangeTafsirSurah(rows,i+1,counts[i]));
+  return e.schema===2&&Boolean(b&&b.id===book.id&&b.title===book.title&&b.publisher===book.publisher&&b.version===book.version&&b.url===book.url)&&Array.isArray(e.chapters)&&e.chapters.length===114&&e.chapters.every((rows,i)=>isValidRangeTafsirSurah(rows,i+1,counts[i],book.allowEmptyRows));
 }
-function indexEnvelope(e:BookEnvelope):Map<string,TafsirText>{return e.schema===2?indexRangeTafsir(e.chapters):indexTafsirRecords(e.records)}
+async function indexEnvelope(e:BookEnvelope,book:TafsirBook):Promise<Map<string,TafsirText>>{
+  if(e.schema!==3)return e.schema===2?indexRangeTafsir(e.chapters,book.allowEmptyRows):indexTafsirRecords(e.records);
+  const bytes=Uint8Array.from(atob(e.compressed),c=>c.charCodeAt(0));
+  const hash=Array.from(new Uint8Array(await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256,bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+  if(!book.dump||bytes.length!==book.dump.bytes||hash!==book.dump.sha256)throw new Error('Tafsir source checksum did not match this edition.');
+  const unpacked=gunzipSync(bytes);
+  if(unpacked.length!==book.dump.decodedBytes)throw new Error('Tafsir source size did not match this edition.');
+  const dump=JSON.parse(strFromU8(unpacked)) as unknown;
+  if(!isQuranpediaDump(dump,book,counts))throw new Error('Tafsir source records did not match the verified edition.');
+  return indexQuranpediaDump(dump);
+}
+async function downloadDump(book:TafsirBook,signal:AbortSignal,onProgress:(percent:number)=>void):Promise<DumpEnvelope>{
+  if(!book.dump)throw new Error('No source edition is configured.');
+  const local=new AbortController(),abort=()=>local.abort();signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
+  let timedOut=false;
+  const timer=setTimeout(()=>{timedOut=true;abort()},120000);
+  try{
+    const response=await fetch(book.dump.url,{signal:local.signal});
+    if(!response.ok)throw new Error(`Tafsir source download failed (HTTP ${response.status}).`);
+    const bytes=new Uint8Array(await response.arrayBuffer());
+    if(signal.aborted)throw new Error('Download cancelled');
+    if(bytes.length!==book.dump.bytes)throw new Error('Tafsir source edition has changed. Update the app before downloading.');
+    onProgress(75);
+    // Encode in bounded chunks; spreading a whole book exceeds the JS argument limit.
+    const chunks:string[]=[];for(let offset=0;offset<bytes.length;offset+=16384)chunks.push(String.fromCharCode(...bytes.subarray(offset,offset+16384)));
+    return {schema:3,book:{id:book.id,title:book.title,publisher:book.publisher,version:book.version,url:book.url},compressed:btoa(chunks.join('')),sha256:book.dump.sha256};
+  }catch(cause){if(timedOut)throw new Error('The tafsir download timed out. Please retry.');throw cause}
+  finally{clearTimeout(timer);signal.removeEventListener('abort',abort)}
+}
 async function fetchWithTimeout<T>(url:string,parentSignal:AbortSignal,read:(response:Response)=>Promise<T>):Promise<T>{
   const local=new AbortController();let timedOut=false;
   const abort=()=>local.abort();parentSignal.addEventListener('abort',abort,{once:true});if(parentSignal.aborted)local.abort();
@@ -63,7 +100,7 @@ export function useTafsirLibrary() {
     if(!validEnvelope(envelope,book)){
       await FileSystem.deleteAsync(fileFor(book),{idempotent:true});available.current.delete(id);if(mounted.current)setDownloadedIds([...available.current]);return null;
     }
-    return indexEnvelope(envelope);
+    try{return await indexEnvelope(envelope,book)}catch{await FileSystem.deleteAsync(fileFor(book),{idempotent:true});available.current.delete(id);if(mounted.current)setDownloadedIds([...available.current]);throw new Error('The saved tafsir is damaged. Please download it again.')}
   },[bookById]);
 
   useEffect(()=>{
@@ -82,6 +119,7 @@ export function useTafsirLibrary() {
             else await FileSystem.deleteAsync(fileFor(book),{idempotent:true});
           }catch{const info=await FileSystem.getInfoAsync(fileFor(book)).catch(()=>({exists:false} as FileSystem.FileInfo));if(info.exists)await FileSystem.deleteAsync(fileFor(book),{idempotent:true}).catch(()=>undefined);/* Missing or corrupt downloads stay unavailable. */}
         }
+        if(mounted.current)setDownloadedIds(ids);
         const stored=await AsyncStorage.getItem(STORAGE_KEY), chosen=stored&&ids.includes(stored)?stored:ids[0]??null;
         if(chosen&&startupRevision===selectionRevision.current){const records=await loadBook(chosen);if(records&&mounted.current&&startupRevision===selectionRevision.current){selectedIdRef.current=chosen;setLoaded(records);setSelectedId(chosen);if(stored!==chosen)await persistSelection(chosen)}}
         else if(!chosen&&stored&&startupRevision===selectionRevision.current)await persistSelection(null);
@@ -107,16 +145,22 @@ export function useTafsirLibrary() {
     downloadLock.current=true;downloadingIdRef.current=id;cancelled.current=false;const aborter=new AbortController();controller.current=aborter;
     const temp=`${fileFor(book)}.${Date.now()}-${Math.random().toString(36).slice(2)}.part`,downloadToken=`${Date.now()}-${Math.random().toString(36).slice(2)}`;temporary.current=temp;setError(null);setIsDownloading(id);setProgress(0);
     try{
+      let envelope:BookEnvelope;
+      if((book.apiKind==='quranpedia'||book.apiKind==='archive')){envelope={...await downloadDump(book,aborter.signal,percent=>{if(mounted.current)setProgress(percent)}),downloadToken};}
+      else {
       await verifyRelease(book,aborter.signal);
       const records=await downloadSurahsConcurrently<SourceTafsirRecord[]|RangeTafsirRecord[]>(114,3,aborter.signal,async(surah,signal)=>{
       const endpoint=`https://quranenc.com/api/v1/${book.apiKind??'translation'}/sura/${encodeURIComponent(book.apiKey)}/${surah}`;
-      return await fetchWithTimeout(endpoint,signal,async response=>{if(!response.ok)throw new Error(`Tafsir download failed at surah ${surah} (HTTP ${response.status}).`);const payload=await response.json() as {result?:unknown};if(book.apiKind==='tafsir'){if(!isValidRangeTafsirSurah(payload.result,surah,counts[surah-1]))throw new Error(`Incomplete tafsir passages for surah ${surah}.`);return payload.result}return sourceRecords(payload,surah)});
+      return await fetchWithTimeout(endpoint,signal,async response=>{if(!response.ok)throw new Error(`Tafsir download failed at surah ${surah} (HTTP ${response.status}).`);const payload=await response.json() as {result?:unknown};if(book.apiKind==='tafsir'){if(!isValidRangeTafsirSurah(payload.result,surah,counts[surah-1],book.allowEmptyRows))throw new Error(`Incomplete tafsir passages for surah ${surah}.`);return payload.result}return sourceRecords(payload,surah,book)});
     },completed=>{if(mounted.current)setProgress(Math.floor(100*completed/114))});
       if(cancelled.current||aborter.signal.aborted){const abortError=new Error('Download cancelled');abortError.name='AbortError';throw abortError;}
-      const envelope:BookEnvelope=book.apiKind==='tafsir'
+      envelope=book.apiKind==='tafsir'
         ?{schema:2,book:{id:book.id,title:book.title,publisher:book.publisher,version:book.version,url:book.url},chapters:records as RangeTafsirRecord[][],downloadToken}
         :{...envelopeFor(book,(records as SourceTafsirRecord[][]).flat()),downloadToken};
+      }
       if(!validEnvelope(envelope,book))throw new Error('Downloaded tafsir did not pass complete Quran validation.');
+      const indexed=await indexEnvelope(envelope,book);
+      if(cancelled.current||aborter.signal.aborted)throw new Error('Download cancelled');
       await FileSystem.writeAsStringAsync(temp,JSON.stringify(envelope));
       if(cancelled.current||aborter.signal.aborted||!mounted.current){const abortError=new Error('Download cancelled');abortError.name='AbortError';throw abortError;}
       await FileSystem.moveAsync({from:temp,to:fileFor(book)});temporary.current=null;
@@ -124,8 +168,8 @@ export function useTafsirLibrary() {
       available.current.add(id);
       const info=await FileSystem.getInfoAsync(fileFor(book));if(info.exists)setBookBytes(values=>({...values,[id]:info.size}));
       const ids=[...available.current];setDownloadedIds(ids);setProgress(100);
-      if(selectedIdRef.current===id){setLoaded(indexEnvelope(envelope))}
-      else if(selectedIdRef.current===null){selectedIdRef.current=id;setSelectedId(id);setLoaded(indexEnvelope(envelope));selectionRevision.current+=1;await persistSelection(id)}
+      if(selectedIdRef.current===id){setLoaded(indexed)}
+      else if(selectedIdRef.current===null){selectedIdRef.current=id;setSelectedId(id);setLoaded(indexed);selectionRevision.current+=1;await persistSelection(id)}
     }catch(cause){
       if(!cancelled.current&&!(cause instanceof Error&&cause.name==='AbortError')&&mounted.current){controller.current?.abort();setError(cause instanceof Error?cause.message:'Tafsir download failed. Retry to continue.')}
     }finally{
@@ -144,5 +188,5 @@ export function useTafsirLibrary() {
     if(selectedIdRef.current===id){const revision=++selectionRevision.current,next=ids[0]??null;selectedIdRef.current=next;setSelectedId(next);setLoaded(null);const records=next?await loadBook(next):null;if(revision===selectionRevision.current){setLoaded(records);await persistSelection(next)}}
   },[bookById,loadBook]);
   const getTafsir=useCallback((surah:number,ayah:number)=>loaded?.get(`${surah}:${ayah}`),[loaded]);
-  return {bookBytes,openLibrary,books:TAFSIR_BOOKS,downloadedIds,selectedId,selectedBook:selectedId?bookById.get(selectedId)??null:null,isDownloading,progress,error,selectBook,downloadBook,cancelDownload,deleteBook,getTafsir,ready} as const;
+  return {isBookLoading:selectedId!==null&&downloadedIds.includes(selectedId)&&loaded===null,bookBytes,openLibrary,books:TAFSIR_BOOKS,downloadedIds,selectedId,selectedBook:selectedId?bookById.get(selectedId)??null:null,isDownloading,progress,error,selectBook,downloadBook,cancelDownload,deleteBook,getTafsir,ready} as const;
 }

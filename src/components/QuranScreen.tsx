@@ -82,16 +82,21 @@ export function QuranScreen({ tafsirLibrary, book, onBookChange, onCloseBook, ac
   const toggleBookmark = (targetPage=page) => setBookmarks(xs => xs.includes(targetPage) ? xs.filter(x => x !== targetPage) : [...xs, targetPage].sort((a,b) => a-b));
   const onSelectVerse = (v: Verse) => { void audio.playVerse(v.surah, v.number); };
   const setPickerAndReset = (value: Picker) => { setQuery(''); setPicker(value); };
-  const pageHeight = Math.min(readerSize.height * 0.84, readerSize.width / 0.644);
-  const pageWidth = Math.min(readerSize.width - 4, pageHeight * 0.644);
+  const spread=readerSize.width>=760&&readerSize.height>=500&&readerSize.width>readerSize.height;
+  const firstPage=spread?page-(page%2===0?1:0):page;
+  const shownPages=spread?[firstPage,firstPage+1]:[page];
+  const pageHeight = Math.min(readerSize.height * 0.84, (readerSize.width-(spread?20:4))/(spread?2:1) / 0.644);
+  const pageWidth = Math.min((readerSize.width-(spread?20:4))/(spread?2:1), pageHeight * 0.644);
+  const step=spread?2:1;
+  const movePage=(delta:number)=>go(firstPage+delta*step);
   return <View testID="quran-reader" style={[styles.immersiveRoot,{backgroundColor:colors.appBackground}]} onTouchStart={() => setLastInteraction(Date.now())} onLayout={event => {
     const { width, height } = event.nativeEvent.layout;
     setReaderSize(current => current.width === width && current.height === height ? current : { width, height });
   }}>
-    <View style={styles.immersiveSpread}>
-      <View style={[styles.immersivePaperFrame, { width: pageWidth, height: pageHeight }]}>
-        <MushafPageView theme={colors} {...loopPageProps(loop,audio)} page={page} asset={MUSHAF_PAGE_ASSETS[page]} verses={versesOnPage} surahNames={pageChapterNames} juzName={juzArabic(versesOnPage[0]?.juz??1)} language={language} dark={dark} activeKey={audio.currentVerseKey} bookmarkedKeys={verseBookmarks} onTafsirVerse={key=>{tafsirLibrary.openLibrary();setChromeVisible(false);setTafsirKey(key);}} onBookmarkVerse={toggleVerseBookmark} onTap={()=>{if(!loop.pickMode)setChromeVisible(value=>!value)}} onPlayVerse={key=>playKey(audio,key)} onPageSwipe={delta=>{go(page+delta);setChromeVisible(false);}}/>
-      </View>
+    <View style={[styles.immersiveSpread,spread&&{flexDirection:'row-reverse',gap:12}]}>
+      {shownPages.map((number,index)=>{const part=number===page?versesOnPage:printedPageVerses(number);return <View key={index} style={[styles.immersivePaperFrame, { width: pageWidth, height: pageHeight }]}>
+        <MushafPageView theme={colors} {...loopPageProps(loop,audio)} pageStep={step} page={number} asset={MUSHAF_PAGE_ASSETS[number]} verses={part} surahNames={chapterNames(part)} juzName={juzArabic(part[0]?.juz??1)} language={language} dark={dark} activeKey={audio.currentVerseKey} bookmarkedKeys={verseBookmarks} onTafsirVerse={key=>{tafsirLibrary.openLibrary();setChromeVisible(false);setTafsirKey(key);}} onBookmarkVerse={toggleVerseBookmark} onTap={()=>{if(!loop.pickMode)setChromeVisible(value=>!value)}} onPlayVerse={key=>playKey(audio,key)} onPageSwipe={delta=>{movePage(delta);setChromeVisible(false);}}/>
+      </View>})}
     </View>
     <VerseLoopPrompt loop={loop} language={language}/>
     {chromeVisible&&!loop.pickMode&&<View pointerEvents="box-none" style={styles.chromeLayer}>
@@ -105,9 +110,9 @@ export function QuranScreen({ tafsirLibrary, book, onBookChange, onCloseBook, ac
         <Pressable accessibilityRole="button" accessibilityLabel={c.openBook} style={styles.chromeButton} onPress={()=>setBookVisible(true)}><Ionicons name="book-outline" size={21} color={colors.lightPaper}/></Pressable>
       </View>
       <View style={[styles.immersiveBottomControls,rtl&&styles.reverse]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={c.previousPage} disabled={page<=1} style={styles.chromeButton} onPress={()=>go(page-1)}><Ionicons name={rtl?'chevron-forward':'chevron-back'} size={23} color={colors.lightPaper}/></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`${c.page} ${page}`} style={styles.chromePage} onPress={()=>setPickerAndReset('page')}><Text testID="reader-page-number" style={styles.chromePageText}>{localDigits(page,language)} / {localDigits(PAGE_COUNT,language)}</Text></Pressable>
-        <Pressable accessibilityRole="button" testID="reader-next-page" accessibilityLabel={c.nextPage} disabled={page>=PAGE_COUNT} style={styles.chromeButton} onPress={()=>go(page+1)}><Ionicons name={rtl?'chevron-back':'chevron-forward'} size={23} color={colors.lightPaper}/></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={c.previousPage} disabled={firstPage<=1} style={styles.chromeButton} onPress={()=>movePage(-1)}><Ionicons name={rtl?'chevron-forward':'chevron-back'} size={23} color={colors.lightPaper}/></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${c.page} ${shownPages.join('–')}`} style={[styles.chromePage,spread&&{width:80}]} onPress={()=>setPickerAndReset('page')}><Text testID="reader-page-number" style={styles.chromePageText}>{shownPages.map(number=>localDigits(number,language)).join('–')} / {localDigits(PAGE_COUNT,language)}</Text></Pressable>
+        <Pressable accessibilityRole="button" testID="reader-next-page" accessibilityLabel={c.nextPage} disabled={shownPages[shownPages.length-1]>=PAGE_COUNT} style={styles.chromeButton} onPress={()=>movePage(1)}><Ionicons name={rtl?'chevron-back':'chevron-forward'} size={23} color={colors.lightPaper}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.bookmark} accessibilityState={{selected:bookmarks.includes(page)}} style={styles.chromeButton} onPress={()=>toggleBookmark()}><Ionicons name={bookmarks.includes(page)?'bookmark':'bookmark-outline'} size={22} color={colors.accent}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={audio.status==='playing'||audio.status==='loading'?c.pause:audio.status==='error'?c.retry:c.play} style={styles.chromeButton} onPress={()=>togglePagePlayback(audio,versesOnPage)}><Ionicons name={audio.status==='playing'?'pause':'play'} size={22} color={colors.lightPaper}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.repeat} accessibilityState={{selected:Boolean(audio.repeatRange)}} style={styles.chromeButton} onPress={loop.open}><VerseRangeIcon color={audio.repeatRange?colors.accent:colors.lightPaper}/></Pressable>
