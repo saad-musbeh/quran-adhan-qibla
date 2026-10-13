@@ -11,13 +11,14 @@ import type { Verse } from '../domain/quran';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
 import { printedPageVerses, chapterNames, juzArabic } from '../domain/quran-reader';
 import { mushafLabels, buildMushafDocument } from './mushaf-document';
+import { MushafPageTurns } from '../domain/mushaf-page-turns';
 
 type Props = {
   theme?:QuranTheme;
   page: number; asset: number; verses: readonly Verse[]; surahNames: string; juzName: string;
   language: Language; dark: boolean; activeKey: string | null; zoom?: number;
   pageStep?: 1 | 2;
-  onTap: () => void; onPlayVerse: (key: string) => void; onPageSwipe: (delta: number) => void;
+  onTap: () => void; onPlayVerse: (key: string) => void; onPageSwipe: (delta: number, page: number) => void;
   loopPickMode?: 'start'|'end'|null; loopStartKey?:string|null; loopEndKey?:string|null; onLoopStart?:(key:string)=>void; onLoopEnd?:(key:string)=>void; onLoopPick?:(key:string)=>void;
   onTafsirVerse?: (key: string) => void; onBookmarkVerse?: (key: string) => void; bookmarkedKeys?: readonly string[];
 };
@@ -57,6 +58,7 @@ export function MushafPageView(props: Props) {
   const web = useRef<WebView>(null);
   const latest = useRef(props); latest.current = props;
   const cached = useRef(new Set<number>());
+  const turns = useRef(new MushafPageTurns(props.page,props.pageStep??1));
   const [html, setHtml] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
@@ -65,6 +67,7 @@ export function MushafPageView(props: Props) {
   useEffect(() => {
     let alive = true;
     const initial = latest.current;
+    turns.current = new MushafPageTurns(initial.page,initial.pageStep??1);
     setError(false); setReady(false); setHtml(null); cached.current.clear();
     void preloadMushafResources(initial.asset).then(({svg,font}) => {
       if (alive) setHtml(buildMushafDocument({...initial,textScale:latestTextScale.current}, svg, font));
@@ -72,10 +75,17 @@ export function MushafPageView(props: Props) {
     return () => { alive=false; };
   }, [attempt, props.pageStep]);
   useEffect(() => {
+    // Balanced swipes may finish on the original prop without reloading pages.
+    if (ready && props.page === turns.current.page) turns.current.request(props.page);
+  });
+  useEffect(() => {
     if (!ready) return;
     let alive = true;
     const page = props.page;
-    const activate = () => web.current?.injectJavaScript(`window.activatePage(${page},${JSON.stringify(state())});true;`);
+    const activate = () => {
+      const sequence=turns.current.request(page);
+      if(sequence!==null)web.current?.injectJavaScript(`window.activatePage(${page},${JSON.stringify(state())},true,${sequence});true;`);
+    };
     const prepare = async (n: number) => {
       if (cached.current.has(n)) return;
       const info = n===page ? {...pageDescriptor(n),asset:props.asset,verses:props.verses,surahNames:props.surahNames,juzName:props.juzName} : pageDescriptor(n);
@@ -105,12 +115,17 @@ export function MushafPageView(props: Props) {
   useEffect(() => { if (ready) web.current?.injectJavaScript(`window.zoomPage(${props.zoom??1});true;`); }, [ready, props.zoom]);
   const message = (event: WebViewMessageEvent) => {
     try {
-      const data = JSON.parse(event.nativeEvent.data) as { type?:string; key?:string; delta?:number; page?:number; pages?:unknown };
+      const data = JSON.parse(event.nativeEvent.data) as { type?:string; key?:string; delta?:number; page?:number; pages?:unknown; turn?:number };
       if (data.type==='ready') { setReady(true); return; }
       if (data.type==='cache' && Array.isArray(data.pages) && data.pages.length<=5 && data.pages.every(n=>Number.isInteger(n)&&n>=1&&n<=604)) {
         cached.current=new Set(data.pages as number[]); return;
       }
       const current=latest.current;
+      if(data.type==='swipe'&&Number.isInteger(data.page)&&Number.isInteger(data.turn)&&(data.delta===1||data.delta===-1)){
+        const target=turns.current.accept(data.page!,data.delta,data.turn!);
+        if(target!==null)current.onPageSwipe(data.delta,target);
+        return;
+      }
       if (data.page!==current.page) return;
       if (data.type==='tap') current.onTap();
       else if (['play','tafsir','bookmark','loopstart','loopend','looppick'].includes(data.type??'') && current.verses.some(v=>`${v.surah}:${v.number}`===data.key)) {
@@ -120,7 +135,7 @@ export function MushafPageView(props: Props) {
         else if(data.type==='loopstart')current.onLoopStart?.(data.key!);
         else if(data.type==='loopend')current.onLoopEnd?.(data.key!);
         else if(current.loopPickMode)current.onLoopPick?.(data.key!);
-      } else if(data.type==='swipe'&&(data.delta===1||data.delta===-1))current.onPageSwipe(data.delta);
+      }
     } catch { /* Ignore malformed or stale reader messages. */ }
   };
   const paper = props.dark ? (props.theme?.deep ?? '#14293C') : (props.theme?.lightPaper ?? '#FAF7EF');

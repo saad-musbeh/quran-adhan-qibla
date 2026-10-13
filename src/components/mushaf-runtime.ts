@@ -14,6 +14,7 @@ let loopPickMode=initial.loopPickMode??null,loopStartKey=initial.loopStartKey??n
 let theme=initial.theme??{background:'#18334A',deep:'#14293C',ink:'#18334A',lightPaper:'#FAF7EF',pale:'#E5EDF2',accent:'#DBAB68'};
 let zoom = 1, start = null, timer = null, held = false, transitionTimer = null;
 let drag = null, dragFrame = null;
+let turnSequence = 0;
 const keyOf = node => node.getAttribute('surah') + ':' + node.getAttribute('ayah');
 const send = data => window.ReactNativeWebView.postMessage(JSON.stringify({ ...data, page: shownPage }));
 const acknowledge = () => send({ type: 'cache', pages: [...cache.keys()] });
@@ -172,13 +173,16 @@ window.cachePage = item => {
   updatePanel(panel);
   cache.set(item.page,panel);
   while (cache.size > 5) {
-    const victim = [...cache.keys()].find(n => n !== shownPage && n !== item.page && n !== drag?.target);
+    // Keep the immediate neighbors when native preparation adds the +/-2 pages.
+    const candidates=[...cache.keys()].filter(n=>n!==shownPage&&n!==item.page&&n!==drag?.target);
+    const victim=candidates.reduce((furthest,n)=>furthest===undefined||Math.abs(n-shownPage)>Math.abs(furthest-shownPage)?n:furthest,undefined);
     if (victim === undefined) break;
     cache.get(victim).remove(); cache.delete(victim);
   }
   acknowledge();
 };
-window.activatePage = (page, state, animate = true) => {
+window.activatePage = (page, state, animate = true, acknowledgedTurn = turnSequence) => {
+  if(acknowledgedTurn<turnSequence){updateState(state);return;}
   const next = cache.get(page);
   if (!next) return;
   // Native acknowledgement of a gesture must not cut its animation short.
@@ -274,6 +278,7 @@ window.zoomPage = value => {
   sheet.style.top = Math.max(0, innerHeight * (1-zoom) / 2) + 'px';
   const viewport = document.getElementById('reader-viewport');
   viewport.style.overflow = zoom > 1 ? 'auto' : 'hidden';
+  viewport.style.touchAction = zoom > 1 ? 'auto' : 'pinch-zoom';
   if (zoom <= 1) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
   layoutVisiblePanels();
 };
@@ -323,7 +328,7 @@ document.addEventListener('touchend', event => {
     const turnDistance=drag?Math.max(24,Math.min(64,drag.extent*.18)):Infinity;
     if (drag && Math.abs(drag.offset) >= turnDistance && cache.has(drag.target)) {
       const target = drag.target, delta=(target-shownPage)/pageStep;
-      send({type:'swipe',delta});
+      send({type:'swipe',delta,turn:++turnSequence});
       window.activatePage(target,{},true);
     } else returnDrag();
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && !event.target.closest('#verse-menu')) {

@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 
-const {TAFSIR_BOOKS} = await import('../data/tafsir.ts');
+const {TAFSIR_BOOKS,tafsirBooksForLanguage} = await import('../data/tafsir.ts');
 const tafsir = JSON.parse(readFileSync(new URL('../data/tafsir.json', import.meta.url), 'utf8')) as {
   edition: {title: string; translationKey: string; publisher: string; source: string; version: string; versionDate: string};
   verses: Record<string, {arabicText: string; text: string; footnotes: string | null}>;
@@ -24,13 +24,37 @@ const manifest = JSON.parse(readFileSync(new URL('../../assets/tafsir/manifest.j
 };
 
 test('catalogue keeps the existing editions and offers verified additional sources', () => {
-  assert.deepEqual(TAFSIR_BOOKS.map(book=>book.id),['moyassar','mokhtasar','saadi','nafahat']);
-  assert.ok(TAFSIR_BOOKS.every(book=>book.url===`https://quranenc.com/ar/browse/${book.apiKey}`));
+  assert.deepEqual(TAFSIR_BOOKS.slice(0,4).map(book=>book.id),['moyassar','mokhtasar','saadi','nafahat']);
+  assert.equal(new Set(TAFSIR_BOOKS.map(book=>book.id)).size,TAFSIR_BOOKS.length,'edition identifiers are unique');
+  for(const book of TAFSIR_BOOKS){
+    if(book.apiKind==='archive'||book.apiKind==='quranpedia'){
+      assert.ok(book.dump,book.id+' retains its pinned source descriptor');
+      assert.match(book.dump.sha256,/^[a-f0-9]{64}$/);
+      assert.match(book.dump.originalSha256,/^[a-f0-9]{64}$/);
+      assert.ok(book.dump.bytes>0&&book.dump.decodedBytes>book.dump.bytes&&book.dump.rows>0);
+      assert.match(book.dump.url,/^https:\/\/github.com\/saad-musbeh\/quran-adhan-qibla\/releases\/download\/v0\.4\.3-test\//);
+      assert.ok(book.dump.originalUrl.startsWith('https://'));
+      if(book.apiKind==='archive')assert.ok(book.dump.licenseSource,'mirror editions retain source licensing');
+    }else{
+      assert.equal(book.url,`https://quranenc.com/ar/browse/${book.apiKey}`);
+      assert.match(book.version,/^V[\d.]+ \(\d{4}-\d{2}-\d{2}\)$/);
+    }
+  }
   assert.equal(TAFSIR_BOOKS[2].apiKind,'tafsir');
   assert.equal(TAFSIR_BOOKS[1].firstPublicationHijri,1434);
   assert.equal(TAFSIR_BOOKS[2].firstPublicationHijri,1375);
   assert.equal(TAFSIR_BOOKS[3].firstPublicationHijri,null,'undocumented original publication cannot be substituted with a digital release');
-  assert.ok(TAFSIR_BOOKS.every(book=>/^V[\d.]+ \(\d{4}-\d{2}-\d{2}\)$/.test(book.version)));
+});
+
+test('tafsir choices prioritize the selected language and retain all Arabic editions',()=>{
+  const arabic=TAFSIR_BOOKS.filter(book=>(book.language??'ar')==='ar');
+  for(const language of ['fr','tr','ur','id'] as const){
+    const choices=tafsirBooksForLanguage(TAFSIR_BOOKS,language);
+    const matching=TAFSIR_BOOKS.filter(book=>book.language===language);
+    assert.ok(matching.length>0);
+    assert.deepEqual(choices,[...matching,...arabic]);
+  }
+  assert.deepEqual(tafsirBooksForLanguage(TAFSIR_BOOKS,'ar'),arabic);
 });
 
 test('development provenance fixture covers canonical Tanzil ayah keys in order', () => {

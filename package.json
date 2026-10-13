@@ -1,6 +1,6 @@
 {
   "name": "quran-adhan-qibla",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Open-source Quran, Adhan, and Qibla app for iOS and Android, built with React Native and Rust",
   "license": "MIT",
   "repository": {
@@ -52,9 +52,10 @@
     "rust:check": "cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings",
     "rust:android": "node scripts/build-native.mjs android",
     "rust:ios": "node scripts/build-native.mjs ios",
-    "check": "npm run typecheck && npm test && npm run rust:check && npm run rust:test",
+    "check": "npm run typecheck && npm run localization:check && npm test && npm run rust:check && npm run rust:test",
     "export:mobile": "expo export --platform android --platform ios",
-    "postinstall": "node scripts/patch-expo-audio.mjs"
+    "postinstall": "node scripts/patch-expo-audio.mjs",
+    "localization:check": "node scripts/localization-audit.mjs"
   },
   "private": true
 }

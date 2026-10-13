@@ -64,7 +64,6 @@ function Main() {
   const { location } = locationState;
   const t = translations[language];
   const notificationLabels = notificationCopy(language);
-  const headerVisible=homeVisible||tab!=='quran'||readingChromeVisible;
   const chooseSection=(next:Tab)=>{setHomeVisible(false);setTab(next);setReadingChromeVisible(false);setNow(new Date());};
   useEffect(()=>{
     const subscription=BackHandler.addEventListener('hardwareBackPress',()=>{
@@ -116,14 +115,12 @@ function Main() {
 
   return <TextSizeContext.Provider value={textScale}><QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
     <StatusBar style="light" />
-    <View pointerEvents={headerVisible ? 'auto' : 'none'}
-      accessibilityElementsHidden={!headerVisible}
-      importantForAccessibility={!headerVisible ? 'no-hide-descendants' : 'auto'}
-      style={[styles.header, styles.readingHeader, {top:insets.top, height:headerHeight, backgroundColor:quranTheme.theme.appBackground, opacity:headerVisible ? 1 : 0}, isRTL(language) && styles.reverse]}>
+    <View testID="app-banner"
+      style={[styles.header, styles.readingHeader, {top:insets.top, height:headerHeight, backgroundColor:quranTheme.theme.appBackground}, isRTL(language) && styles.reverse]}>
       <Text numberOfLines={2} style={styles.brand}>{t.brand}</Text>
       <View style={[styles.tools, isRTL(language) && styles.reverse]}>
         {menuEnabled&&!readingBook&&<Pressable testID="open-main-menu" accessibilityRole="button" accessibilityLabel={bilingual(language,'القائمة الرئيسية','Main menu')} style={styles.iconButton} onPress={()=>setHomeVisible(true)}><Ionicons name="home-outline" color={quranTheme.theme.accent} size={23}/></Pressable>}
-        <Pressable accessibilityRole="button" accessibilityLabel={t.language} style={styles.iconButton}
+        <Pressable accessibilityRole="button" testID="open-languages" accessibilityLabel={t.language} style={styles.iconButton}
           onPress={() => setShowLanguages(true)}>
           <Ionicons name="language-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>
