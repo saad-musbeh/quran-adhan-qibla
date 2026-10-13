@@ -92,13 +92,11 @@ function Main() {
 
   return <QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
     <StatusBar style="light" />
-    <View pointerEvents={tab !== 'quran' || readingChromeVisible ? 'auto' : 'none'}
-      accessibilityElementsHidden={tab === 'quran' && !readingChromeVisible}
-      importantForAccessibility={tab === 'quran' && !readingChromeVisible ? 'no-hide-descendants' : 'auto'}
-      style={[styles.header, styles.readingHeader, {top:insets.top, backgroundColor:quranTheme.theme.appBackground, opacity:tab !== 'quran' || readingChromeVisible ? 1 : 0}, isRTL(language) && styles.reverse]}>
+    <View testID="app-banner"
+      style={[styles.header, styles.readingHeader, {top:insets.top, backgroundColor:quranTheme.theme.appBackground}, isRTL(language) && styles.reverse]}>
       <Text style={styles.brand}>{t.brand}</Text>
       <View style={[styles.tools, isRTL(language) && styles.reverse]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t.language} style={styles.iconButton}
+        <Pressable accessibilityRole="button" testID="open-languages" accessibilityLabel={t.language} style={styles.iconButton}
           onPress={() => setShowLanguages(true)}>
           <Ionicons name="language-outline" color={quranTheme.theme.accent} size={23} />
         </Pressable>

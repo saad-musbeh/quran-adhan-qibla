@@ -13,6 +13,7 @@ let loopPickMode=initial.loopPickMode??null,loopStartKey=initial.loopStartKey??n
 let theme=initial.theme??{background:'#18334A',deep:'#14293C',ink:'#18334A',lightPaper:'#FAF7EF',pale:'#E5EDF2',accent:'#DBAB68'};
 let zoom = 1, start = null, timer = null, held = false, transitionTimer = null;
 let drag = null, dragFrame = null;
+let turnSequence = 0;
 const keyOf = node => node.getAttribute('surah') + ':' + node.getAttribute('ayah');
 const send = data => window.ReactNativeWebView.postMessage(JSON.stringify({ ...data, page: shownPage }));
 const acknowledge = () => send({ type: 'cache', pages: [...cache.keys()] });
@@ -156,13 +157,18 @@ window.cachePage = item => {
   updatePanel(panel);
   cache.set(item.page,panel);
   while (cache.size > 5) {
-    const victim = [...cache.keys()].find(n => n !== shownPage && n !== item.page && n !== drag?.target);
+    // Native preparation adds -1, +1, -2, +2 in order. FIFO would evict the
+    // immediately previous page when +2 arrives after a turn. Keep nearby
+    // pages available in both directions, including the active drag target.
+    const candidates = [...cache.keys()].filter(n => n !== shownPage && n !== item.page && n !== drag?.target);
+    const victim = candidates.reduce((furthest,n) => furthest === undefined || Math.abs(n-shownPage)>Math.abs(furthest-shownPage) ? n : furthest, undefined);
     if (victim === undefined) break;
     cache.get(victim).remove(); cache.delete(victim);
   }
   acknowledge();
 };
-window.activatePage = (page, state, animate = true) => {
+window.activatePage = (page, state, animate = true, acknowledgedTurn = turnSequence) => {
+  if (acknowledgedTurn < turnSequence) { updateState(state); return; }
   const next = cache.get(page);
   if (!next) return;
   // Native acknowledgement of a gesture must not cut its animation short.
@@ -245,6 +251,18 @@ function returnDrag() {
   drag = null;
   transitionTimer = setTimeout(settle, reduceMotion ? 0 : 200);
 }
+function trackTouch(origin, touch, time) {
+  origin.samples.push({x:touch.clientX,y:touch.clientY,time});
+  while (origin.samples.length > 2 && origin.samples[1].time < time - 120) origin.samples.shift();
+}
+function isFlick(origin, touch, time) {
+  trackTouch(origin,touch,time);
+  const first=origin.samples[0], last=origin.samples.at(-1);
+  const elapsed=last.time-first.time;
+  const distance=origin.axis==='x'?last.x-first.x:last.y-first.y;
+  // Use recent movement, so pausing or reversing near release cancels a flick.
+  return elapsed>0 && Math.abs(drag.offset)>=40 && Math.sign(distance)===Math.sign(drag.offset) && Math.abs(distance)/elapsed>=0.3;
+}
 window.updateState = updateState;
 window.zoomPage = value => {
   settle(); closeMenu(); zoom = Math.max(1, Math.min(3,value));
@@ -252,6 +270,7 @@ window.zoomPage = value => {
   sheet.style.width = innerWidth * zoom + 'px'; sheet.style.height = innerHeight * zoom + 'px';
   const viewport = document.getElementById('reader-viewport');
   viewport.style.overflow = zoom > 1 ? 'auto' : 'hidden';
+  viewport.style.touchAction = zoom > 1 ? 'pan-x pan-y pinch-zoom' : 'pinch-zoom';
   if (zoom === 1) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
 };
 window.addEventListener('resize', () => window.zoomPage(zoom));
@@ -267,7 +286,7 @@ document.addEventListener('touchstart', event => {
   if (event.touches.length !== 1 || event.target.closest('#verse-menu')) { returnDrag(); start = null; return; }
   if (transitionTimer !== null) settle();
   const t = event.touches[0];
-  start = { x:t.clientX, y:t.clientY, page:shownPage, menu:menu.classList.contains('show'), axis:null }; held = false;
+  start = { x:t.clientX, y:t.clientY, page:shownPage, menu:menu.classList.contains('show'), axis:null, samples:[{x:t.clientX,y:t.clientY,time:event.timeStamp}] }; held = false;
   const node = event.target.closest('.ayahPolygon');
   if (node && !loopPickMode) timer = setTimeout(() => {
     if (start && !start.axis && start.page === shownPage) { held = true; showMenu(node,t.clientX,t.clientY); }
@@ -276,6 +295,7 @@ document.addEventListener('touchstart', event => {
 document.addEventListener('touchmove', event => {
   if (!start || event.touches.length !== 1) { returnDrag(); start = null; clearTimeout(timer); return; }
   const t = event.touches[0], dx=t.clientX-start.x, dy=t.clientY-start.y;
+  trackTouch(start,t,event.timeStamp);
   if (Math.abs(dx)>8 || Math.abs(dy)>8) clearTimeout(timer);
   if (!held && zoom===1 && (window.visualViewport?.scale??1)===1) {
     moveDrag(start,dx,dy);
@@ -289,9 +309,9 @@ document.addEventListener('touchend', event => {
   const t = event.changedTouches[0], dx=t.clientX-origin.x, dy=t.clientY-origin.y;
   if (origin.axis) {
     moveDrag(origin,dx,dy);
-    if (drag && Math.abs(drag.offset) > drag.extent/2 && cache.has(drag.target)) {
+    if (drag && (Math.abs(drag.offset) > drag.extent/2 || isFlick(origin,t,event.timeStamp)) && cache.has(drag.target)) {
       const target = drag.target, delta=target-shownPage;
-      send({type:'swipe',delta});
+      send({type:'swipe',delta,turn:++turnSequence});
       window.activatePage(target,{},true);
     } else returnDrag();
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && !event.target.closest('#verse-menu')) {
