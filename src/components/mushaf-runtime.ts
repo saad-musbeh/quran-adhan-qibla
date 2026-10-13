@@ -39,9 +39,9 @@ function prefixIds(svg, page) {
     }
   }
 }
-function makePanel(item) {
+function makeLeaf(item) {
   const panel = document.createElement('section');
-  panel.className = 'panel'; panel.dataset.page = item.page;
+  panel.className = 'panel leaf'; panel.dataset.page = item.page;
   panel.innerHTML = '<header class="metadata"><span class="juz"></span><span class="names"></span></header><div class="page-art"></div><footer class="page-number"></footer>';
   panel.querySelector('.juz').textContent = item.juzName;
   panel.querySelector('.names').textContent = item.surahNames;
@@ -108,20 +108,35 @@ function makePanel(item) {
   }
   return panel;
 }
+function makePanel(item) {
+  if (pageStep === 1) return makeLeaf(item);
+  if (!item.companion || item.page % 2 !== 1 || item.companion.page !== item.page + 1) throw new Error('Invalid Mushaf spread');
+  const panel = document.createElement('section');
+  panel.className = 'panel spread'; panel.dataset.page = item.page;
+  // One cached panel owns both leaves: gestures, zoom and animation cannot diverge.
+  panel.append(makeLeaf(item), makeLeaf(item.companion));
+  prepared.appendChild(panel);
+  return panel;
+}
 function updatePanel(panel) {
-  panel.setAttribute('aria-label', ui.page + ' ' + panel.dataset.page);
+  panel.setAttribute('aria-label', ui.page + ' ' + panel.dataset.page + (pageStep === 2 ? '–' + (Number(panel.dataset.page) + 1) : ''));
+  for (const leaf of panel.querySelectorAll('.leaf')) leaf.setAttribute('aria-label', ui.page + ' ' + leaf.dataset.page);
   // Keep the source artwork and the added heading banners in their authored
   // colors. Invert only the source glyph group so dark ink stays legible on
   // the night page while the pale banner center remains pale.
-  panel.querySelector('.page-art').classList.toggle('night', dark);
-  panel.querySelector('.opening-title')?.classList.toggle('night',dark);
+  for (const art of panel.querySelectorAll('.page-art,.opening-title')) art.classList.toggle('night',dark);
   for (const node of panel.querySelectorAll('.ayahPolygon')) {node.classList.toggle('active',keyOf(node)===activeKey);node.classList.toggle('loopstart',keyOf(node)===loopStartKey);node.classList.toggle('loopend',keyOf(node)===loopEndKey);}
 }
 function layoutPanel(panel) {
+  if (panel.classList.contains('spread')) {
+    for (const leaf of panel.children) layoutLeaf(leaf);
+  } else layoutLeaf(panel);
+}
+function layoutLeaf(panel) {
   // Prepared panels have viewport dimensions, which differ from the zoomed
   // sheet. Measure only after mounting in the stage; source paths and their
   // hit polygons stay together inside an aspect-preserving SVG.
-  if (panel.parentElement !== stage || panel.classList.contains('opening')) return;
+  if (!stage.contains(panel) || panel.classList.contains('opening')) return;
   const metadata = panel.querySelector('.metadata'), footer = panel.querySelector('.page-number');
   const gap = Math.max(4, parseFloat(getComputedStyle(metadata).fontSize) * .6);
   const top = Math.max(panel.clientHeight * .09, metadata.offsetTop + metadata.offsetHeight + gap);

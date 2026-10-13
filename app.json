@@ -10,7 +10,7 @@
     ],
     "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.saadmusbeh.quranadhanqibla",
@@ -75,7 +75,17 @@
         {
           "sounds": [
             "./assets/adhan/adhan.ogg",
-            "./assets/adhan/adhan_short.wav"
+            "./assets/adhan/adhan_short.wav",
+            "./assets/adhan/adhan_aaqib.ogg",
+            "./assets/adhan/adhan_aaqib_short.wav",
+            "./assets/adhan/adhan_andrewler.ogg",
+            "./assets/adhan/adhan_andrewler_short.wav",
+            "./assets/adhan/adhan_shalqar.ogg",
+            "./assets/adhan/adhan_shalqar_short.wav",
+            "./assets/adhan/adhan_makkah.ogg",
+            "./assets/adhan/adhan_makkah_short.wav",
+            "./assets/adhan/adhan_fajr_malmo.ogg",
+            "./assets/adhan/adhan_fajr_malmo_short.wav"
           ],
           "enableBackgroundRemoteNotifications": false,
           "icon": "./assets/branding/notification-icon.png",

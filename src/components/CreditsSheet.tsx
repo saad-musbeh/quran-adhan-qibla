@@ -6,6 +6,7 @@ import { useReaderStyles } from '../quran-theme-context';
 import { TAFSIR_BOOKS,tafsirBooksForLanguage } from '../data/tafsir';
 import quranManifest from '../data/quran-manifest.json';
 import { AMIRI_LICENSE,MUSHAF_LICENSE,TAFSIR_MIRROR_LICENSE } from '../data/content-licenses';
+import { ADHAN_VOICES } from '../domain/adhan-voices';
 
 export function CreditsSheet({language,visible,onClose}:{language:Language;visible:boolean;onClose:()=>void}){
   const {styles,colors}=useReaderStyles(baseStyles),insets=useSafeAreaInsets(),rtl=isRTL(language);
@@ -42,12 +43,14 @@ export function CreditsSheet({language,visible,onClose}:{language:Language;visib
       <Text style={styles.notice}>{TAFSIR_MIRROR_LICENSE}</Text>
       <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'التلاوات والأذان','Recitations and Adhan')}</Text>
       {link(bilingual(language,'تلاوات القرآن · EveryAyah.com','Quran recitations · EveryAyah.com'),'https://everyayah.com/')}
-      {link('Beautiful adhan · Adam-synagda · CC0 1.0','https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg')}
-      <Text style={[styles.body,align]}>{bilingual(language,'صوت أذان iOS مقتطف مدته ٢٩ ثانية مع تلاشي النهاية من التسجيل الأصلي.','The iOS Adhan alert is a 29-second excerpt with an ending fade from the original recording.')}</Text>
+      {ADHAN_VOICES.map(voice=><View key={voice.id} style={styles.book}>
+        {link(`${language==='ar'?voice.nameAr:voice.name} · ${voice.author}`,voice.source)}
+        {link(voice.license,voice.license==='CC0 1.0'?'https://creativecommons.org/publicdomain/zero/1.0/':voice.license==='CC BY 3.0'?'https://creativecommons.org/licenses/by/3.0/':'https://creativecommons.org/licenses/by-sa/4.0/')}
+      </View>)}
+      <Text style={[styles.body,align]}>{bilingual(language,'حُوّلت التسجيلات لتناسب التنبيهات وسُوّي مستوى صوتها. صوت الفجر القوي أعلى، ويشغّل iOS مقتطفًا مدته ٢٩ ثانية مع تلاشي النهاية.','Recordings are converted and volume-normalized for alerts. Strong Fajr is louder; iOS plays a 29-second excerpt with an ending fade.')}</Text>
       <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'المدن والخريطة','Cities and map')}</Text>
       {link(bilingual(language,'أسماء الأماكن وإحداثياتها مستمدة من GeoNames · CC BY 4.0','Place names and coordinates adapted from GeoNames · CC BY 4.0'),'https://www.geonames.org')}
       {link('Creative Commons Attribution 4.0','https://creativecommons.org/licenses/by/4.0/')}
-      {link(bilingual(language,'اختيار الدول · Pew Research Center · Religious Composition by Country, 2010–2020','Country sampling · Pew Research Center · Religious Composition by Country, 2010–2020'),'https://doi.org/10.58094/5shf-2d69')}
       {link('© OpenStreetMap contributors · ODbL','https://www.openstreetmap.org/copyright')}
       {link('Leaflet 1.9.4 · Vladimir Agafonkin / CloudMade · BSD-2-Clause','https://leafletjs.com')}
       <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'خط القرآن','Quran font')}</Text>

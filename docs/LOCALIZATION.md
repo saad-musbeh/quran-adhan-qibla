@@ -4,7 +4,7 @@ The app exposes 35 language choices. Arabic copy is authored in the UI source; E
 
 New controls, the home menu, downloads, Credits, tafsir controls, country labels, language names and iOS prayer-alert text use the shared catalogue. Text direction decides layout rather than selecting Arabic copy for other RTL languages. Country names in saved city selections update when the interface language changes. City proper names retain their source spelling except available Arabic names.
 
-The 0.4.5 additions use Node 22 ICU/Unicode CLDR for supported country/language display names and Google Translate drafts for missing UI copy. Existing catalogue values are retained. These translations await native-speaker review, especially smaller language/script variants. The sources are acknowledged in Settings → Credits.
+New appearance, next-Adhan, Add Quran and silent-notification labels, plus the expanded country names, follow the same catalogue workflow. The 0.4.5 additions use Node 22 ICU/Unicode CLDR for supported country/language display names and Google Translate drafts for missing UI copy. Existing catalogue values are retained. These translations await native-speaker review, especially smaller language/script variants. The sources are acknowledged in Settings → Credits.
 
 The maintenance scripts inspect UI source only. Quran verses, recitations, published tafsir passages, original book/author names and licence notices are not generated, rewritten or translated by this process. The app bundles all interface catalogues and does not send user text to a translation service at runtime.
 

@@ -6,7 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { useTafsirLibrary } from '../use-tafsir-library';
 import { ScreenLayer } from './ScreenLayer';
 import { QuranScreen, type QuranReaderSettings } from './QuranScreen';
-import { createQuranBooks, readQuranBooks, readLegacyQuranBooks, LEGACY_QURAN_KEYS, QURAN_BOOKS_KEY, type QuranBook } from '../domain/quran-books';
+import { addQuranBook, MAX_QURAN_BOOKS, createQuranBooks, readQuranBooks, readLegacyQuranBooks, LEGACY_QURAN_KEYS, QURAN_BOOKS_KEY, type QuranBook } from '../domain/quran-books';
 import { getVerse, getSurah } from '../domain/quran';
 import { getMushafPageVerses } from '../data/mushaf';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
@@ -15,7 +15,7 @@ import { bilingual, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import type { QuranAudioController } from '../use-quran-audio';
 
-type Props = { tafsirLibrary: ReturnType<typeof useTafsirLibrary>; onBookOpenChange: (open:boolean)=>void; active: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onReadingChromeChange: (visible: boolean) => void; onSettingsChange: (settings: QuranReaderSettings) => void };
+type Props = { homeRequest: number; onHome: () => void; tafsirLibrary: ReturnType<typeof useTafsirLibrary>; onBookOpenChange: (open:boolean)=>void; active: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onReadingChromeChange: (visible: boolean) => void; onSettingsChange: (settings: QuranReaderSettings) => void };
 
 export function QuranLibrary(props: Props) {
   const textScale = useTextScale();
@@ -35,7 +35,7 @@ export function QuranLibrary(props: Props) {
   useEffect(() => {
     let alive = true;
     void AsyncStorage.getItem(QURAN_BOOKS_KEY).then(async json => {
-      // Existing six-book libraries always take precedence over legacy data.
+      // Stored libraries take precedence over pre-library reading data.
       if (json !== null) { if (alive) setBooks(readQuranBooks(json)); return; }
       const legacy = await AsyncStorage.multiGet([...LEGACY_QURAN_KEYS]);
       if (alive) setBooks(readLegacyQuranBooks(legacy[0][1], legacy[1][1], legacy[2][1]));
@@ -55,6 +55,7 @@ export function QuranLibrary(props: Props) {
   },[ready]);
   useEffect(() => { if (active && !selectedId) props.onReadingChromeChange(true); }, [active, selectedId, props.onReadingChromeChange]);
   useEffect(()=>{props.onBookOpenChange(Boolean(selectedId));},[selectedId,props.onBookOpenChange]);
+  useEffect(() => { setSelectedId(null); setEditing(null); }, [props.homeRequest]);
   const choose = (id: string) => { setLastId(id); setSelectedId(id); props.onReadingChromeChange(false); };
   const saved = books.find(book => book.id === lastId);
   const updateBook = (id: string, change: (book: QuranBook) => QuranBook) => setBooks(values => values.map(book => book.id === id ? change(book) : book));
@@ -62,7 +63,6 @@ export function QuranLibrary(props: Props) {
     <ScreenLayer active={!selectedId} background={colors.appBackground}>
       <ScrollView onLayout={event=>setShelfWidth(event.nativeEvent.layout.width)} contentContainerStyle={[styles.shelf,{paddingTop:Math.max(48,48*textScale)+10,paddingBottom:Math.max(80,80*textScale)}]}>
         <Text style={[styles.heading,rtl&&styles.rtl]}>{bilingual(language,'مكتبتي القرآنية','My Quran library')}</Text>
-        <Text style={[styles.hint,rtl&&styles.rtl]}>{bilingual(language,'لكل مصحف موضع قراءة وإشارات مرجعية مستقلة.','Each book keeps its own reading position and bookmarks.')}</Text>
         {!ready&&<ActivityIndicator color={colors.accent}/>}
         <View style={[styles.grid,rtl&&styles.reverse]}>{books.map(book => {
           const [s,a] = (getMushafPageVerses(book.page)[0]??'1:1').split(':').map(Number);
@@ -75,7 +75,12 @@ export function QuranLibrary(props: Props) {
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language,'تسمية {name}','Rename {name}',{name})} testID={`rename-${book.id}`} style={styles.rename} onPress={()=>{setEditing(book);setName(book.name)}}><Ionicons name="pencil-outline" size={15} color={colors.accent}/><Text style={styles.renameText}>{bilingual(language,'تسمية المصحف','Rename book')}</Text></Pressable>
           </View>;
-        })}</View>
+        })}
+        {books.length < MAX_QURAN_BOOKS && <Pressable testID="add-quran-book" accessibilityRole="button" accessibilityLabel={bilingual(language,'إضافة مصحف','Add Quran')} disabled={!ready} onPress={()=>setBooks(addQuranBook)} style={[styles.cover,{width:cardWidth,justifyContent:'center',alignItems:'center'}]}>
+          <Ionicons name="add-circle-outline" size={36} color={colors.accent}/>
+          <Text style={styles.bookName}>{bilingual(language,'إضافة مصحف','Add Quran')}</Text>
+        </Pressable>}
+        </View>
       </ScrollView>
     </ScreenLayer>
     {saved&&<ScreenLayer active={Boolean(selectedId)} background={colors.appBackground}><QuranScreen {...props} onReadingChromeChange={visible=>props.onReadingChromeChange(selectedId?visible:true)} active={active&&Boolean(selectedId)} book={saved} onBookChange={change=>updateBook(saved.id,change)} onCloseBook={()=>{setSelectedId(null);props.onReadingChromeChange(true)}}/></ScreenLayer>}

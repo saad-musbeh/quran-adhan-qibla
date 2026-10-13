@@ -5,10 +5,11 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import * as Notifications from 'expo-notifications';
 import type { PrayerSettings } from './domain/prayers';
 import type { Coordinates } from './domain/location';
+import { adhanSoundForPrayer, prayerSoundChannelId, type PrayerSoundSettings } from './domain/adhan-voices';
 import { isPrayerTimesAvailable, prayerTimes } from '../modules/islamic-core';
 import { allowsPrayerNotifications, prayerSoundMuted } from './domain/notification-permission';
 import { canScheduleExactAlarms } from './prayer-notification-permissions';
-import { buildPrayerNotificationSchedule, isPrayerNotificationOwned, PRAYER_NOTIFICATION_NAMESPACE, type NotifiablePrayer } from './domain/prayer-notifications';
+import { buildPrayerNotificationSchedule, isPrayerNotificationOwned, PRAYER_NOTIFICATION_NAMESPACE, type NotifiablePrayer, NOTIFIABLE_PRAYERS } from './domain/prayer-notifications';
 
 if (Platform.OS === 'android' || Platform.OS === 'ios') {
   Notifications.setNotificationHandler({
@@ -47,7 +48,9 @@ type Inputs = {
   /** Rebuild existing notifications after app-language changes. */
   language: string;
   labels: PrayerNotificationLabels;
-  /** Android raw sound filename registered with expo-notifications, or null for silent. */
+  /** Each prayer keeps its reminder when its Adhan sound is disabled. */
+  prayerSounds?: PrayerSoundSettings;
+  /** Legacy single sound, used only without per-prayer settings. */
   sound?: string | null;
 };
 
@@ -58,8 +61,19 @@ const initialState = {
   timing: null as PrayerNotificationTiming | null,
 };
 
-function channelIdForSound(sound: string | null): string {
-  return 'prayer-v1-' + (sound ? sound.replace(/[^a-zA-Z0-9_-]/g, '_') : 'silent');
+function soundForPrayer(input: Inputs, prayer: NotifiablePrayer): string | null {
+  return input.prayerSounds ? adhanSoundForPrayer(input.prayerSounds, prayer, Platform.OS) : input.sound ?? null;
+}
+
+async function ensureSoundChannel(sound: string | null, name: string): Promise<string> {
+  const channelId = prayerSoundChannelId(sound);
+  if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync(channelId, {
+    name,
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    sound,
+  });
+  return channelId;
 }
 
 export function usePrayerNotifications(input: Inputs) {
@@ -121,18 +135,14 @@ export function usePrayerNotifications(input: Inputs) {
           setStatus('calculation-unavailable');
           return;
         }
-        const sound = value.sound ?? null;
-        const soundKey = sound ? sound.replace(/[^a-zA-Z0-9_-]/g, '_') : 'silent';
-        const channelId = `prayer-v1-${soundKey}`;
-        if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync(channelId, {
-          name: value.labels.channelName,
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 250, 250, 250],
-          sound,
-        });
-        const channel = Platform.OS === 'android' ? await Notifications.getNotificationChannelAsync(channelId) : null;
-        if (!current()) return;
-        const channelMuted = prayerSoundMuted(permission, Platform.OS, Boolean(sound)) || (Platform.OS === 'android' && (channel?.importance === Notifications.AndroidImportance.NONE || (Boolean(sound) && channel?.sound === null)));
+        const sounds = [...new Set(NOTIFIABLE_PRAYERS.map(prayer => soundForPrayer(value, prayer)))];
+        let channelMuted = prayerSoundMuted(permission, Platform.OS, sounds.some(Boolean));
+        for (const sound of sounds) {
+          const channelId = await ensureSoundChannel(sound, value.labels.channelName);
+          const channel = Platform.OS === 'android' ? await Notifications.getNotificationChannelAsync(channelId) : null;
+          if (!current()) return;
+          channelMuted ||= Platform.OS === 'android' && (channel?.importance === Notifications.AndroidImportance.NONE || (Boolean(sound) && channel?.sound === null));
+        }
         const now = new Date();
         const schedule = buildPrayerNotificationSchedule(now, date => prayerTimes(
           value.location!.latitude, value.location!.longitude, date, value.settings,
@@ -145,6 +155,8 @@ export function usePrayerNotifications(input: Inputs) {
             await Promise.all(newlyScheduled.map(identifier => Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {})));
             return;
           }
+          const sound = soundForPrayer(value, item.prayer);
+          const channelId = prayerSoundChannelId(sound);
           const identifier = await Notifications.scheduleNotificationAsync({
             content: {
               title: value.labels.title,
@@ -177,7 +189,12 @@ export function usePrayerNotifications(input: Inputs) {
   }, []);
 
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  useEffect(() => { enqueueReconcile(); }, [enqueueReconcile, input.ready, input.enabled, input.location?.latitude, input.location?.longitude, input.settings.method, input.settings.hanafi, input.settings.ramadan, input.language, input.sound, timezone]);
+  // Primitive dependency also notices callers changing nested prayer choices in place.
+  const prayerSoundsKey = input.prayerSounds ? NOTIFIABLE_PRAYERS.map(prayer => {
+    const choice = input.prayerSounds![prayer];
+    return `${prayer}:${choice.enabled}:${choice.voiceId}`;
+  }).join('|') : '';
+  useEffect(() => { enqueueReconcile(); }, [enqueueReconcile, input.ready, input.enabled, input.location?.latitude, input.location?.longitude, input.settings.method, input.settings.hanafi, input.settings.ramadan, input.language, input.sound, prayerSoundsKey, timezone]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', next => {
@@ -200,21 +217,15 @@ export function usePrayerNotifications(input: Inputs) {
     };
     armNextMidnight();
     return () => clearTimeout(timer);
-  }, [enqueueReconcile, input.ready, input.enabled, input.location?.latitude, input.location?.longitude, input.settings.method, input.settings.hanafi, input.settings.ramadan, input.language, input.sound, timezone]);
+  }, [enqueueReconcile, input.ready, input.enabled, input.location?.latitude, input.location?.longitude, input.settings.method, input.settings.hanafi, input.settings.ramadan, input.language, input.sound, prayerSoundsKey, timezone]);
 
   /** Call only from the user's explicit enable action. Mount and foreground never prompt. */
   const requestPermission = useCallback(async () => {
     if (Platform.OS !== 'android' && Platform.OS !== 'ios') return false;
-    const sound = inputs.current.sound ?? null;
-    const channelId = channelIdForSound(sound);
-    if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync(channelId, {
-      name: inputs.current.labels.channelName,
-      importance: Notifications.AndroidImportance.HIGH,
-      sound,
-      vibrationPattern: [0, 250, 250, 250],
-    });
+    const sounds = [...new Set(NOTIFIABLE_PRAYERS.map(prayer => soundForPrayer(inputs.current, prayer)))];
+    for (const sound of sounds) await ensureSoundChannel(sound, inputs.current.labels.channelName);
     const existing = await Notifications.getPermissionsAsync();
-    const result = allowsPrayerNotifications(existing, Platform.OS) && !prayerSoundMuted(existing, Platform.OS, Boolean(sound)) ? existing : await Notifications.requestPermissionsAsync({ios:{allowAlert:true,allowSound:true,allowBadge:false}});
+    const result = allowsPrayerNotifications(existing, Platform.OS) && !prayerSoundMuted(existing, Platform.OS, sounds.some(Boolean)) ? existing : await Notifications.requestPermissionsAsync({ios:{allowAlert:true,allowSound:true,allowBadge:false}});
     enqueueReconcile();
     return allowsPrayerNotifications(result, Platform.OS);
   }, [enqueueReconcile]);
@@ -262,18 +273,13 @@ export function usePrayerNotifications(input: Inputs) {
   }, [enqueueReconcile]);
 
   /** Explicitly schedule a five-second test reminder on the configured prayer channel. */
-  const testAlert = useCallback(async () => {
+  const testAlert = useCallback(async (prayer: NotifiablePrayer = 'fajr') => {
     if ((Platform.OS !== 'android' && Platform.OS !== 'ios') || inputs.current.ready === false) return false;
     try {
       const value = inputs.current;
       if (!allowsPrayerNotifications(await Notifications.getPermissionsAsync(), Platform.OS)) return false;
-      const sound = value.sound ?? null;
-      const channelId = channelIdForSound(sound);
-      if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync(channelId, {
-        name: value.labels.channelName,
-        importance: Notifications.AndroidImportance.HIGH,
-        sound,
-      });
+      const sound = soundForPrayer(value, prayer);
+      const channelId = await ensureSoundChannel(sound, value.labels.channelName);
       const pending = await Notifications.getAllScheduledNotificationsAsync();
       for (const item of pending) {
         if (isPrayerNotificationOwned(item) && item.content.data?.test === true) await Notifications.cancelScheduledNotificationAsync(item.identifier);
@@ -281,9 +287,9 @@ export function usePrayerNotifications(input: Inputs) {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: value.labels.testTitle ?? value.labels.title,
-          body: value.labels.testBody ?? value.labels.body('fajr'),
+          body: value.labels.testBody ?? value.labels.body(prayer),
           sound: sound ?? false,
-          data: { namespace: PRAYER_NOTIFICATION_NAMESPACE, test: true },
+          data: { namespace: PRAYER_NOTIFICATION_NAMESPACE, test: true, prayer },
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,

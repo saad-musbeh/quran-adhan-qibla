@@ -38,7 +38,7 @@ function lineBetween(x1: number, y1: number, x2: number, y2: number, color: stri
 }
 
 function VirtualQiblaScene({ bearing, trueBearing, language, mode, heading }: { bearing: number; trueBearing: number; language: Language; mode: 'live' | 'north'; heading: number | null }) {
-  const { styles: scene } = useReaderStyles(baseStyles);
+  const { styles: scene, colors } = useReaderStyles(baseStyles);
   const rtl = isRTL(language);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const onLayout = (event: LayoutChangeEvent) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height });
@@ -79,16 +79,15 @@ function VirtualQiblaScene({ bearing, trueBearing, language, mode, heading }: { 
       {[0.49, 0.58, 0.69, 0.82, 0.98].map(level => <View key={level} style={[scene.floorLine, { top: `${level * 100}%` }]} />)}
       {[-0.28, 0, 0.28, 0.56, 0.84, 1.12, 1.4].map((end, index) => {
         const startX = width * (0.5 + (end - 0.5) * 0.1);
-        return <View key={index} style={lineBetween(startX, 0, width * end, floorHeight, '#4A7267', 0.42)} />;
+        return <View key={index} style={lineBetween(startX, 0, width * end, floorHeight, colors.appBorder, 0.42)} />;
       })}
     </View>
     <View pointerEvents="none" style={[scene.label, rtl && scene.labelRtl]}>
       <View style={scene.northBadge}>{mode === 'north' || heading === null ? <Text style={scene.northArrow}>↑</Text> : null}<Text style={scene.northText}>{mode === 'live' && heading !== null ? bilingual(language, 'مباشر · الشمال الحقيقي', 'LIVE · TRUE NORTH') : bilingual(language, 'الشمال الحقيقي', 'TRUE NORTH')}</Text></View>
-      <Text style={scene.virtualTag}>{bilingual(language, 'مشهد توضيحي افتراضي', 'ILLUSTRATED VIEW')}</Text>
     </View>
     {width > 0 && height > 0 && <>
-      <View pointerEvents="none" style={lineBetween(cx, cy, targetX, targetY, '#49C9C0', 0.72)} />
-      <View pointerEvents="none" style={[scene.pathLine, lineBetween(cx, cy, targetX, targetY, '#E6C774', 1)]} />
+      <View pointerEvents="none" style={lineBetween(cx, cy, targetX, targetY, colors.mode==='light'?'#167F7C':'#49C9C0', 0.72)} />
+      <View pointerEvents="none" style={[scene.pathLine, lineBetween(cx, cy, targetX, targetY, colors.accent, 1)]} />
       <View pointerEvents="none" style={[scene.pathArrow, { left: arrowX - 9, top: arrowY - 10, transform: [{ rotate: `${bearing}deg` }] }]} />
       <View pointerEvents="none" style={[scene.youMarker, { left: cx - 8, top: cy - 8 }]}><View style={scene.youDot} /></View>
       <View pointerEvents="none" style={[scene.kaabaMarker, { left: targetX - 27, top: targetY - 43 }]}>
@@ -178,8 +177,8 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
         </View>
       </View>
     </> : <View style={styles.emptyCard}>
-      <Text style={[styles.emptyTitle, align]}>{t.title}</Text>
-      <Text style={[styles.hint, align]}>{calculationAvailable ? t.locationHint : t.unavailable}</Text>
+
+      {!calculationAvailable && <Text accessibilityRole="alert" style={[styles.error, align]}>{t.unavailable}</Text>}
       <Pressable accessibilityRole="button" accessibilityState={{ disabled: state.loading, ...(state.loading ? { busy: true } : {}) }} disabled={state.loading} onPress={() => void state.locate()} style={[styles.primaryButton, state.loading && styles.disabled]}>
         {state.loading && <ActivityIndicator size="small" color="#102A25" />}
         <Text style={styles.primaryText}>{state.loading ? t.locating : t.useLocation}</Text>

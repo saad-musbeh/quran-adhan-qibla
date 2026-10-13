@@ -13,7 +13,7 @@ import { AdhanScreen } from './src/components/AdhanScreen';
 import { LocationSheet } from './src/components/LocationSheet';
 import { QiblaScreen } from './src/components/QiblaScreen';
 import { SwipeTabs, type Tab } from './src/components/SwipeTabs';
-import { localCalendarDate } from './src/domain/prayers';
+import { localCalendarDate, nextLocalCalendarDate } from './src/domain/prayers';
 import { translations, isRTL, bilingual } from './src/i18n';
 import { LanguagePicker } from './src/components/LanguagePicker';
 import { useLocation } from './src/use-location';
@@ -48,9 +48,11 @@ function Main() {
   const [showSettings, setShowSettings] = useState(false);
   const [tab, setTab] = useState<Tab>('quran');
   const [readingBook,setReadingBook]=useState(false);
+  const [homeRequest,setHomeRequest]=useState(0);
   const [homeVisible,setHomeVisible]=useState(largeScreen);
   const menuLoaded=useRef(false);
   const menuEnabled=largeScreen||preferences.mainMenuOnPhones;
+  const goHome=()=>{setHomeRequest(value=>value+1);setHomeVisible(true);};
   useEffect(()=>{
     if (!preferencesReady||menuLoaded.current) return;
     menuLoaded.current=true;
@@ -75,19 +77,25 @@ function Main() {
   const notifications = usePrayerNotifications({
     ready: preferencesReady && locationState.ready,
     enabled: preferences.prayerNotifications,
-    location, settings, language, sound: Platform.OS === 'ios' ? 'adhan_short.wav' : 'adhan.ogg',
+    location, settings, language, prayerSounds: preferences.prayerSounds,
     labels: { title: t.brand, channelName: notificationLabels.title, body: name => t[name], testTitle: notificationLabels.test, testBody: t.brand },
   });
   // Calculations always use Gregorian date components, including in Arabic.
   const [year, month, day] = localCalendarDate(now);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const schedule = useMemo(() => {
-    if (!location || !isPrayerTimesAvailable) return { times: null, error: null };
-    if (Math.abs(location.latitude) >= 65) return { times: null, error: 'polarUnsupported' as const };
+    if (!location || !isPrayerTimesAvailable) return { times: null, tomorrowTimes: null, error: null };
+    if (Math.abs(location.latitude) >= 65) return { times: null, tomorrowTimes: null, error: 'polarUnsupported' as const };
     try {
-      return { times: prayerTimes(location.latitude, location.longitude, [year, month, day], settings), error: null };
+      const times = prayerTimes(location.latitude, location.longitude, [year, month, day], settings);
+      let tomorrowTimes: Date[] | null = null;
+      try {
+        tomorrowTimes = prayerTimes(location.latitude, location.longitude,
+          nextLocalCalendarDate(new Date(year, month - 1, day)), settings);
+      } catch { /* Keep today's valid schedule; show an error if tomorrow is needed. */ }
+      return { times, tomorrowTimes, error: null };
     } catch {
-      return { times: null, error: 'prayerError' as const };
+      return { times: null, tomorrowTimes: null, error: 'prayerError' as const };
     }
   }, [location, year, month, day, settings, timezone]);
   const qibla = useMemo(() => {
@@ -114,12 +122,12 @@ function Main() {
   }, [schedule.times, now]);
 
   return <TextSizeContext.Provider value={textScale}><QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
-    <StatusBar style="light" />
+    <StatusBar style={quranTheme.mode==='light'?'dark':'light'} />
     <View testID="app-banner"
       style={[styles.header, styles.readingHeader, {top:insets.top, height:headerHeight, backgroundColor:quranTheme.theme.appBackground}, isRTL(language) && styles.reverse]}>
-      <Text numberOfLines={2} style={styles.brand}>{t.brand}</Text>
+      <Text numberOfLines={2} style={[styles.brand,{color:quranTheme.theme.appText}]}>{t.brand}</Text>
       <View style={[styles.tools, isRTL(language) && styles.reverse]}>
-        {menuEnabled&&!readingBook&&<Pressable testID="open-main-menu" accessibilityRole="button" accessibilityLabel={bilingual(language,'القائمة الرئيسية','Main menu')} style={styles.iconButton} onPress={()=>setHomeVisible(true)}><Ionicons name="home-outline" color={quranTheme.theme.accent} size={23}/></Pressable>}
+        {(menuEnabled||tab==='quran')&&<Pressable testID="open-main-menu" accessibilityRole="button" accessibilityLabel={bilingual(language,'القائمة الرئيسية','Main menu')} style={styles.iconButton} onPress={goHome}><Ionicons name="home-outline" color={quranTheme.theme.accent} size={23}/></Pressable>}
         <Pressable accessibilityRole="button" testID="open-languages" accessibilityLabel={t.language} style={styles.iconButton}
           onPress={() => setShowLanguages(true)}>
           <Ionicons name="language-outline" color={quranTheme.theme.accent} size={23} />
@@ -140,11 +148,11 @@ function Main() {
           onModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))} />
       </ScreenLayer>
       <ScreenLayer testID="screen-adhan" active={!homeVisible&&tab === 'adhan'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
-        <AdhanScreen language={language} state={locationState} times={schedule.times}
-          error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now} timezone={timezone}/>
+        <AdhanScreen language={language} state={locationState} times={schedule.times} tomorrowTimes={schedule.tomorrowTimes}
+          error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now}/>
       </ScreenLayer>
       <ScreenLayer testID="screen-quran" active={!homeVisible&&tab === 'quran'} background={quranTheme.theme.appBackground}>
-        <QuranLibrary tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} audio={audio} settings={reader}
+        <QuranLibrary homeRequest={homeRequest} onHome={goHome} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} audio={audio} settings={reader}
           onReadingChromeChange={setReadingChromeVisible}
           onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
       </ScreenLayer>
@@ -159,6 +167,7 @@ function Main() {
       compassMode={compassMode} onCompassModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))}
       notifications={<PrayerNotificationSettings language={language} ready={preferencesReady && locationState.ready}
         enabled={preferences.prayerNotifications} notifications={notifications}
+        prayerSounds={preferences.prayerSounds} onPrayerSoundsChange={prayerSounds=>setPreferences(value=>({...value,prayerSounds}))}
         onChange={prayerNotifications => setPreferences(value => ({ ...value, prayerNotifications }))}
         onChooseLocation={() => { setShowSettings(false); setShowLocation(true); }} />}
       quran={<QuranSettings library={tafsirLibrary} language={language} audio={audio} settings={reader}

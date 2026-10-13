@@ -254,31 +254,102 @@ try {
     assert.ok(bounds[0]>=0&&bounds[1]<=320,language+' menu stays inside viewport');
     await page.keyboard.press('Escape');
   }
-  // Each tablet panel advances by two pages, preserving spread parity.
-  const tablet=await browser.newPage({viewport:{width:640,height:960}});
+  // One book panel owns both leaves, including their gesture and zoom state.
+  const tablet=await browser.newPage({viewport:{width:1280,height:800}});
   tablet.on('pageerror',e=>errors.push(e.message));
-  const tabletHtml=buildMushafDocument({...descriptor(57),pageStep:2,language:'ar',dark:false,activeKey:null},descriptor(57).svg,readFileSync(new URL('../assets/quran/AmiriQuran.ttf',import.meta.url)).toString('base64'));
+  const spreadDescriptor=n=>({...descriptor(n),companion:descriptor(n+1)});
+  const tabletHtml=buildMushafDocument({...spreadDescriptor(57),pageStep:2,language:'ar',dark:false,activeKey:null},descriptor(57).svg,readFileSync(new URL('../assets/quran/AmiriQuran.ttf',import.meta.url)).toString('base64'));
   await tablet.setContent(tabletHtml.replace('<script>','<script>window.bridgeEvents=[];window.ReactNativeWebView={postMessage:value=>window.bridgeEvents.push(JSON.parse(value))};'));
   await tablet.waitForFunction(()=>window.bridgeEvents.some(e=>e.type==='ready'));
-  for(const n of [55,59,53,61])await tablet.evaluate(info=>window.cachePage(info),descriptor(n));
-  const tabletSwipe=async(dx)=>tablet.evaluate(dx=>{
-    const target=document.querySelector('#stage .page-art');
-    for(const [type,x] of [['touchstart',250],['touchmove',250+dx],['touchend',250+dx]]){
-      const touch=new Touch({identifier:1,target,clientX:x,clientY:400});
-      target.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[touch],changedTouches:[touch]}));
+  const tabletSettled=()=>tablet.waitForFunction(()=>{
+    const stage=document.querySelector('#stage');
+    return stage.children.length===1&&getComputedStyle(stage.firstElementChild).transform==='none';
+  });
+  const assertSpread=async(anchor)=>{
+    await tabletSettled();
+    assert.equal(await tablet.locator('#stage>.spread').getAttribute('data-page'),String(anchor));
+    assert.deepEqual(await tablet.locator('#stage>.spread>.leaf').evaluateAll(leaves=>leaves.map(leaf=>Number(leaf.dataset.page))),[anchor,anchor+1],'both leaves remain consecutive');
+    const boxes=await tablet.locator('#stage>.spread>.leaf').evaluateAll(leaves=>leaves.map(leaf=>{const r=leaf.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,width:r.width,height:r.height};}));
+    assert.equal(boxes[0].left,boxes[1].right,'odd leaf is on the right of the even leaf');
+    assert.equal(boxes[0].top,boxes[1].top);
+    assert.equal(boxes[0].width,boxes[1].width);
+    assert.equal(boxes[0].height,boxes[1].height);
+  };
+  for(const n of [55,59,53,61])await tablet.evaluate(info=>window.cachePage(info),spreadDescriptor(n));
+  await assertSpread(57);
+  assert.equal(await tablet.locator('#stage .ayahPolygon').count(),pages[56].verseKeys.length+pages[57].verseKeys.length,'the book contains the complete source verses of both pages');
+  const tabletInput=await tablet.context().newCDPSession(tablet);
+  const tabletSwipe=async(x,dx,settleMs=250)=>{
+    await tabletInput.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:400}]});
+    for(let i=1;i<=4;i++){
+      await tablet.waitForTimeout(25);
+      await tabletInput.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+dx*i/4,y:400}]});
     }
-  },dx);
-  await tabletSwipe(90);
-  await tablet.waitForFunction(()=>document.querySelector('#stage').children.length===1);
-  assert.equal(await tablet.locator('#stage .panel').getAttribute('data-page'),'59','short tablet swipes turn to the next spread');
+    await tabletInput.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await tablet.waitForTimeout(settleMs);
+    if(settleMs>=200)await tabletSettled();
+  };
+  await tabletSwipe(800,100);
+  await assertSpread(59);
   assert.equal(await tablet.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').at(-1).delta),1,'tablet bridge sends one spread step');
-  for(const n of [57,61,55,63])await tablet.evaluate(info=>window.cachePage(info),descriptor(n));
-  await tabletSwipe(-90);
-  await tablet.waitForFunction(()=>document.querySelector('#stage').children.length===1);
-  assert.equal(await tablet.locator('#stage .panel').getAttribute('data-page'),'57','tablet backward swipes survive neighbor preparation');
+  const staleTabletTurn=await tablet.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').at(-1).turn);
+  for(const n of [57,61,55,63])await tablet.evaluate(info=>window.cachePage(info),spreadDescriptor(n));
+  await tabletSwipe(400,-100);
+  await tablet.evaluate(turn=>window.activatePage(59,{},true,turn),staleTabletTurn);
+  await assertSpread(57);
+  assert.equal(await tablet.evaluate(()=>cache.size),5,'spread cache remains bounded while retaining both leaves');
+
+  // Interrupt animation while repeatedly alternating gestures between leaves.
+  for(let i=0;i<8;i++)await tabletSwipe(i%2?400:800,i%2?-100:100,20);
+  await assertSpread(57);
+  assert.equal(await tablet.locator('#stage>.spread').evaluate(n=>Math.round(n.getBoundingClientRect().left)),0,'rapid opposite-leaf swipes never leave the book shifted');
+
+  // Two fingers trying opposite directions must not turn each leaf separately.
+  const swipeCount=await tablet.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').length);
+  await tabletInput.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:10,x:850,y:400}]});
+  await tabletInput.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:10,x:880,y:400}]});
+  await tabletInput.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:10,x:880,y:400},{id:11,x:400,y:400}]});
+  await tabletInput.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:10,x:980,y:400},{id:11,x:300,y:400}]});
+  await tabletInput.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await assertSpread(57);
+  assert.equal(await tablet.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').length),swipeCount,'opposing multitouch gestures cancel the shared turn');
+  // Those fingers may also activate the browser's permitted pinch zoom.
+  // Restore its scale before Playwright's desktop pointer/keyboard actions.
+  await tabletInput.send('Emulation.setPageScaleFactor',{pageScaleFactor:1});
+
+  // Verse actions retain the actual ayah on either leaf of the shared document.
+  for(const leaf of [57,58]){
+    const verse=tablet.locator('#stage .leaf[data-page="'+leaf+'"] .ayahPolygon').first();
+    const key=await verse.evaluate(n=>n.getAttribute('surah')+':'+n.getAttribute('ayah'));
+    await verse.focus();await tablet.keyboard.press('Enter');
+    await tablet.getByRole('button',{name:'التفسير',exact:true}).click();
+    assert.equal(await tablet.evaluate(()=>window.bridgeEvents.at(-1).key),key,'verse actions preserve the selected leaf ayah');
+  }
+
+  await tablet.evaluate(()=>window.zoomPage(2));
+  assert.equal(await tablet.locator('#sheet').evaluate(n=>n.getBoundingClientRect().width),2560);
+  assert.deepEqual(await tablet.locator('#stage>.spread>.leaf').evaluateAll(leaves=>leaves.map(n=>n.getBoundingClientRect().width)),[1280,1280],'zoom scales both pages together');
+  await tabletSwipe(800,-100);
+  assert.equal(await tablet.locator('#stage>.spread').getAttribute('data-page'),'57','zoomed gestures on the right leaf pan the whole book');
+  await tabletSwipe(400,-100);
+  assert.equal(await tablet.locator('#stage>.spread').getAttribute('data-page'),'57','zoomed gestures on the left leaf pan the whole book');
+  assert.ok(await tablet.locator('#reader-viewport').evaluate(n=>n.scrollLeft)>0,'spread zoom preserves native horizontal panning');
   await tablet.evaluate(()=>window.zoomPage(16/22));
-  assert.ok(await tablet.locator('#sheet').evaluate(n=>n.getBoundingClientRect().width)<640,'smaller text sizes visibly shrink the tablet artwork');
+  assert.ok(await tablet.locator('#sheet').evaluate(n=>n.getBoundingClientRect().width)<1280,'smaller text sizes visibly shrink the whole book');
+
+  for(const anchor of [1,603]){
+    await tablet.evaluate(()=>window.zoomPage(1));
+    await tablet.evaluate(info=>window.cachePage(info),spreadDescriptor(anchor));
+    await tablet.evaluate(anchor=>window.activatePage(anchor,{},false),anchor);
+    await assertSpread(anchor);
+    const before=await tablet.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').length);
+    await tabletSwipe(anchor===1?400:800,anchor===1?-100:100);
+    await assertSpread(anchor);
+    assert.equal(await tablet.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').length),before,'outward gestures at book ends cannot turn beyond the Quran');
+    assert.equal(await tablet.locator('#stage .ayahPolygon').count(),pages[anchor-1].verseKeys.length+pages[anchor].verseKeys.length,'boundary spread preserves both complete source pages');
+  }
+  if(process.env.MUSHAF_QA_SCREENSHOTS)await tablet.screenshot({path:process.env.MUSHAF_QA_SCREENSHOTS+'/landscape-spread-603-604.png'});
   await tablet.close();
   assert.deepEqual(errors,[]);
-  console.log('Mushaf browser QA passed: startup, prepared DOM reuse, bounded eviction, rapid transitions, real four-direction flicks, slow/cancelled drags, repeated flicks, zoom panning, theme/language, tafsir action, bookmark state, centered pages, ayah loop selection, resize, opening pages and persisted theme rendering.');
+  console.log('Mushaf browser QA passed: startup, prepared DOM reuse, bounded eviction, rapid transitions, real four-direction flicks, slow/cancelled drags, repeated flicks, zoom panning, theme/language, tafsir action, bookmark state, centered pages, ayah loop selection, resize, opening pages, unified landscape spreads, opposite-leaf gestures, multitouch cancellation, shared book zoom and first/last spread boundaries.');
 } finally { await browser.close(); }

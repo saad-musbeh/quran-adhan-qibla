@@ -3,16 +3,19 @@ import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isLanguage, type Language } from './domain/languages';
 import type { PrayerSettings } from './domain/prayers';
+import { normalizePrayerSounds, type PrayerSoundSettings } from './domain/adhan-voices';
 
 type Preferences = {
   language: Language; prayer: PrayerSettings; compassMode: 'live' | 'north'; prayerNotifications: boolean;
   reader: { fontSize: number; nightMode: boolean };
   mainMenuOnPhones: boolean;
+  prayerSounds: PrayerSoundSettings;
 };
 const initial: Preferences = {
   language: 'ar', prayer: { method: 0, hanafi: false, ramadan: false },
   compassMode: 'live', prayerNotifications: false, reader: { fontSize: DEFAULT_TEXT_SIZE, nightMode: false },
   mainMenuOnPhones: false,
+  prayerSounds: normalizePrayerSounds(undefined),
 };
 const key = 'app-preferences-v1';
 
@@ -29,6 +32,7 @@ export function usePreferences() {
         compassMode: value.compassMode === 'north' ? 'north' : 'live',
         prayerNotifications: value.prayerNotifications === true,
         mainMenuOnPhones: value.mainMenuOnPhones === true,
+        prayerSounds: normalizePrayerSounds(value.prayerSounds),
         prayer: value.prayer && [0, 1, 2, 3, 4, 5].includes(value.prayer.method) ? {
           method: value.prayer.method, hanafi: value.prayer.hanafi === true, ramadan: value.prayer.ramadan === true,
         } : initial.prayer,

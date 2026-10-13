@@ -1,3 +1,8 @@
+/** Quran pages run right to left; a spread always opens on its odd-numbered page. */
+export function mushafSpreadPages(page: number, spread: boolean): number[] {
+  return spread ? [page - (page % 2 === 0 ? 1 : 0), page - (page % 2 === 0 ? 1 : 0) + 1] : [page];
+}
+
 /** Track the displayed WebView page while React commits can lag behind swipes. */
 export class MushafPageTurns {
   private pending = new Map<number, number>();

@@ -44,7 +44,7 @@ export function TafsirSheet({ library, verseKey, language, dark, quranFontLoaded
           <Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={catalogue?c.back:c.books} disabled={catalogue&&!library.selectedId} onPress={()=>setShowBooks(!catalogue)}><Ionicons name={catalogue?'document-text-outline':'library-outline'} size={23} color={ink}/></Pressable>
         </View>
         {catalogue?<ScrollView contentContainerStyle={styles.catalogue}>
-          <Text style={[styles.hint,{color:ink,textAlign:ar?'right':'left',writingDirection:ar?'rtl':'ltr'}]}>{c.hint}</Text>
+
           {!library.ready?<ActivityIndicator color="#79BCB7"/>:null}
           {books.map(item=>{
             const saved=library.downloadedIds.includes(item.id), loading=library.isDownloading===item.id, selected=library.selectedId===item.id;

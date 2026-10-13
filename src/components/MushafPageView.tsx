@@ -69,9 +69,11 @@ export function MushafPageView(props: Props) {
     const initial = latest.current;
     turns.current = new MushafPageTurns(initial.page,initial.pageStep??1);
     setError(false); setReady(false); setHtml(null); cached.current.clear();
-    void preloadMushafResources(initial.asset).then(({svg,font}) => {
-      if (alive) setHtml(buildMushafDocument({...initial,textScale:latestTextScale.current}, svg, font));
-    }).catch(() => { if (alive) setError(true); });
+    void (async () => {
+      const {svg,font} = await preloadMushafResources(initial.asset);
+      const companion = initial.pageStep === 2 ? {...pageDescriptor(initial.page + 1), svg:await preloadMushafPage(MUSHAF_PAGE_ASSETS[initial.page + 1])} : undefined;
+      if (alive) setHtml(buildMushafDocument({...initial,companion,textScale:latestTextScale.current}, svg, font));
+    })().catch(() => { if (alive) setError(true); });
     return () => { alive=false; };
   }, [attempt, props.pageStep]);
   useEffect(() => {
@@ -90,8 +92,9 @@ export function MushafPageView(props: Props) {
       if (cached.current.has(n)) return;
       const info = n===page ? {...pageDescriptor(n),asset:props.asset,verses:props.verses,surahNames:props.surahNames,juzName:props.juzName} : pageDescriptor(n);
       const svg = await preloadMushafPage(info.asset);
+      const companion = props.pageStep === 2 ? {...pageDescriptor(n + 1), svg:await preloadMushafPage(MUSHAF_PAGE_ASSETS[n + 1])} : undefined;
       if (!alive) return;
-      web.current?.injectJavaScript(`window.cachePage(${JSON.stringify({...info,svg})});true;`);
+      web.current?.injectJavaScript(`window.cachePage(${JSON.stringify({...info,svg,companion})});true;`);
     };
     void (async () => {
       try {
@@ -128,7 +131,7 @@ export function MushafPageView(props: Props) {
       }
       if (data.page!==current.page) return;
       if (data.type==='tap') current.onTap();
-      else if (['play','tafsir','bookmark','loopstart','loopend','looppick'].includes(data.type??'') && current.verses.some(v=>`${v.surah}:${v.number}`===data.key)) {
+      else if (['play','tafsir','bookmark','loopstart','loopend','looppick'].includes(data.type??'') && [...current.verses,...(current.pageStep===2?printedPageVerses(current.page+1):[])].some(v=>`${v.surah}:${v.number}`===data.key)) {
         if(data.type==='play')current.onPlayVerse(data.key!);
         else if(data.type==='tafsir')current.onTafsirVerse?.(data.key!);
         else if(data.type==='bookmark')current.onBookmarkVerse?.(data.key!);

@@ -20,17 +20,18 @@
 
 - [x] Choose a verified Arabic text dataset and record license/version/checksum.
 - [x] Import all 114 surahs with verse identifiers and offline storage.
-- [x] Build the reader, font-size controls, bookmarks, and six independently saved reading copies.
+- [x] Build the reader, font-size controls, bookmarks, and one initial reading copy with additions up to six independently saved copies.
 - [x] Add verse search and selectable source-hosted recitations with private offline downloads.
 - [x] Add an optional four-book QuranEnc tafsir library with release checks and private, atomic offline downloads; keep tafsir text out of the runtime bundle.
 - [x] Keep Quran source path and verse data unchanged while centering all 604 pages at equal 6% artwork margins and cropping only the empty opening-page viewBoxes.
-- [x] Add the original geometric opening frame and theme-aware reader frame/metadata/controls; persist the five app-wide color themes through the top gear sheet.
+- [x] Add the original geometric opening frame and theme-aware reader frame/metadata/controls; persist the five app-wide color themes and their light/dark variants through the top gear sheet.
 - [x] Add immediate same-surah looping from a long-pressed ayah, an optional ending-ayah review editor, direct start/end selection on the page, and native playlist loop-all playback.
 - [x] Verify the 0.3.3 reader themes, opening pages, ayah loop selection, offline native queue transitions, and foreground playback on the Android emulator. See [reader QA](READER-COMPASS-QA.md); physical-device and native iOS checks remain pending.
 - [x] Expand to twenty reciters with Saad Al-Ghamdi as the default and separate per-voice offline storage.
 - [x] Add a saved audio/tafsir download manager and playback failure/reconnection recovery.
 - [x] Add full-Quran downloads with cancellation, cached-ayah continuation and job-specific retry.
 - [x] Keep library navigation visible, merge global settings and add original floral opening-page frames.
+- [x] Keep landscape pages, turns, zoom and panning together in one book spread.
 - [ ] Select licensed translations.
 - [ ] Verify Quran audio interruptions and lock-screen behavior on physical Android/iOS devices.
 
@@ -38,7 +39,7 @@
 
 - [x] Select and validate the `adhaan` Rust prayer-time engine.
 - [x] Make foreground device location primary, with optional manual coordinates and six-hour refresh.
-- [x] Add offline city search (70/30 country targets), online map selection, and manual coordinate alternatives.
+- [x] Add worldwide offline city search (all eligible GeoNames cities500 places), online map selection, and manual coordinate alternatives.
 - [x] Persist validated location and preferences across app sessions.
 - [x] Use the phone’s calendar/timezone/DST, six calculation methods, Asr school, and optional Ramadan Isha.
 - [ ] Add configurable high-latitude and polar rules (currently middle-of-night below 65°, polar locations unsupported).
@@ -46,6 +47,8 @@
 - [ ] Expand prayer reference fixtures across more regions and boundary conditions.
 - [x] Add optional Android prayer notifications with a CC0 Adhan channel sound, permission recovery and a test alert.
 - [x] Add local iOS prayer notifications, a 29-second Adhan excerpt, permission recovery and a five-second test.
+- [x] Bundle six licensed Adhan recordings, a stronger Fajr-only option, and saved voice/sound choices for each salah.
+- [x] Show tomorrow’s separately calculated Fajr as the next Adhan after Isha, on the right in landscape.
 - [ ] Validate prayer alert sound, Focus/Silent Mode and interruptions on physical phones.
 - [x] Reconcile Android/iOS reminders at launch/resume, midnight, and location/settings/language changes.
 - [ ] Validate background clock/timezone changes and reboot restoration on physical phones.

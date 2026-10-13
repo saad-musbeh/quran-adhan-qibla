@@ -1,5 +1,21 @@
 # Reader and compass verification
 
+## 13 October 2026 — library, landscape book, appearance and Adhan customization
+
+New libraries start with one Quran copy and can add up to six; restoration preserves existing copies, their order, positions and bookmarks. The top Home action works while reading and in the full-screen book reader. The player uses a microphone, reciter label and dropdown indicator in place of the three dots.
+
+Landscape reading uses one WebView, one page-turn sequence and one cached panel containing both leaves. Browser checks cover touches from either leaf, rapid alternating directions, interrupted animations, opposite multitouch cancellation, shared zoom/panning, verse actions from both leaves, bounded caching and the first/last spreads (1–2 and 603–604). All previous portrait renderer checks still pass. Artwork and verse data are unchanged.
+
+Each of the five app colors has saved Light and Dark variants. Palette tests check text contrast across app backgrounds/cards, control contrast, independent appearance/color restoration, and retention of Quran paper/night colors. The resolved light palette is memoized so unrelated updates cannot reload the map. Repeated Home-card/library/location/reader subtitles were removed; source credits, permissions, errors and relevant operational guidance remain.
+
+The city catalogue now has 224,763 places across 245 countries/territories without country quotas. Search tests cover sourced Arabic/transliterated names, exact/prefix ranking, and results beyond the former fifty-match limit. The larger catalogue's real-device search responsiveness and memory use remain unverified.
+
+Prayer sound choices are saved independently for the five salahs, with six licensed recordings in total and a stronger Fajr-only recording. Muting a prayer keeps its visual notification; the master switch cancels all reminders. Tests cover saved-state validation, Fajr-only wording restrictions, sound-specific Android channels, per-prayer schedule selection, native sound registration and all six 29-second PCM iOS excerpts. FFmpeg decoding and peak checks passed for all twelve files; sources and modifications are recorded in the Adhan provenance document and in-app Credits. The next Adhan panel stays physically on the right in landscape, including separately calculated tomorrow Fajr after Isha. Date/boundary tests cover sunrise exclusion, prayer boundaries, midnight, month/year changes and DST.
+
+`npm run check` passes TypeScript, the complete localization audit, 114 JavaScript tests, Rust formatting/Clippy and 14 Rust tests. Both Android and iOS mobile exports pass. New interface translations are machine-assisted drafts awaiting native-speaker review.
+
+Native Android UI testing for this change is blocked: three emulator boot attempts, including software graphics and disabled CPU acceleration, crashed with exit 139 before a usable UI. The fresh Android release APK builds successfully: all twelve sound resources match the bundled source hashes, the final Hermes bundle and both Rust ABIs are present, APK signing and 16 KB ZIP alignment pass, and all 34 native libraries have at least 16 KB LOAD alignment. Native iOS compilation/playback and physical-device notification sound, compass and GPS remain unverified.
+
 ## 13 October 2026 — Honor page turning and persistent controls
 
 The attached Honor Magic 7 Pro recording showed repeated unsuccessful page turns around pages 58–59. Android emulator testing reproduced the reverse-turn failure: preparing the next two neighbors after advancing to page 59 evicted page 58 from the five-page FIFO cache. Without that prepared page, subsequent backward gestures only applied the edge resistance. Cache eviction now removes the farthest unprotected page, retaining the current page, the incoming page and any active drag target. Neighbor preparation keeps both directions available without increasing the five-panel limit.

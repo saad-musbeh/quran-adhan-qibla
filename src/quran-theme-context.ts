@@ -1,9 +1,11 @@
 import { createContext, useContext, useMemo } from 'react';
-import { getQuranTheme, type QuranTheme, type QuranThemeId } from './domain/quran-theme';
+import { getQuranTheme, type QuranTheme, type QuranThemeId, type QuranThemeMode } from './domain/quran-theme';
 
 export const QuranThemeContext = createContext({
   themeId: 'blue' as QuranThemeId, theme: getQuranTheme('blue'),
+  mode: 'dark' as QuranThemeMode,
   setThemeId: (_id: QuranThemeId) => {},
+  setMode: (_mode: QuranThemeMode) => {},
 });
 export const useReaderTheme = () => useContext(QuranThemeContext);
 
@@ -15,17 +17,17 @@ export function useReaderStyles<T extends Record<string, object>>(base: T) {
 }
 function tintReaderStyles<T extends Record<string, object>>(base: T, theme: QuranTheme): T {
   const map: Record<string, string> = {
-    '#18334A': theme.background, '#14293C': theme.deep, '#FAF7EF': theme.lightPaper,
-    '#DBAB68': theme.accent, '#BD8744': theme.accent, '#25465E': theme.deep,
-    '#25465D': theme.deep, '#31516A': theme.background,
-    '#516C80': theme.border, '#BCD0DF': theme.lightPaper,
+    '#18334A': theme.appBackground, '#14293C': theme.appBackground, '#FAF7EF': theme.lightPaper,
+    '#DBAB68': theme.accent, '#BD8744': theme.accent, '#D6BA7A': theme.accent,
+    '#25465E': theme.appSurface, '#25465D': theme.appSurface, '#31516A': theme.appRaised,
+    '#516C80': theme.appBorder, '#BCD0DF': theme.appMuted,
     '#526A7B': theme.muted, '#536D7F': theme.muted,
     '#E5EDF2': theme.pale, '#D4DBE0': theme.pale,
-    'rgba(24,51,74,.96)': theme.background,
+    'rgba(24,51,74,.96)': theme.appBackground,
     // App chrome, cards, and the illustrated Qibla scene share the saved theme.
     '#0B211D': theme.appBackground, '#102A25': theme.appBackground,
     '#15342E': theme.appSurface, '#193A32': theme.appSurface,
-    '#193D36': theme.background, '#285146': theme.appRaised,
+    '#193D36': theme.appSurface, '#285146': theme.appRaised,
     '#28483E': theme.appRaised, '#23443B': theme.appSurface,
     '#18382F': theme.appBackground, '#35544B': theme.appBorder,
     '#35564C': theme.appBorder, '#2B4B41': theme.appBorder,
@@ -34,6 +36,12 @@ function tintReaderStyles<T extends Record<string, object>>(base: T, theme: Qura
     '#B8CDC4': theme.appMuted, '#BDD4CB': theme.appMuted,
     '#C1D1CA': theme.appMuted, '#4A7267': theme.appBorder,
     '#5E8276': theme.appBorder, '#806E42': theme.appBorder,
+    '#80998F': theme.appMuted,
+    '#A8D6A0': theme.mode === 'light' ? '#286342' : '#A8D6A0',
+    '#F4E1A4': theme.mode === 'light' ? theme.accent : '#F4E1A4',
+    '#FFB3A8': theme.mode === 'light' ? '#9E3429' : '#FFB3A8',
+    '#F0B9A1': theme.mode === 'light' ? '#9E3429' : '#F0B9A1',
+    '#2C3027': theme.mode === 'light' ? '#FFF1EB' : '#2C3027',
     '#0B211DCC': `${theme.appBackground}CC`,
     '#0B211D99': `${theme.appBackground}99`,
     '#0B211DD9': `${theme.appBackground}D9`,
@@ -41,7 +49,10 @@ function tintReaderStyles<T extends Record<string, object>>(base: T, theme: Qura
   return Object.fromEntries(Object.entries(base).map(([name, style]) => [name,
       Object.fromEntries(Object.entries(style).map(([key, value]) => [key,
       typeof value === 'string'
-        ? key === 'borderColor' && value !== 'transparent' && map[value] ? theme.border
+        ? key === 'borderColor' && value !== 'transparent' && map[value] ? theme.appBorder
+          : key === 'color' && ['#FAF7EF', '#F4EFE4', '#F6F1E6'].includes(value) ? theme.appText
+          : key === 'color' && value === '#18334A' ? theme.ink
+          : key === 'color' && value === '#25465E' ? theme.appAccentInk
           : key === 'color' && value === '#102A25' ? theme.appAccentInk
           : key === 'color' && value === '#18382F' ? theme.appAccentInk
             : map[value] ?? value

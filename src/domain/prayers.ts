@@ -18,6 +18,11 @@ export function localCalendarDate(now: Date): [number, number, number] {
   return [now.getFullYear(), now.getMonth() + 1, now.getDate()];
 }
 
+/** Advance the calendar date rather than adding 24 hours across DST changes. */
+export function nextLocalCalendarDate(now: Date): [number, number, number] {
+  return localCalendarDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+}
+
 export function decodePrayerTimes(seconds: number[]): Date[] {
   if (seconds.length !== 6 || seconds.some((time, index) => !Number.isFinite(time)
     || !Number.isFinite(new Date(time * 1000).getTime()) || (index > 0 && time <= seconds[index - 1]))) {
@@ -29,4 +34,14 @@ export function decodePrayerTimes(seconds: number[]): Date[] {
 /** Sunrise is displayed in the schedule, but never called the next prayer. */
 export function nextPrayer(times: Date[], now: Date): PrayerName | null {
   return prayerNames.find((name, index) => name !== 'sunrise' && times[index].getTime() > now.getTime()) ?? null;
+}
+
+export type PrayerOccurrence = { name: Exclude<PrayerName, 'sunrise'>; time: Date; tomorrow: boolean };
+
+/** Tomorrow's Fajr comes from a separately calculated schedule, never today's time + 24h. */
+export function nextPrayerOccurrence(today: Date[], tomorrow: Date[] | null, now: Date): PrayerOccurrence | null {
+  const name = nextPrayer(today, now);
+  if (name && name !== 'sunrise') return { name, time: today[prayerNames.indexOf(name)], tomorrow: false };
+  const fajr = tomorrow?.[0];
+  return fajr && fajr.getTime() > now.getTime() ? { name: 'fajr', time: fajr, tomorrow: true } : null;
 }

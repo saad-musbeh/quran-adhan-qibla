@@ -28,7 +28,7 @@ function mapHtml(center: SelectedCoordinates | undefined, language: Language, hi
     && Math.abs(center.latitude) <= 90 && Math.abs(center.longitude) <= 180
     ? center : { latitude: 20, longitude: 0 };
   const direction = isRTL(language) ? 'rtl' : 'ltr';
-  return `<!doctype html><html lang="${escapeHtml(language)}" dir="${direction}"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>${LEAFLET_CSS}html,body,#map{height:100%;width:100%;margin:0;background:#eef2f4}.hint{position:absolute;z-index:500;top:8px;left:50%;transform:translateX(-50%);padding:5px 9px;border-radius:6px;background:${theme.appSurface};color:#F4EFE4;font:calc(13px * var(--text-scale,1)) sans-serif;max-width:calc(100% - 24px);text-align:center;box-shadow:0 1px 4px #0003}.leaflet-control-attribution{font-size:calc(11px * var(--text-scale,1))}.leaflet-popup-content{font-size:calc(13px * var(--text-scale,1))}</style><script>${LEAFLET_JS}</script></head><body><!-- ${LEAFLET_LICENSE} --><div id="map"></div><div class="hint">${escapeHtml(hint)}</div><script>
+  return `<!doctype html><html lang="${escapeHtml(language)}" dir="${direction}"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>${LEAFLET_CSS}html,body,#map{height:100%;width:100%;margin:0;background:#eef2f4}.hint{position:absolute;z-index:500;top:8px;left:50%;transform:translateX(-50%);padding:5px 9px;border-radius:6px;background:${theme.appSurface};color:${theme.appText};font:calc(13px * var(--text-scale,1)) sans-serif;max-width:calc(100% - 24px);text-align:center;box-shadow:0 1px 4px #0003}.leaflet-control-attribution{font-size:calc(11px * var(--text-scale,1))}.leaflet-popup-content{font-size:calc(13px * var(--text-scale,1))}</style><script>${LEAFLET_JS}</script></head><body><!-- ${LEAFLET_LICENSE} --><div id="map"></div><div class="hint">${escapeHtml(hint)}</div><script>
 window.setTextScale=value=>document.documentElement.style.setProperty('--text-scale',String(value));
 const map=L.map('map',{zoomControl:false,attributionControl:true,preferCanvas:true,worldCopyJump:false}).setView([${initial.latitude},${initial.longitude}],${center ? 12 : 2});
 map.zoomControl=L.control.zoom({zoomInTitle:${JSON.stringify(bilingual(language,'تكبير الخريطة','Zoom in')).replace(/</g,'\\u003c')},zoomOutTitle:${JSON.stringify(bilingual(language,'تصغير الخريطة','Zoom out')).replace(/</g,'\\u003c')}}).addTo(map);
@@ -65,7 +65,7 @@ export function LocationMap({ language, initialCoordinates, onSelect, disabled =
   };
 
   return <View style={styles.container}>
-    <Text style={[styles.title, isRtl && styles.rtl]}>{t.title}</Text>
+
     <Text style={[styles.privacy, isRtl && styles.rtl]}>{t.privacy}</Text>
     <View style={styles.mapFrame}>
       <WebView

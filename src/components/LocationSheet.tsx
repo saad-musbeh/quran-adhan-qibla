@@ -32,7 +32,7 @@ export function LocationSheet({ language, visible, state, onClose }: Props) {
       </View>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.body, align]}>{t.locationWhy}</Text>
+
           <Pressable accessibilityRole="button" accessibilityState={{ disabled: loading, ...(loading ? { busy: true } : {}) }} disabled={loading}
             style={[styles.primary, loading && styles.disabled]} onPress={() => { setSettingsError(false); void state.locate(); }}>
             {loading && <ActivityIndicator color="#102A25" />}

@@ -27,7 +27,7 @@ type Props = {
 
 export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChange, timezone, compassMode, onCompassModeChange, quran, notifications, textSize, onTextSizeChange, mainMenuOnPhones, onMainMenuChange }: Props) {
   const { styles } = useReaderStyles(baseStyles);
-  const { theme, themeId, setThemeId } = useReaderTheme();
+  const { theme, themeId, setThemeId, mode, setMode } = useReaderTheme();
   const [creditsVisible,setCreditsVisible]=useState(false);
   const [themePickerVisible, setThemePickerVisible] = useState(false);
   const [methodChoicesVisible, setMethodChoicesVisible] = useState(false);
@@ -49,7 +49,7 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
       </View>
       <ScrollView testID="overall-settings" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <TextSizeSetting language={language} size={textSize} onChange={onTextSizeChange}/>
-        <QuranThemePicker visible={themePickerVisible} language={language} themeId={themeId} onChoose={setThemeId} onClose={() => setThemePickerVisible(false)} />
+        <QuranThemePicker visible={themePickerVisible} language={language} themeId={themeId} mode={mode} onModeChange={setMode} onChoose={setThemeId} onClose={() => setThemePickerVisible(false)} />
         <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language, 'لون التطبيق', 'App color')} style={[styles.choice, rtl && styles.reverse]} onPress={() => setThemePickerVisible(true)}>
           <View style={[styles.colorChoice, rtl && styles.reverse]}><Ionicons name="color-palette-outline" size={22} color={theme.accent} /><Text style={[styles.choiceText, textStyle]}>{bilingual(language, 'لون التطبيق', 'App color')} · {bilingual(language, theme.arabicName, theme.name)}</Text></View>
           <Text style={styles.mark}>›</Text>
