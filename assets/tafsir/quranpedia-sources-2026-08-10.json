@@ -1,0 +1,80 @@
+[
+  {
+    "name": "tafsir-book-272.json.gz",
+    "dataset": "tafsir-book-272",
+    "section": "tafsir_books",
+    "title": "تفسير الجلالين",
+    "bytes": 857648,
+    "built_at": "2026-08-10T20:33:08+00:00",
+    "sha256": "20be5cc194f0a53d3d7f48d51a21541a6fe68b36b299936876183f4f017af3e4",
+    "book_id": 272,
+    "rows": 6224,
+    "source_version": "2026-08-10",
+    "decoded_bytes": 5396090
+  },
+  {
+    "name": "tafsir-book-136.json.gz",
+    "dataset": "tafsir-book-136",
+    "section": "tafsir_books",
+    "title": "تفسير القرآن العظيم",
+    "bytes": 8335420,
+    "built_at": "2026-08-10T20:28:56+00:00",
+    "sha256": "26749df050617a92fb12e871395dcf1228a475e008d29035d71e61f75ed4f230",
+    "book_id": 136,
+    "rows": 6057,
+    "source_version": "2026-08-10",
+    "decoded_bytes": 44155684
+  },
+  {
+    "name": "tafsir-book-4.json.gz",
+    "dataset": "tafsir-book-4",
+    "section": "tafsir_books",
+    "title": "جامع البيان في تأويل آي القرآن",
+    "bytes": 10025398,
+    "built_at": "2026-08-10T20:29:02+00:00",
+    "sha256": "ea7132febfe16c40247388ca37716aee05e1d320f6c470f70f784c2f2051b966",
+    "book_id": 4,
+    "rows": 6236,
+    "source_version": "2026-08-10",
+    "decoded_bytes": 66185025
+  },
+  {
+    "name": "tafsir-book-160.json.gz",
+    "dataset": "tafsir-book-160",
+    "section": "tafsir_books",
+    "title": "صفوة التفاسير",
+    "bytes": 11109925,
+    "built_at": "2026-08-10T20:31:09+00:00",
+    "sha256": "6ea94f37e3bf9496398c69093672606a35fc997d722ac6221ba8e88d7d6def1b",
+    "book_id": 160,
+    "rows": 6236,
+    "source_version": "2026-08-10",
+    "decoded_bytes": 163341715
+  },
+  {
+    "name": "tafsir-book-343.json.gz",
+    "dataset": "tafsir-book-343",
+    "section": "tafsir_books",
+    "title": "فتح القدير الجامع بين فني الرواية والدراية من علم التفسير",
+    "bytes": 9422355,
+    "built_at": "2026-08-10T20:36:18+00:00",
+    "sha256": "72a792c914db409b747af86ca2ea47c038b63bd14d71e80c7ce726c96c2008ba",
+    "book_id": 343,
+    "rows": 6214,
+    "source_version": "2026-08-10",
+    "decoded_bytes": 72940899
+  },
+  {
+    "name": "tafsir-book-201.json.gz",
+    "dataset": "tafsir-book-201",
+    "section": "tafsir_books",
+    "title": "أيسر التفاسير لكلام العلي الكبير",
+    "bytes": 3653429,
+    "built_at": "2026-08-10T20:32:49+00:00",
+    "sha256": "8527db0f4d901805e06baa862323cb786d7b01e56795b9f37348feaeb9f46bb9",
+    "book_id": 201,
+    "rows": 6236,
+    "source_version": "2026-08-10",
+    "decoded_bytes": 63053423
+  }
+]

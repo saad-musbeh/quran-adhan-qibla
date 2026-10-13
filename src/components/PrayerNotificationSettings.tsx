@@ -1,5 +1,6 @@
+import { Text } from '../text-size';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { bilingual, localeFor, isRTL, type Language } from '../i18n';
 import { notificationCopy } from '../notification-i18n';
 import type { usePrayerNotifications } from '../use-prayer-notifications';

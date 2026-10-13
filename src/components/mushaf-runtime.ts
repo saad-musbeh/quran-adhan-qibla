@@ -1,6 +1,7 @@
 /** Runs inside the persistent offline reader; no external resources or scripts. */
 export const MUSHAF_RUNTIME = String.raw`
 const initial = window.readerInitial;
+const pageStep = initial.pageStep === 2 ? 2 : 1;
 const stage = document.getElementById('stage');
 const prepared = document.getElementById('prepared');
 const menu = document.getElementById('verse-menu');
@@ -13,6 +14,7 @@ let loopPickMode=initial.loopPickMode??null,loopStartKey=initial.loopStartKey??n
 let theme=initial.theme??{background:'#18334A',deep:'#14293C',ink:'#18334A',lightPaper:'#FAF7EF',pale:'#E5EDF2',accent:'#DBAB68'};
 let zoom = 1, start = null, timer = null, held = false, transitionTimer = null;
 let drag = null, dragFrame = null;
+let turnSequence = 0;
 const keyOf = node => node.getAttribute('surah') + ':' + node.getAttribute('ayah');
 const send = data => window.ReactNativeWebView.postMessage(JSON.stringify({ ...data, page: shownPage }));
 const acknowledge = () => send({ type: 'cache', pages: [...cache.keys()] });
@@ -45,12 +47,12 @@ function makePanel(item) {
   panel.querySelector('.names').textContent = item.surahNames;
   panel.querySelector('.page-number').textContent = String(item.page).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[Number(d)]);
   const art = panel.querySelector('.page-art'), metadata = panel.querySelector('.metadata');
-  metadata.style.left = art.style.left = '12.75%';
-  metadata.style.right = art.style.right = '12.75%';
+  metadata.style.left = art.style.left = '6%';
+  metadata.style.right = art.style.right = '6%';
   art.innerHTML = item.svg;
   const svg = art.querySelector('svg');
   if (!svg) throw new Error('Missing Mushaf artwork');
-  svg.setAttribute('preserveAspectRatio', 'none'); prefixIds(svg, item.page);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet'); prefixIds(svg, item.page);
   svg.querySelector('[id$="-content"]')?.classList.add('mushaf-content');
   const verses = new Map(item.verses.map(v => [v.surah + ':' + v.number, v]));
   for (const node of svg.querySelectorAll('.ayahPolygon')) {
@@ -115,7 +117,21 @@ function updatePanel(panel) {
   panel.querySelector('.opening-title')?.classList.toggle('night',dark);
   for (const node of panel.querySelectorAll('.ayahPolygon')) {node.classList.toggle('active',keyOf(node)===activeKey);node.classList.toggle('loopstart',keyOf(node)===loopStartKey);node.classList.toggle('loopend',keyOf(node)===loopEndKey);}
 }
+function layoutPanel(panel) {
+  // Prepared panels have viewport dimensions, which differ from the zoomed
+  // sheet. Measure only after mounting in the stage; source paths and their
+  // hit polygons stay together inside an aspect-preserving SVG.
+  if (panel.parentElement !== stage || panel.classList.contains('opening')) return;
+  const metadata = panel.querySelector('.metadata'), footer = panel.querySelector('.page-number');
+  const gap = Math.max(4, parseFloat(getComputedStyle(metadata).fontSize) * .6);
+  const top = Math.max(panel.clientHeight * .09, metadata.offsetTop + metadata.offsetHeight + gap);
+  const bottom = Math.min(panel.clientHeight * .93, footer.offsetTop - gap);
+  const art = panel.querySelector('.page-art');
+  art.style.top = top + 'px'; art.style.height = Math.max(0, bottom - top) + 'px';
+}
+function layoutVisiblePanels() { for (const panel of stage.children) layoutPanel(panel); }
 function updateState(state) {
+  if (Number.isFinite(state.textScale)) document.documentElement.style.setProperty('--text-scale', String(state.textScale));
   language = state.language ?? language; dark = state.dark ?? dark;
   ui=state.ui??(state.language?defaultUi(language):ui);
   if ('activeKey' in state) activeKey = state.activeKey;
@@ -138,6 +154,7 @@ function updateState(state) {
   bookmark.classList.toggle('bookmarked', marked); bookmark.setAttribute('aria-pressed', String(marked));
   for (const panel of cache.values()) updatePanel(panel);
   document.getElementById('sheet').setAttribute('aria-label', ui.page + ' ' + shownPage);
+  layoutVisiblePanels();
 }
 function settle() {
   clearTimeout(transitionTimer); transitionTimer = null;
@@ -156,13 +173,16 @@ window.cachePage = item => {
   updatePanel(panel);
   cache.set(item.page,panel);
   while (cache.size > 5) {
-    const victim = [...cache.keys()].find(n => n !== shownPage && n !== item.page && n !== drag?.target);
+    // Keep the immediate neighbors when native preparation adds the +/-2 pages.
+    const candidates=[...cache.keys()].filter(n=>n!==shownPage&&n!==item.page&&n!==drag?.target);
+    const victim=candidates.reduce((furthest,n)=>furthest===undefined||Math.abs(n-shownPage)>Math.abs(furthest-shownPage)?n:furthest,undefined);
     if (victim === undefined) break;
     cache.get(victim).remove(); cache.delete(victim);
   }
   acknowledge();
 };
-window.activatePage = (page, state, animate = true) => {
+window.activatePage = (page, state, animate = true, acknowledgedTurn = turnSequence) => {
+  if(acknowledgedTurn<turnSequence){updateState(state);return;}
   const next = cache.get(page);
   if (!next) return;
   // Native acknowledgement of a gesture must not cut its animation short.
@@ -179,19 +199,21 @@ window.activatePage = (page, state, animate = true) => {
   shownPage = page;
   cache.delete(page); cache.set(page, next);
   updateState(state);
+  const viewport = document.getElementById('reader-viewport');
+  viewport.scrollLeft = viewport.scrollTop = 0;
   next.removeAttribute('aria-hidden'); next.inert = false;
-  const shouldAnimate = animate && old && old !== next && page !== previousPage && zoom === 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const shouldAnimate = animate && old && old !== next && page !== previousPage && (zoom <= 1 || fromDrag) && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!shouldAnimate) {
     if (old && old !== next) { old.setAttribute('aria-hidden','true'); old.inert = true; prepared.appendChild(old); }
     next.style.transition = ''; next.style.transform = '';
-    stage.appendChild(next); acknowledge(); return;
+    stage.appendChild(next); layoutPanel(next); acknowledge(); return;
   }
   const axis = fromDrag?.axis || 'x';
-  const extent = axis === 'x' ? innerWidth : innerHeight;
+  const extent = (axis === 'x' ? innerWidth : innerHeight) * zoom;
   const direction = axis === 'x' ? (page > previousPage ? 1 : -1) : (page > previousPage ? -1 : 1);
   if (!fromDrag) {
     next.style.transition = ''; next.style.transform = translate(axis, -direction * extent);
-    stage.appendChild(next); next.getBoundingClientRect();
+    stage.appendChild(next); layoutPanel(next); next.getBoundingClientRect();
   }
   old.setAttribute('aria-hidden','true'); old.inert = true;
   next.style.transition = old.style.transition = 'transform 210ms ease-out';
@@ -213,9 +235,9 @@ function moveDrag(origin, dx, dy) {
     origin.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     closeMenu(); settle();
   }
-  const axis = origin.axis, extent = axis === 'x' ? innerWidth : innerHeight;
+  const axis = origin.axis, extent = (axis === 'x' ? innerWidth : innerHeight) * zoom;
   const offset = axis === 'x' ? dx : dy, sign = offset >= 0 ? 1 : -1;
-  const delta = axis === 'x' ? sign : -sign, target = shownPage + delta;
+  const delta = axis === 'x' ? sign : -sign, target = shownPage + delta * pageStep;
   const next = cache.get(target);
   if (drag && drag.target !== target) {
     const abandoned = cache.get(drag.target);
@@ -226,7 +248,9 @@ function moveDrag(origin, dx, dy) {
   if (next) {
     updatePanel(next); next.style.transition = '';
     next.setAttribute('aria-hidden','true'); next.inert = true;
+    const mounted = next.parentElement === stage;
     stage.appendChild(next);
+    if (!mounted) layoutPanel(next);
   }
   if (dragFrame === null) dragFrame = requestAnimationFrame(() => { dragFrame = null; paintDrag(); });
 }
@@ -247,12 +271,16 @@ function returnDrag() {
 }
 window.updateState = updateState;
 window.zoomPage = value => {
-  settle(); closeMenu(); zoom = Math.max(1, Math.min(3,value));
+  settle(); closeMenu(); zoom = Number.isFinite(value) ? Math.max(16/22, Math.min(3,value)) : 1;
   const sheet = document.getElementById('sheet');
   sheet.style.width = innerWidth * zoom + 'px'; sheet.style.height = innerHeight * zoom + 'px';
+  sheet.style.left = Math.max(0, innerWidth * (1-zoom) / 2) + 'px';
+  sheet.style.top = Math.max(0, innerHeight * (1-zoom) / 2) + 'px';
   const viewport = document.getElementById('reader-viewport');
   viewport.style.overflow = zoom > 1 ? 'auto' : 'hidden';
-  if (zoom === 1) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
+  viewport.style.touchAction = zoom > 1 ? 'auto' : 'pinch-zoom';
+  if (zoom <= 1) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
+  layoutVisiblePanels();
 };
 window.addEventListener('resize', () => window.zoomPage(zoom));
 function showMenu(node,x,y) {
@@ -267,7 +295,9 @@ document.addEventListener('touchstart', event => {
   if (event.touches.length !== 1 || event.target.closest('#verse-menu')) { returnDrag(); start = null; return; }
   if (transitionTimer !== null) settle();
   const t = event.touches[0];
-  start = { x:t.clientX, y:t.clientY, page:shownPage, menu:menu.classList.contains('show'), axis:null }; held = false;
+  const viewport = document.getElementById('reader-viewport');
+  start = { x:t.clientX, y:t.clientY, page:shownPage, menu:menu.classList.contains('show'), axis:null,
+    scrollX:viewport.scrollLeft, scrollY:viewport.scrollTop, maxX:viewport.scrollWidth-viewport.clientWidth, maxY:viewport.scrollHeight-viewport.clientHeight }; held = false;
   const node = event.target.closest('.ayahPolygon');
   if (node && !loopPickMode) timer = setTimeout(() => {
     if (start && !start.axis && start.page === shownPage) { held = true; showMenu(node,t.clientX,t.clientY); }
@@ -277,7 +307,11 @@ document.addEventListener('touchmove', event => {
   if (!start || event.touches.length !== 1) { returnDrag(); start = null; clearTimeout(timer); return; }
   const t = event.touches[0], dx=t.clientX-start.x, dy=t.clientY-start.y;
   if (Math.abs(dx)>8 || Math.abs(dy)>8) clearTimeout(timer);
-  if (!held && zoom===1 && (window.visualViewport?.scale??1)===1) {
+  const horizontal = Math.abs(dx)>Math.abs(dy);
+  const atEdge = horizontal ? (dx>0 ? start.scrollX<=1 : start.scrollX>=start.maxX-1)
+    : (dy>0 ? start.scrollY<=1 : start.scrollY>=start.maxY-1);
+  if (!start.axis && Math.max(Math.abs(dx),Math.abs(dy))>=8 && zoom>1 && !atEdge) start.panning=true;
+  if (!held && !start.panning && (zoom<=1 || start.axis || atEdge) && (window.visualViewport?.scale??1)===1) {
     moveDrag(start,dx,dy);
     if (start.axis) event.preventDefault();
   }
@@ -289,9 +323,12 @@ document.addEventListener('touchend', event => {
   const t = event.changedTouches[0], dx=t.clientX-origin.x, dy=t.clientY-origin.y;
   if (origin.axis) {
     moveDrag(origin,dx,dy);
-    if (drag && Math.abs(drag.offset) > drag.extent/2 && cache.has(drag.target)) {
-      const target = drag.target, delta=target-shownPage;
-      send({type:'swipe',delta});
+    // Keep short accidental drags reversible; cap the deliberate swipe
+    // distance so large pages never demand a half-screen movement.
+    const turnDistance=drag?Math.max(24,Math.min(64,drag.extent*.18)):Infinity;
+    if (drag && Math.abs(drag.offset) >= turnDistance && cache.has(drag.target)) {
+      const target = drag.target, delta=(target-shownPage)/pageStep;
+      send({type:'swipe',delta,turn:++turnSequence});
       window.activatePage(target,{},true);
     } else returnDrag();
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && !event.target.closest('#verse-menu')) {
@@ -320,5 +357,6 @@ document.addEventListener('click', event => {
 });
 window.cachePage(initial);
 window.activatePage(initial.page,initial,false);
-if (document.fonts?.ready) document.fonts.ready.then(() => send({type:'ready'})); else send({type:'ready'});
+window.zoomPage(initial.zoom ?? 1);
+if (document.fonts?.ready) document.fonts.ready.then(() => { layoutVisiblePanels(); send({type:'ready'}); }); else send({type:'ready'});
 `;

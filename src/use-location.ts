@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 import * as Location from 'expo-location';
 import { LocationAccessError, requestDeviceLocation, shouldRefreshLocation, type Coordinates, type DeviceLocation, type LocationFailure, type LocationProvider, type LocationSource } from './domain/location';
 import { SAVED_LOCATION_KEY, validateSavedLocation } from './domain/saved-location';
+import { hasSystemDeviceLocation, getSystemDeviceLocation } from './system-device-location';
 
 export type SelectedLocation = Coordinates & { source: LocationSource; label?: string; accuracy?: number | null; timestamp: number };
 function provider(allowPrompt: boolean): LocationProvider {
@@ -11,7 +12,7 @@ function provider(allowPrompt: boolean): LocationProvider {
     getPermission: () => Location.getForegroundPermissionsAsync(),
     requestPermission: () => Location.requestForegroundPermissionsAsync(),
     servicesEnabled: () => Location.hasServicesEnabledAsync(),
-    currentPosition: () => Location.getCurrentPositionAsync({
+    currentPosition: () => hasSystemDeviceLocation ? getSystemDeviceLocation() : Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
       mayShowUserSettingsDialog: allowPrompt,
     }),

@@ -1,5 +1,24 @@
 # Reader and compass verification
 
+## 13 October 2026 — Honor page turning and persistent controls
+
+The attached Honor Magic 7 Pro recording showed repeated unsuccessful page turns around pages 58–59. Android emulator testing reproduced the reverse-turn failure: preparing the next two neighbors after advancing to page 59 evicted page 58 from the five-page FIFO cache. Without that prepared page, subsequent backward gestures only applied the edge resistance. Cache eviction now removes the farthest unprotected page, retaining the current page, the incoming page and any active drag target. Neighbor preparation keeps both directions available without increasing the five-panel limit.
+
+Rapid alternating swipes also exposed delayed React commits dropping newer turns or restoring an older page. Each gesture now carries an increasing sequence number; the native bridge validates against the displayed page and saves the absolute destination. Intermediate commits and stale WebView activation acknowledgements cannot overwrite a newer turn. Reloads reset the sequence, and page-picker navigation establishes a new displayed page.
+
+Quick flicks now turn pages without requiring a half-page drag. Slow drags still require halfway travel, and small movements/cancelled gestures return to the current page. Fit-page gestures suppress browser panning; enlarged reading retains native panning and pinch zoom. The language/location/settings banner stays visible. A permanent bottom bar provides previous ayah, replay, play/pause, next ayah, stop, loop and the full player. Page sizing measures the space between the banner and audio bar, keeping the complete printed page visible.
+
+Validation:
+
+- `npm run check`: TypeScript, 81 JavaScript tests, Rust formatting/Clippy and 14 Rust tests pass. Page-turn tests cover delayed commits, explicit navigation/reloads and malformed, duplicate or out-of-order messages.
+- `npm run export:mobile`: Android and iOS JavaScript/assets export successfully.
+- `scripts/check-mushaf-renderer.mjs`: real Chromium touch input covers four-direction short flicks, small movements, slow/cancelled drags, interrupted animations and zoom panning. The native neighbor-preparation order reproduces the old cache failure and passes repeated 58/59 turns with the fix. Existing artwork, theme, language, ayah-menu and opening-page checks pass.
+- Android API 36 emulator: the bundled release APK builds and installs over existing app data. Repeated 58/59 turns and all four swipe directions pass at 390 × 844 and 320 × 568. Twelve uninterrupted alternating swipes end on the correct page; reopening the book preserves that page, and explicit page-picker navigation afterward succeeds. Banner and audio controls remain after the reading tools time out. All seven audio buttons retain at least 44-pixel heights on the small screen, and banner/page/player bounds do not overlap. Arabic and English layouts, language selection, settings, location options, full player and loop editor open correctly.
+- Native audio playback advances its elapsed time and moves between ayahs. Pause retains its position; previous/next select the expected ayahs, replay resets playback, and stop clears the elapsed time and disables the stop control. Android media-session state independently confirms playback; UI hierarchy dumps can fail to reach idle during continuous audio updates.
+- APK signing and 16 KB ZIP alignment checks pass. No application crash was recorded.
+
+The physical Honor device was not connected; this is recording-based diagnosis plus browser and Android emulator confirmation. Native iOS compilation/runtime behavior for this change remains unverified.
+
 ## 0.3.6 — six reading copies and reader polish
 
 The Quran tab now opens six reading copies. All new copies start at Al-Fatiha. Each copy has its own name, last printed page, page bookmarks and ayah bookmarks; the model rejects malformed/out-of-range saved state. The reader stays mounted between the library and other app sections, with its expensive assets warmed from the library. Saved tafsir books are loaded only when the tafsir library is opened. Android Back returns from reading to the library. Section tabs are hidden while a Quran copy is open.

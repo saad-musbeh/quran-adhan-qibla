@@ -29,33 +29,33 @@ export function verifyQuranEncRelease(book: { apiKey: string; title: string; ver
   }
 }
 
-export function isValidSurahResult(value: unknown, surah: number, verseCount: number): value is SourceTafsirRecord[] {
+export function isValidSurahResult(value: unknown, surah: number, verseCount: number,allowedEmptyVerseKeys:readonly string[]=[]): value is SourceTafsirRecord[] {
   if (!Array.isArray(value) || value.length !== verseCount) return false;
   return value.every((record, index) => {
     if (!record || typeof record !== 'object') return false;
     const item = record as Partial<SourceTafsirRecord>;
     return Number(item.sura) === surah && Number(item.aya) === index + 1 &&
       typeof item.arabic_text === 'string' && item.arabic_text.length > 0 &&
-      typeof item.translation === 'string' && item.translation.length > 0 &&
+      typeof item.translation === 'string' && (item.translation.length > 0||allowedEmptyVerseKeys.includes(`${surah}:${index+1}`)) &&
       (item.footnotes === null || typeof item.footnotes === 'string');
   });
 }
 
-export function isValidTafsirEnvelope(value: unknown, book: TafsirBookEnvelope['book'], verseCounts: readonly number[]): value is TafsirBookEnvelope {
+export function isValidTafsirEnvelope(value: unknown, book: TafsirBookEnvelope['book']&{allowedEmptyVerseKeys?:readonly string[]}, verseCounts: readonly number[]): value is TafsirBookEnvelope {
   if (!value || typeof value !== 'object') return false;
   const envelope = value as Partial<TafsirBookEnvelope>;
   if (envelope.schema !== 1 || !envelope.book || envelope.book.id !== book.id || envelope.book.title !== book.title || envelope.book.publisher !== book.publisher || envelope.book.version !== book.version || envelope.book.url !== book.url) return false;
   if (!Array.isArray(envelope.records) || envelope.records.length !== verseCounts.reduce((sum, count) => sum + count, 0)) return false;
   let offset = 0;
   for (let surah = 1; surah <= verseCounts.length; surah += 1) {
-    if (!isValidSurahResult(envelope.records.slice(offset, offset + verseCounts[surah - 1]), surah, verseCounts[surah - 1])) return false;
+    if (!isValidSurahResult(envelope.records.slice(offset, offset + verseCounts[surah - 1]), surah, verseCounts[surah - 1],book.allowedEmptyVerseKeys)) return false;
     offset += verseCounts[surah - 1];
   }
   return true;
 }
 
 export function indexTafsirRecords(records: readonly SourceTafsirRecord[]): Map<string, { text: string; footnotes: string | null }> {
-  return new Map(records.map(record => [`${Number(record.sura)}:${Number(record.aya)}`, { text: record.translation, footnotes: record.footnotes }]));
+  return new Map(records.filter(record=>record.translation.trim().length>0).map(record => [`${Number(record.sura)}:${Number(record.aya)}`, { text: record.translation, footnotes: record.footnotes }]));
 }
 
 export async function downloadSurahsConcurrently<T>(

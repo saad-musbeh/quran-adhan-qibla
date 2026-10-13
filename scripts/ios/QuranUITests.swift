@@ -6,6 +6,7 @@ final class QuranUITests: XCTestCase {
   override func setUpWithError() throws {
     continueAfterFailure = false
     app.launch()
+    if app.buttons["menu-quran"].waitForExistence(timeout: 3) { app.buttons["menu-quran"].tap() }
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 45))
   }
 
@@ -24,6 +25,35 @@ final class QuranUITests: XCTestCase {
       if app.buttons["reader-library"].waitForExistence(timeout: 2) { return }
     }
     XCTFail("Reader tools were not available")
+  }
+
+  func testTabletMainMenuAndLandscapeReading() throws {
+    let size=app.windows.firstMatch.frame.size
+    guard min(size.width,size.height)>=600 else { throw XCTSkip("Tablet layout requires an iPad simulator") }
+    app.buttons["open-main-menu"].tap()
+    XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["menu-adhan"].exists)
+    XCTAssertTrue(app.buttons["menu-qibla"].exists)
+    screenshot("iPad home page portrait")
+    app.buttons["menu-quran"].tap()
+    app.buttons["open-book-6"].tap()
+    revealReader()
+    XCUIDevice.shared.orientation = .landscapeLeft
+    defer { XCUIDevice.shared.orientation = .portrait }
+    let spread=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in self.app.webViews.count==2 },object:app)
+    XCTAssertEqual(XCTWaiter.wait(for:[spread],timeout:15),.completed)
+    revealReader()
+    screenshot("iPad landscape two-page Mushaf")
+    let start=app.webViews.firstMatch.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5))
+    start.press(forDuration:0.01,thenDragTo:start.withOffset(CGVector(dx:0,dy:-90)))
+    revealReader()
+    XCTAssertTrue(app.staticTexts["reader-page-number"].label.hasPrefix("٣–٤"))
+    app.buttons["reader-library"].tap()
+    XCTAssertTrue(app.buttons["open-book-6"].waitForExistence(timeout: 10))
+    XCTAssertTrue(app.buttons["open-book-6"].label.hasSuffix("3"))
+    XCTAssertTrue(app.buttons["open-book-5"].label.hasSuffix("1"))
+    app.buttons["open-main-menu"].tap()
+    screenshot("iPad home page landscape")
   }
 
   func testBooksKeepIndependentPagesAndNames() {

@@ -2,7 +2,7 @@ name: iOS native build
 
 on:
   push:
-    branches: [main, codex/reader-polish, codex/test-0.4.0]
+    branches: [main, codex/reader-polish, codex/test-0.4.0, codex/tablet-location]
     paths-ignore: ['docs/**', '**/*.md']
   pull_request:
   workflow_dispatch:
@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: ios-${{ github.ref }}-${{ inputs.diagnostic_run || 'build' }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   previous-diagnostics:
@@ -121,6 +121,29 @@ jobs:
             target/quran-adhan-qibla-ios-simulator.zip
       - name: Add native UI tests to the generated project
         run: ruby scripts/prepare-ios-ui-tests.rb
+      - name: Emulate iPad portrait and landscape
+        run: |
+          set -o pipefail
+          QURAN_IPAD="$(python3 - <<'PYIPAD'
+          import json,subprocess
+          def sim(*args):return subprocess.check_output(['xcrun','simctl',*args],text=True)
+          runtimes=json.loads(sim('list','runtimes','--json'))['runtimes']
+          runtime=max((r for r in runtimes if r.get('isAvailable') and '.iOS-' in r['identifier']),key=lambda r:tuple(map(int,r['version'].split('.'))))
+          types=json.loads(sim('list','devicetypes','--json'))['devicetypes']
+          device=next(t for t in types if 'SimDeviceType.iPad-Pro-' in t['identifier'])
+          print(sim('create','Quran tablet checks',device['identifier'],runtime['identifier']).strip())
+          PYIPAD
+          )"
+          xcrun simctl boot "$QURAN_IPAD"
+          xcrun simctl bootstatus "$QURAN_IPAD" -b
+          xcrun simctl ui "$QURAN_IPAD" appearance dark
+          xcodebuild test -workspace ios/QuranAdhanQibla.xcworkspace \
+            -scheme QuranAdhanQibla -configuration Release \
+            -destination "platform=iOS Simulator,id=$QURAN_IPAD" \
+            -only-testing:QuranUITests/QuranUITests/testTabletMainMenuAndLandscapeReading \
+            -derivedDataPath target/ios-build -resultBundlePath target/ipad-ui.xcresult \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee target/ipad-ui.log | xcbeautify
+          xcrun simctl shutdown "$QURAN_IPAD"
       - name: Run the app and native UI checks
         run: |
           set -o pipefail
@@ -156,6 +179,8 @@ jobs:
           name: ios-ui-checks
           path: |
             target/ios-ui.log
+            target/ipad-ui.log
+            target/ipad-ui.xcresult
             target/ios-ui.xcresult
             target/ios-screenshots
           if-no-files-found: ignore

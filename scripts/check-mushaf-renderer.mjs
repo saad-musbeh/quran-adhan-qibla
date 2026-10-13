@@ -19,6 +19,11 @@ const browser = await chromium.launch({ headless:true, args:['--no-sandbox'] });
 try {
   const page = await browser.newPage({ viewport:{width:390,height:606} });
   const errors = []; page.on('pageerror', e => errors.push(e.message));
+  const settled = () => page.waitForFunction(() => {
+    const stage=document.querySelector('#stage');
+    if(stage.children.length!==1)return false;
+    return getComputedStyle(stage.firstElementChild).transform==='none';
+  });
   await page.addInitScript(() => {});
   const html = buildMushafDocument({...descriptor(600),language:'en',dark:false,activeKey:null}, descriptor(600).svg, readFileSync(new URL('../assets/quran/AmiriQuran.ttf', import.meta.url)).toString('base64'));
   await page.setContent(html.replace('<script>', '<script>window.bridgeEvents=[];window.ReactNativeWebView={postMessage:value=>window.bridgeEvents.push(JSON.parse(value))};'));
@@ -27,19 +32,19 @@ try {
   for (const n of [599,601,598,602]) await page.evaluate(info => window.cachePage(info), descriptor(n));
   assert.equal(await page.locator('.panel').count(), 5);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),390,'prepared pages cannot expand the RTL viewport');
-  for(const n of [600,601]){const margin=await page.locator('.panel[data-page="'+n+'"] .page-art').evaluate(node=>[node.style.left,node.style.right]);assert.deepEqual(margin,['12.75%','12.75%'],'odd/even artwork is centered');}
+  for(const n of [600,601]){const margin=await page.locator('.panel[data-page="'+n+'"] .page-art').evaluate(node=>[node.style.left,node.style.right]);assert.deepEqual(margin,['6%','6%'],'odd/even artwork is centered');}
   const state = {language:'en',dark:false,activeKey:null,bookmarkedKeys:[]};
   await page.evaluate(() => {window.originalArt=document.querySelector('#stage .page-art>svg');});
   await page.evaluate(state => window.activatePage(601,state), state);
-  await page.waitForTimeout(250);
+  await settled();
   await page.evaluate(state => window.activatePage(600,state), state);
-  await page.waitForTimeout(250);
+  await settled();
   assert.equal(await page.evaluate(() => document.querySelector('#stage .page-art>svg') === window.originalArt), true, 'cached source reuses the prepared SVG DOM');
   for (const n of [603,604]) {
     await page.evaluate(info => window.cachePage(info), descriptor(n));
     await page.evaluate(({n,state}) => window.activatePage(n,state), {n,state});
   }
-  await page.waitForTimeout(250);
+  await settled();
   assert.equal(await page.locator('#stage .panel').count(),1,'rapid transitions clean up old pages');
   assert.equal(await page.locator('.panel').count(),5,'pool stays bounded through eviction');
   assert.equal(await page.locator('#stage .ayahPolygon').count(),15);
@@ -144,31 +149,86 @@ try {
   // The drag follows the finger on both axes and commits only beyond halfway.
   await page.setViewportSize({width:390,height:606});
   await page.evaluate(()=>window.zoomPage(1));
-  for(const n of [299,300,301,302])await page.evaluate(info=>window.cachePage(info),descriptor(n));
+  await page.evaluate(info=>window.cachePage(info),descriptor(300));
   await page.evaluate(()=>window.activatePage(300,{language:'ar',dark:true,activeKey:null,loopPickMode:null},false));
+  for(const n of [299,301,298,302])await page.evaluate(info=>window.cachePage(info),descriptor(n));
   const touch=async(kind,x,y)=>page.evaluate(({kind,x,y})=>{
     if(kind==='touchstart')window.gestureTarget=document.querySelector('#stage .page-art');
     const target=window.gestureTarget;
     const t=new Touch({identifier:1,target,clientX:x,clientY:y});
     target.dispatchEvent(new TouchEvent(kind,{bubbles:true,cancelable:true,touches:kind==='touchend'||kind==='touchcancel'?[]:[t],changedTouches:[t]}));
   },{kind,x,y});
-  await touch('touchstart',180,500);await touch('touchmove',180,380);
+  await touch('touchstart',180,500);await touch('touchmove',180,470);
   await page.waitForTimeout(30);
-  assert.ok(await page.locator('#stage .panel[data-page="300"]').evaluate(n=>n.getBoundingClientRect().top)<-100,'page follows held vertical drag');
-  await touch('touchend',180,380);await page.waitForTimeout(240);
-  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'300','less than half returns to current page');
+  assert.ok(await page.locator('#stage .panel[data-page="300"]').evaluate(n=>n.getBoundingClientRect().top)<-20,'page follows held vertical drag');
+  await page.waitForTimeout(180);
+  await touch('touchend',180,470);await settled();
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'300','a sub-threshold drag returns to the current page');
   await touch('touchstart',180,550);await touch('touchmove',180,120);await touch('touchend',180,120);
   assert.equal(await page.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').at(-1).page),300,'bridge records original page');
   await page.evaluate(()=>window.activatePage(301,{language:'ar',dark:true}));
-  await page.waitForTimeout(250);
+  await settled();
   assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','more than half up turns to next page');
-  await touch('touchstart',50,300);await touch('touchmove',320,300);await touch('touchend',320,300);await page.waitForTimeout(250);
+  await touch('touchstart',50,300);await touch('touchmove',320,300);await touch('touchend',320,300);await settled();
   assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'302','horizontal drag remains available');
-  await touch('touchstart',320,300);await touch('touchmove',50,300);await touch('touchcancel',50,300);await page.waitForTimeout(240);
+  await touch('touchstart',320,300);await touch('touchmove',50,300);await touch('touchcancel',50,300);await settled();
   assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'302','cancelled gesture cannot change the page');
-  await touch('touchstart',180,80);await touch('touchmove',180,500);await touch('touchend',180,500);await page.waitForTimeout(250);
+  await touch('touchstart',180,80);await touch('touchmove',180,500);await touch('touchend',180,500);await settled();
   assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','more than half down turns to previous page');
   assert.equal(await page.locator('#stage .ayahPolygon').count(),pages[300].verseKeys.length,'drag preserves the complete printed page');
+  // Real browser input exercises Android-style gesture arbitration, unlike
+  // dispatching TouchEvents directly into the document.
+  const input = await page.context().newCDPSession(page);
+  const flick = async (x,y,dx,dy,duration=160,settleMs=250) => {
+    const timestamp=Date.now()/1000;
+    await input.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}],timestamp});
+    for(let i=1;i<=4;i++){
+      await page.waitForTimeout(duration/4);
+      await input.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+dx*i/4,y:y+dy*i/4}],timestamp:timestamp+duration*i/4000});
+    }
+    await input.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[],timestamp:timestamp+duration/1000+0.005});
+    await page.waitForTimeout(settleMs);
+    if(settleMs>=200)await settled();
+  };
+  await flick(140,310,100,0);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'302','a short horizontal flick turns the page');
+  await flick(240,310,-100,0);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','a short reverse flick returns one page');
+  await flick(180,380,0,-120);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'302','a short upward flick turns the page');
+  await flick(180,250,0,120);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','a short downward flick returns one page');
+  await flick(140,310,18,0);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','small finger movement does not turn the page');
+  await flick(140,310,40,0,800);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','a slow sub-threshold drag still returns to the current page');
+  for(let i=0;i<6;i++)await flick(i%2?260:140,310,i%2?-120:120,0,100,20);
+  await settled();
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','repeated forward/reverse flicks settle on the expected page');
+  assert.equal(await page.locator('#stage .panel').count(),1,'interrupted animations leave one complete page');
+  assert.equal(await page.locator('#stage .panel').evaluate(n=>Math.round(n.getBoundingClientRect().left)),0,'repeated flicks never leave the page shifted');
+  await page.evaluate(()=>window.zoomPage(2));
+  await flick(240,310,-120,0);
+  assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','zoomed swipes pan instead of turning pages');
+  assert.ok(await page.locator('#reader-viewport').evaluate(n=>n.scrollLeft)>0,'zoomed reading retains native panning');
+  await page.evaluate(()=>window.zoomPage(1));
+  // Mirror the native neighbor preparation order. FIFO eviction used to drop
+  // page 58 after turning to 59, permanently blocking the reverse gesture.
+  await page.evaluate(info=>window.cachePage(info),descriptor(58));
+  await page.evaluate(()=>window.activatePage(58,{},false));
+  for(const n of [57,59,56,60])await page.evaluate(info=>window.cachePage(info),descriptor(n));
+  for(let i=0;i<4;i++){
+    await flick(140,310,100,0);
+    const staleTurn=await page.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').at(-1).turn);
+    for(const n of [58,60,57,61])await page.evaluate(info=>window.cachePage(info),descriptor(n));
+    assert.ok(await page.evaluate(()=>cache.has(58)),'native preloading keeps the immediately previous page available');
+    await flick(240,310,-100,0);
+    await page.evaluate(turn=>window.activatePage(59,{},true,turn),staleTurn);
+    assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'58','native neighbor refresh permits repeated 58/59 page turns');
+    assert.equal(await page.locator('#stage .panel').count(),1,'a delayed native acknowledgement cannot roll back a newer turn');
+    for(const n of [57,59,56,60])await page.evaluate(info=>window.cachePage(info),descriptor(n));
+    assert.equal(await page.locator('.panel').count(),5,'neighbor refresh keeps the DOM pool bounded');
+  }
   await page.setViewportSize({width:320,height:568});
   for (const n of [1,2]) {
     await page.evaluate(info=>window.cachePage(info),descriptor(n));
@@ -194,6 +254,31 @@ try {
     assert.ok(bounds[0]>=0&&bounds[1]<=320,language+' menu stays inside viewport');
     await page.keyboard.press('Escape');
   }
+  // Each tablet panel advances by two pages, preserving spread parity.
+  const tablet=await browser.newPage({viewport:{width:640,height:960}});
+  tablet.on('pageerror',e=>errors.push(e.message));
+  const tabletHtml=buildMushafDocument({...descriptor(57),pageStep:2,language:'ar',dark:false,activeKey:null},descriptor(57).svg,readFileSync(new URL('../assets/quran/AmiriQuran.ttf',import.meta.url)).toString('base64'));
+  await tablet.setContent(tabletHtml.replace('<script>','<script>window.bridgeEvents=[];window.ReactNativeWebView={postMessage:value=>window.bridgeEvents.push(JSON.parse(value))};'));
+  await tablet.waitForFunction(()=>window.bridgeEvents.some(e=>e.type==='ready'));
+  for(const n of [55,59,53,61])await tablet.evaluate(info=>window.cachePage(info),descriptor(n));
+  const tabletSwipe=async(dx)=>tablet.evaluate(dx=>{
+    const target=document.querySelector('#stage .page-art');
+    for(const [type,x] of [['touchstart',250],['touchmove',250+dx],['touchend',250+dx]]){
+      const touch=new Touch({identifier:1,target,clientX:x,clientY:400});
+      target.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[touch],changedTouches:[touch]}));
+    }
+  },dx);
+  await tabletSwipe(90);
+  await tablet.waitForFunction(()=>document.querySelector('#stage').children.length===1);
+  assert.equal(await tablet.locator('#stage .panel').getAttribute('data-page'),'59','short tablet swipes turn to the next spread');
+  assert.equal(await tablet.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').at(-1).delta),1,'tablet bridge sends one spread step');
+  for(const n of [57,61,55,63])await tablet.evaluate(info=>window.cachePage(info),descriptor(n));
+  await tabletSwipe(-90);
+  await tablet.waitForFunction(()=>document.querySelector('#stage').children.length===1);
+  assert.equal(await tablet.locator('#stage .panel').getAttribute('data-page'),'57','tablet backward swipes survive neighbor preparation');
+  await tablet.evaluate(()=>window.zoomPage(16/22));
+  assert.ok(await tablet.locator('#sheet').evaluate(n=>n.getBoundingClientRect().width)<640,'smaller text sizes visibly shrink the tablet artwork');
+  await tablet.close();
   assert.deepEqual(errors,[]);
-  console.log('Mushaf browser QA passed: startup, prepared DOM reuse, bounded eviction, rapid transitions, theme/language, tafsir action, bookmark state, centered pages, ayah loop selection, zoom, resize, opening pages and persisted theme rendering.');
+  console.log('Mushaf browser QA passed: startup, prepared DOM reuse, bounded eviction, rapid transitions, real four-direction flicks, slow/cancelled drags, repeated flicks, zoom panning, theme/language, tafsir action, bookmark state, centered pages, ayah loop selection, resize, opening pages and persisted theme rendering.');
 } finally { await browser.close(); }

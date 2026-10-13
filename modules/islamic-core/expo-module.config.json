@@ -13,7 +13,8 @@
     "modules": [
       "expo.modules.islamiccore.IslamicCoreModule",
       "expo.modules.islamiccore.QuranAudioControlsModule",
-      "expo.modules.islamiccore.PrayerNotificationPermissionsModule"
+      "expo.modules.islamiccore.PrayerNotificationPermissionsModule",
+      "expo.modules.islamiccore.SystemDeviceLocationModule"
     ]
   }
 }

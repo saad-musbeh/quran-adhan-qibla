@@ -1,5 +1,6 @@
+import { Text } from '../text-size';
 import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from '../i18n';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { QURAN_THEMES, getQuranTheme, type QuranThemeId } from '../domain/quran-theme';

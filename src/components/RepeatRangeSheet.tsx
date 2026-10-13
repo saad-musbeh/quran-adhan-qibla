@@ -1,8 +1,9 @@
+import { Text, TextInput } from '../text-size';
 import { parseLocalizedInteger } from '../domain/localized-number';
 import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getSurah, surahs } from '../domain/quran';

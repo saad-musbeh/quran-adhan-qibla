@@ -1,4 +1,5 @@
 import type { Language } from './languages';
+import { message } from '../localization.ts';
 
 export type City = {
   id: number;
@@ -52,5 +53,14 @@ export function cityLabel(city: City, language: Language): string {
 }
 
 export function countryLabel(country: Country, language: Language): string {
-  return language === 'ar' ? country.arabicName : country.name;
+  return language === 'ar' ? country.arabicName : message(language, country.name);
+}
+
+/** Rebuild bundled city labels when the UI language changes, including saved selections. */
+export function selectedLocationLabel(location: {source:string;latitude:number;longitude:number;label?:string}, language: Language): string | undefined {
+  if (location.source !== 'city') return location.label;
+  const city = cities.find(item => item.latitude === location.latitude && item.longitude === location.longitude);
+  if (!city) return location.label;
+  const country = countries.find(item => item.code === city.countryCode);
+  return `${country ? countryLabel(country,language) : city.countryCode} · ${cityLabel(city,language)}`;
 }

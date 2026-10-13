@@ -1,6 +1,7 @@
+import { Text } from '../text-size';
 import { useReaderStyles } from '../quran-theme-context';
 import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, PanResponder, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { AccessibilityInfo, PanResponder, Pressable, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import { neighborForSwipe, TABS, type Language, type Tab } from '../domain/navigation';
 import { isRTL, localizeCopy } from '../i18n';
 
