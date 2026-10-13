@@ -6,8 +6,8 @@ import test from 'node:test';
 (globalThis as typeof globalThis & {require: NodeRequire}).require = createRequire(import.meta.url);
 const {cities, countries, cityLabel, countryLabel, searchCities} = await import('./cities.ts');
 
-test('catalogue entries have unique ids and valid coordinates', () => {
-  assert.ok(cities.length > 0);
+test('worldwide catalogue entries have unique ids and valid coordinates', () => {
+  assert.ok(cities.length > 100_000, 'all eligible places replace the former country quotas');
   assert.equal(new Set(cities.map(city => city.id)).size, cities.length);
   for (const city of cities) {
     assert.ok(Number.isFinite(city.latitude) && city.latitude >= -90 && city.latitude <= 90);
@@ -16,28 +16,42 @@ test('catalogue entries have unique ids and valid coordinates', () => {
   }
 });
 
-test('country counts agree with catalogue and targets reflect majority quota', () => {
-  assert.ok(countries.length > 150);
+test('country counts agree with all available places and include small territories', () => {
+  assert.ok(countries.length > 200);
+  const counts = new Map<string, number>();
+  for (const city of cities) counts.set(city.countryCode, (counts.get(city.countryCode) ?? 0) + 1);
   for (const country of countries) {
-    const actual = cities.filter(city => city.countryCode === country.code).length;
-    assert.equal(country.cityCount, actual, country.code);
-    assert.ok(actual > 0 && actual <= country.targetCount, country.code);
-    assert.ok(country.targetCount === 70 || country.targetCount === 30);
+    assert.equal(country.cityCount, counts.get(country.code), country.code);
+    assert.ok(country.cityCount > 0);
+    assert.equal(searchCities('', country.code).length, country.cityCount);
   }
+  assert.ok(countries.some(country => country.code === 'FO'), 'Faroe Islands has no religion quota prerequisite');
+  assert.ok(searchCities('Woking', 'GB').some(city => city.name === 'Woking'));
+  assert.ok(searchCities('Novi', 'US').some(city => city.name === 'Novi'));
 });
 
-test('search matches English and Arabic names, filters country, and caps results', () => {
-  const english = cities.find(city => city.name.toLocaleLowerCase().includes('cairo'));
-  assert.ok(english, 'Cairo is in the catalogue');
-  assert.ok(searchCities('CAIRO').some(city => city.id === english.id));
-  assert.ok(searchCities('cairo', 'EG').every(city => city.countryCode === 'EG'));
-  assert.ok(searchCities('a', 'EG').length <= 50);
-  assert.equal(searchCities('', 'EG').length, countries.find(country => country.code === 'EG')?.cityCount);
+test('search matches Arabic, accent-insensitive names and source transliterations', () => {
+  assert.ok(searchCities('CAIRO', 'eg').some(city => city.name === 'Cairo'));
+  assert.ok(searchCities('sao paulo', 'BR').some(city => city.name === 'São Paulo'));
   const arabic = cities.find(city => city.arabicName);
-  assert.ok(arabic, 'at least some Arabic aliases are present');
+  assert.ok(arabic, 'source Arabic aliases are present');
   assert.ok(searchCities(arabic.arabicName!).some(city => city.id === arabic.id));
-  assert.ok(searchCities('a').length <= 50);
+  const transliterated = cities.find(city => city.asciiName && !/^[\x00-\x7F]+$/.test(city.name));
+  assert.ok(transliterated);
+  assert.ok(searchCities(transliterated.asciiName!, transliterated.countryCode).some(city => city.id === transliterated.id));
   assert.deepEqual(searchCities('   '), []);
+  assert.deepEqual(searchCities('London', 'ZZ'), []);
+});
+
+test('every result remains accessible beyond fifty with exact and prefix matches first', () => {
+  const matches = searchCities('a', 'US');
+  assert.ok(matches.length > 1000, 'no hidden 50-result cutoff');
+  assert.ok(matches.every(city => city.countryCode === 'US'));
+  const york = searchCities('york', 'US');
+  const exactIndex = york.findIndex(city => city.name.toLocaleLowerCase() === 'york');
+  const prefixIndex = york.findIndex(city => city.name.toLocaleLowerCase().startsWith('york') && city.name.toLocaleLowerCase() !== 'york');
+  const partialIndex = york.findIndex(city => city.name.toLocaleLowerCase().includes('york') && !city.name.toLocaleLowerCase().startsWith('york'));
+  assert.ok(exactIndex >= 0 && prefixIndex > exactIndex && partialIndex > prefixIndex);
 });
 
 test('labels use localized names and fall back cleanly', () => {

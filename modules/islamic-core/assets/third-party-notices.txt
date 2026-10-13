@@ -67,7 +67,7 @@ https://creativecommons.org/licenses/by/4.0/
 
 Attribution: “Place names and coordinates from GeoNames (https://www.geonames.org), licensed under CC BY 4.0.”
 
-The quota size per country is derived from Pew Research Center's 2020 Muslim-share estimate in its Religious Composition by Country, 2010–2020 dataset. No Pew source file is included. See docs/CITY-DATA.md for dataset dates, checksums, selection details, counts, caveats, and the Pew citation.
+The catalogue includes every eligible independent populated place from the worldwide cities500 extract, without country or religion quotas. See docs/CITY-DATA.md for source dates, checksums, selection details, counts, and coverage limits.
 
 
 Leaflet 1.9.4

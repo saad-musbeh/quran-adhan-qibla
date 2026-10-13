@@ -1,7 +1,7 @@
 import { Text, TextInput } from '../text-size';
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
-import { cities, countries, searchCities, cityLabel, countryLabel } from '../domain/cities';
+import { countries, searchCities, cityLabel, countryLabel } from '../domain/cities';
 import { parseCoordinate } from '../domain/coordinates';
 import { bilingual, isRTL, localeFor, localizeCopy, type Language } from '../i18n';
 import { LocationMap } from './LocationMap';
@@ -15,7 +15,7 @@ type Props = {
 };
 
 export function LocationAlternatives({ language, disabled = false, coordinates, onSelect }: Props) {
-  const { styles } = useReaderStyles(baseStyles);
+  const { styles, colors } = useReaderStyles(baseStyles);
   const rtl = isRTL(language);
   const [open, setOpen] = useState<'city' | 'map' | 'manual' | null>(null);
   const [countryQuery, setCountryQuery] = useState('');
@@ -23,6 +23,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
   const [showCountryFilter, setShowCountryFilter] = useState(false);
   const [countryShown, setCountryShown] = useState(8);
   const [cityQuery, setCityQuery] = useState('');
+  const searchQuery = useDeferredValue(cityQuery);
   const [shown, setShown] = useState(8);
   const [selectedCity, setSelectedCity] = useState<number | null>(null);
   const [latitude, setLatitude] = useState('');
@@ -33,9 +34,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
     const q = countryQuery.trim().toLocaleLowerCase();
     return countries.filter(item => !q || `${countryLabel(item,language)} ${item.name} ${item.arabicName ?? ''} ${item.code}`.toLocaleLowerCase().includes(q));
   }, [countryQuery,language]);
-  const matches = useMemo(() => !cityQuery.trim() && countryCode
-    ? cities.filter(city => city.countryCode === countryCode)
-    : searchCities(cityQuery, countryCode), [cityQuery, countryCode]);
+  const matches = useMemo(() => searchCities(searchQuery, countryCode), [searchQuery, countryCode]);
   const copies = {
   ar: {
     title: 'خيارات أخرى للموقع', hint: 'لا تحتاج هذه الخيارات إلى إذن الموقع.',
@@ -68,7 +67,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
   };
   return <View style={styles.wrap}>
     <Text style={[styles.heading, alignment]}>{txt.title}</Text>
-    <Text style={[styles.hint, alignment]}>{txt.hint}</Text>
+
     {(['city', 'map', 'manual'] as const).map((key, index) => <View key={key} style={styles.section}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open === key, disabled }} disabled={disabled}
         testID={`location-${key}`} onPress={() => choose(key)} style={[styles.choice, open === key && styles.active, disabled && styles.disabled]}>
@@ -79,24 +78,24 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
           <Pressable accessibilityRole="link" disabled={disabled} onPress={() => { void Linking.openURL('https://www.geonames.org/').catch(() => {}); }}>
             <Text style={[styles.hint, alignment]}>{bilingual(language, 'بيانات المدن: GeoNames · ترخيص CC BY 4.0', 'City data: GeoNames · CC BY 4.0')}</Text>
           </Pressable>
-          <TextInput accessibilityLabel={txt.citySearch} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={cityQuery} placeholder={txt.citySearch} placeholderTextColor="#73988D" style={[styles.input, alignment]} onChangeText={value => { setCityQuery(value); setSelectedCity(null); setShown(8); }} />
+          <TextInput accessibilityLabel={txt.citySearch} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={cityQuery} placeholder={txt.citySearch} placeholderTextColor={colors.appMuted} style={[styles.input, alignment]} onChangeText={value => { setCityQuery(value); setSelectedCity(null); setShown(8); }} />
           <Pressable accessibilityRole="button" accessibilityState={{ expanded: showCountryFilter, disabled }} disabled={disabled} onPress={() => setShowCountryFilter(value => !value)}><Text style={styles.link}>{txt.filterCountry} {showCountryFilter ? '−' : '+'}</Text></Pressable>
           {country && <View style={[styles.selectedCountry, rtl && styles.selectedCountryRtl]}>
-            <Text style={[styles.cityText, alignment]}>{countryLabel(country, language)} · {country.cityCount.toLocaleString(localeFor(language))}/{country.targetCount.toLocaleString(localeFor(language))}</Text>
+            <Text style={[styles.cityText, alignment]}>{countryLabel(country, language)} · {country.cityCount.toLocaleString(localeFor(language))}</Text>
             <Pressable accessibilityRole="button" disabled={disabled} onPress={() => { setCountryCode(undefined); setSelectedCity(null); setShown(8); }}><Text style={styles.link}>{txt.clear}</Text></Pressable>
           </View>}
           {showCountryFilter && <>
-            <TextInput accessibilityLabel={txt.countrySearch} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={countryQuery} placeholder={txt.countrySearch} placeholderTextColor="#73988D" style={[styles.input, alignment]} onChangeText={value => { setCountryQuery(value); setCountryShown(8); }} />
+            <TextInput accessibilityLabel={txt.countrySearch} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={countryQuery} placeholder={txt.countrySearch} placeholderTextColor={colors.appMuted} style={[styles.input, alignment]} onChangeText={value => { setCountryQuery(value); setCountryShown(8); }} />
             <View style={styles.countryWrap}>
               <Pressable accessibilityRole="button" accessibilityState={{ selected: !countryCode, disabled }} disabled={disabled} onPress={() => { setCountryCode(undefined); setSelectedCity(null); setShown(8); }} style={[styles.countryChip, !countryCode && styles.selectedChip]}>
                 <Text style={styles.cityText}>{txt.allCountries}</Text>
               </Pressable>
               {countryMatches.slice(0, countryShown).map(item => <Pressable key={item.code} accessibilityRole="button" accessibilityState={{ selected: countryCode === item.code, disabled }} disabled={disabled} onPress={() => { setCountryCode(item.code); setCountryQuery(''); setShowCountryFilter(false); setSelectedCity(null); setShown(8); }} style={[styles.countryChip, countryCode === item.code && styles.selectedChip]}>
-                <Text style={styles.cityText}>{countryLabel(item, language)} · {item.cityCount.toLocaleString(localeFor(language))}/{item.targetCount.toLocaleString(localeFor(language))}</Text>
+                <Text style={styles.cityText}>{countryLabel(item, language)} · {item.cityCount.toLocaleString(localeFor(language))}</Text>
               </Pressable>)}
             </View>
             {countryShown < countryMatches.length && <Pressable accessibilityRole="button" disabled={disabled} onPress={() => setCountryShown(value => value + 10)}><Text style={styles.link}>{bilingual(language, 'عرض المزيد من الدول', 'Show more countries')}</Text></Pressable>}
-            <Text style={[styles.hint, alignment]}>{txt.pickCountry}</Text>
+
           </>}
           {matches.length === 0 ? <Text accessibilityRole="text" style={[styles.hint, alignment]}>{cityQuery.trim() ? txt.noResults : countryCode ? txt.noResults : txt.searchPrompt}</Text> : <>
             {matches.slice(0, shown).map(city => {
@@ -119,9 +118,9 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
         {key === 'map' && <LocationMap language={language} initialCoordinates={coordinates} disabled={disabled} onSelect={value => { onSelect({ ...value, source: 'map' }); setOpen(null); }} />}
         {key === 'manual' && <>
           <Text style={[styles.label, alignment]}>{txt.lat}</Text>
-          <TextInput testID="manual-latitude" accessibilityLabel={txt.lat} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={latitude} onChangeText={value => { setLatitude(value); setInvalid(false); }} placeholder="24.7136" placeholderTextColor="#73988D" keyboardType="numbers-and-punctuation" style={[styles.input, styles.ltr]} />
+          <TextInput testID="manual-latitude" accessibilityLabel={txt.lat} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={latitude} onChangeText={value => { setLatitude(value); setInvalid(false); }} placeholder="24.7136" placeholderTextColor={colors.appMuted} keyboardType="numbers-and-punctuation" style={[styles.input, styles.ltr]} />
           <Text style={[styles.label, alignment]}>{txt.lon}</Text>
-          <TextInput testID="manual-longitude" accessibilityLabel={txt.lon} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={longitude} onChangeText={value => { setLongitude(value); setInvalid(false); }} placeholder="46.6753" placeholderTextColor="#73988D" keyboardType="numbers-and-punctuation" style={[styles.input, styles.ltr]} />
+          <TextInput testID="manual-longitude" accessibilityLabel={txt.lon} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={longitude} onChangeText={value => { setLongitude(value); setInvalid(false); }} placeholder="46.6753" placeholderTextColor={colors.appMuted} keyboardType="numbers-and-punctuation" style={[styles.input, styles.ltr]} />
           <Pressable accessibilityRole="button" disabled={disabled} testID="location-example" onPress={() => { setLatitude('24.7136'); setLongitude('46.6753'); setInvalid(false); }}><Text style={styles.link}>{txt.example}</Text></Pressable>
           <Text style={[styles.hint, alignment]}>{txt.exampleNote}</Text>
           {invalid && <Text accessibilityRole="alert" style={styles.error}>{txt.invalid}</Text>}
