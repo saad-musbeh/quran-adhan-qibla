@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { ActivityIndicator, ScrollView, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import { Text } from '../text-size';
+import { selectedLocationLabel } from '../domain/cities';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, Pressable, StyleSheet, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import type { useLocation } from '../use-location';
 import { isFacingTarget, relativeBearing } from '../domain/heading';
 import { useHeading } from '../use-heading';
@@ -143,6 +145,7 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
   const align = rtl ? styles.rtl : styles.ltr;
   const errorCopy = state.error ? (state.error === 'locationError' ? t.locationError : t[state.error]) : null;
   const sourceCopy = location ? t[location.source] : '';
+  const locationLabel = useMemo(() => location ? selectedLocationLabel(location,language) : undefined, [location,language]);
   const headingHint = !active ? t.paused
     : headingState.status === 'calibrating' ? t.calibrating
       : headingState.reason === 'timeout' ? t.headingTimeout
@@ -170,7 +173,7 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
       </View>}
       <View style={[styles.locationRow, rtl && styles.rowRtl]}>
         <View style={styles.locationDetails}>
-          <Text numberOfLines={1} style={[styles.locationSource, align]}>{location.source === 'city' && location.label ? location.label : sourceCopy}</Text>
+          <Text numberOfLines={1} style={[styles.locationSource, align]}>{location.source === 'city' ? locationLabel ?? sourceCopy : sourceCopy}</Text>
           <Text style={styles.coordinates}>{location.latitude.toFixed(3)}, {location.longitude.toFixed(3)}</Text>
         </View>
       </View>

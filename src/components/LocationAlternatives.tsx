@@ -1,8 +1,9 @@
+import { Text, TextInput } from '../text-size';
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import { cities, countries, searchCities, cityLabel, countryLabel } from '../domain/cities';
 import { parseCoordinate } from '../domain/coordinates';
-import { bilingual, isRTL, localizeCopy, type Language } from '../i18n';
+import { bilingual, isRTL, localeFor, localizeCopy, type Language } from '../i18n';
 import { LocationMap } from './LocationMap';
 import { useReaderStyles } from '../quran-theme-context';
 
@@ -30,8 +31,8 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
   const country = countries.find(item => item.code === countryCode);
   const countryMatches = useMemo(() => {
     const q = countryQuery.trim().toLocaleLowerCase();
-    return countries.filter(item => !q || `${item.name} ${item.arabicName ?? ''} ${item.code}`.toLocaleLowerCase().includes(q));
-  }, [countryQuery]);
+    return countries.filter(item => !q || `${countryLabel(item,language)} ${item.name} ${item.arabicName ?? ''} ${item.code}`.toLocaleLowerCase().includes(q));
+  }, [countryQuery,language]);
   const matches = useMemo(() => !cityQuery.trim() && countryCode
     ? cities.filter(city => city.countryCode === countryCode)
     : searchCities(cityQuery, countryCode), [cityQuery, countryCode]);
@@ -71,7 +72,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
     {(['city', 'map', 'manual'] as const).map((key, index) => <View key={key} style={styles.section}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open === key, disabled }} disabled={disabled}
         testID={`location-${key}`} onPress={() => choose(key)} style={[styles.choice, open === key && styles.active, disabled && styles.disabled]}>
-        <Text style={[styles.choiceText, alignment]}>{index + 1}. {titleFor(key)} {open === key ? '−' : '+'}</Text>
+        <Text style={[styles.choiceText, alignment]}>{(index + 1).toLocaleString(localeFor(language))}. {titleFor(key)} {open === key ? '−' : '+'}</Text>
       </Pressable>
       {open === key && <View style={styles.panel}>
         {key === 'city' && <>
@@ -81,7 +82,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
           <TextInput accessibilityLabel={txt.citySearch} editable={!disabled} autoCorrect={false} autoCapitalize="none" value={cityQuery} placeholder={txt.citySearch} placeholderTextColor="#73988D" style={[styles.input, alignment]} onChangeText={value => { setCityQuery(value); setSelectedCity(null); setShown(8); }} />
           <Pressable accessibilityRole="button" accessibilityState={{ expanded: showCountryFilter, disabled }} disabled={disabled} onPress={() => setShowCountryFilter(value => !value)}><Text style={styles.link}>{txt.filterCountry} {showCountryFilter ? '−' : '+'}</Text></Pressable>
           {country && <View style={[styles.selectedCountry, rtl && styles.selectedCountryRtl]}>
-            <Text style={[styles.cityText, alignment]}>{countryLabel(country, language)} · {country.cityCount}/{country.targetCount}</Text>
+            <Text style={[styles.cityText, alignment]}>{countryLabel(country, language)} · {country.cityCount.toLocaleString(localeFor(language))}/{country.targetCount.toLocaleString(localeFor(language))}</Text>
             <Pressable accessibilityRole="button" disabled={disabled} onPress={() => { setCountryCode(undefined); setSelectedCity(null); setShown(8); }}><Text style={styles.link}>{txt.clear}</Text></Pressable>
           </View>}
           {showCountryFilter && <>
@@ -91,7 +92,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
                 <Text style={styles.cityText}>{txt.allCountries}</Text>
               </Pressable>
               {countryMatches.slice(0, countryShown).map(item => <Pressable key={item.code} accessibilityRole="button" accessibilityState={{ selected: countryCode === item.code, disabled }} disabled={disabled} onPress={() => { setCountryCode(item.code); setCountryQuery(''); setShowCountryFilter(false); setSelectedCity(null); setShown(8); }} style={[styles.countryChip, countryCode === item.code && styles.selectedChip]}>
-                <Text style={styles.cityText}>{countryLabel(item, language)} · {item.cityCount}/{item.targetCount}</Text>
+                <Text style={styles.cityText}>{countryLabel(item, language)} · {item.cityCount.toLocaleString(localeFor(language))}/{item.targetCount.toLocaleString(localeFor(language))}</Text>
               </Pressable>)}
             </View>
             {countryShown < countryMatches.length && <Pressable accessibilityRole="button" disabled={disabled} onPress={() => setCountryShown(value => value + 10)}><Text style={styles.link}>{bilingual(language, 'عرض المزيد من الدول', 'Show more countries')}</Text></Pressable>}
@@ -105,7 +106,7 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
                 <Text style={[styles.hint, alignment]}>{nation ? countryLabel(nation, language) : city.countryCode}</Text>
               </Pressable>;
             })}
-            <Text style={[styles.hint, alignment]}>{txt.showing} {Math.min(shown, matches.length)} {txt.of} {matches.length}</Text>
+            <Text style={[styles.hint, alignment]}>{bilingual(language,'عرض {shown} من {total}','Showing {shown} of {total}',{shown:Math.min(shown,matches.length).toLocaleString(localeFor(language)),total:matches.length.toLocaleString(localeFor(language))})}</Text>
             {shown < matches.length && <Pressable accessibilityRole="button" disabled={disabled} onPress={() => setShown(n => n + 8)}><Text style={styles.link}>{bilingual(language, 'عرض المزيد', 'Show more')}</Text></Pressable>}
             {selectedCity && matches.some(city => city.id === selectedCity) && <Pressable accessibilityRole="button" disabled={disabled} style={[styles.apply, disabled && styles.disabled]} onPress={() => {
               const city = matches.find(item => item.id === selectedCity)!;

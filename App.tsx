@@ -1,10 +1,11 @@
+import { Text, TextSizeContext, textScaleForSize } from './src/text-size';
 import * as SystemUI from 'expo-system-ui';
 import { ScreenLayer } from './src/components/ScreenLayer';
 import { QuranThemeContext } from './src/quran-theme-context';
 import { useQuranTheme } from './src/use-quran-theme';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { AppState, BackHandler, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AppState, BackHandler, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { MainMenu } from './src/components/MainMenu';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isPrayerTimesAvailable, isQiblaAvailable, prayerTimes, qiblaBearing } from './modules/islamic-core';
@@ -13,7 +14,7 @@ import { LocationSheet } from './src/components/LocationSheet';
 import { QiblaScreen } from './src/components/QiblaScreen';
 import { SwipeTabs, type Tab } from './src/components/SwipeTabs';
 import { localCalendarDate } from './src/domain/prayers';
-import { translations, isRTL } from './src/i18n';
+import { translations, isRTL, bilingual } from './src/i18n';
 import { LanguagePicker } from './src/components/LanguagePicker';
 import { useLocation } from './src/use-location';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -37,6 +38,9 @@ function Main() {
   const largeScreen=width>=720||Math.min(width,height)>=600;
   const { preferences, setPreferences, ready: preferencesReady } = usePreferences();
   const { language, prayer: settings, reader, compassMode } = preferences;
+  const textScale = textScaleForSize(reader.fontSize);
+  const headerHeight = Math.max(48,48*textScale);
+  const navigationHeight = Math.max(64,64*textScale);
   const audio = useQuranAudio();
   const tafsirLibrary = useTafsirLibrary();
   const quranTheme = useQuranTheme();
@@ -110,15 +114,15 @@ function Main() {
     return () => clearTimeout(timer);
   }, [schedule.times, now]);
 
-  return <QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
+  return <TextSizeContext.Provider value={textScale}><QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
     <StatusBar style="light" />
     <View pointerEvents={headerVisible ? 'auto' : 'none'}
       accessibilityElementsHidden={!headerVisible}
       importantForAccessibility={!headerVisible ? 'no-hide-descendants' : 'auto'}
-      style={[styles.header, styles.readingHeader, {top:insets.top, backgroundColor:quranTheme.theme.appBackground, opacity:headerVisible ? 1 : 0}, isRTL(language) && styles.reverse]}>
-      <Text style={styles.brand}>{t.brand}</Text>
+      style={[styles.header, styles.readingHeader, {top:insets.top, height:headerHeight, backgroundColor:quranTheme.theme.appBackground, opacity:headerVisible ? 1 : 0}, isRTL(language) && styles.reverse]}>
+      <Text numberOfLines={2} style={styles.brand}>{t.brand}</Text>
       <View style={[styles.tools, isRTL(language) && styles.reverse]}>
-        {menuEnabled&&!readingBook&&<Pressable testID="open-main-menu" accessibilityRole="button" accessibilityLabel={isRTL(language)?'القائمة الرئيسية':'Main menu'} style={styles.iconButton} onPress={()=>setHomeVisible(true)}><Ionicons name="home-outline" color={quranTheme.theme.accent} size={23}/></Pressable>}
+        {menuEnabled&&!readingBook&&<Pressable testID="open-main-menu" accessibilityRole="button" accessibilityLabel={bilingual(language,'القائمة الرئيسية','Main menu')} style={styles.iconButton} onPress={()=>setHomeVisible(true)}><Ionicons name="home-outline" color={quranTheme.theme.accent} size={23}/></Pressable>}
         <Pressable accessibilityRole="button" accessibilityLabel={t.language} style={styles.iconButton}
           onPress={() => setShowLanguages(true)}>
           <Ionicons name="language-outline" color={quranTheme.theme.accent} size={23} />
@@ -132,13 +136,13 @@ function Main() {
       </View>
     </View>
     <SwipeTabs hideNavigation={homeVisible||(tab === 'quran' && readingBook)} language={language} tab={tab} reading={homeVisible||(tab === 'quran' && readingBook)} chromeVisible={readingChromeVisible} onChange={chooseSection}>
-      <ScreenLayer testID="screen-qibla" active={!homeVisible&&tab === 'qibla'} background={quranTheme.theme.appBackground} top={48} bottom={64}>
+      <ScreenLayer testID="screen-qibla" active={!homeVisible&&tab === 'qibla'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
         <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
           calculationAvailable={isQiblaAvailable} calculationError={qibla.error}
           active={!homeVisible&&tab === 'qibla' && !showLocation && !showSettings && !showLanguages} mode={compassMode}
           onModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))} />
       </ScreenLayer>
-      <ScreenLayer testID="screen-adhan" active={!homeVisible&&tab === 'adhan'} background={quranTheme.theme.appBackground} top={48} bottom={64}>
+      <ScreenLayer testID="screen-adhan" active={!homeVisible&&tab === 'adhan'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
         <AdhanScreen language={language} state={locationState} times={schedule.times}
           error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now} timezone={timezone}/>
       </ScreenLayer>
@@ -147,10 +151,11 @@ function Main() {
           onReadingChromeChange={setReadingChromeVisible}
           onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
       </ScreenLayer>
-      <ScreenLayer testID="screen-home" active={homeVisible} background={quranTheme.theme.appBackground} top={48}><MainMenu language={language} onChoose={chooseSection} onLocation={()=>setShowLocation(true)} onSettings={()=>setShowSettings(true)}/></ScreenLayer>
+      <ScreenLayer testID="screen-home" active={homeVisible} background={quranTheme.theme.appBackground} top={headerHeight}><MainMenu language={language} onChoose={chooseSection} onLocation={()=>setShowLocation(true)} onSettings={()=>setShowSettings(true)}/></ScreenLayer>
 
     </SwipeTabs>
     <SettingsSheet language={language} visible={showSettings}
+      textSize={reader.fontSize} onTextSizeChange={fontSize=>setPreferences(value=>({...value,reader:{...value.reader,fontSize}}))}
       mainMenuOnPhones={preferences.mainMenuOnPhones} onMainMenuChange={enabled=>{setPreferences(value=>({...value,mainMenuOnPhones:enabled}));if(!largeScreen){setHomeVisible(enabled&&!readingBook);if(enabled&&!readingBook)setShowSettings(false);}}}
       onClose={() => setShowSettings(false)} prayer={settings} timezone={timezone}
       onPrayerChange={prayer => setPreferences(value => ({ ...value, prayer }))}
@@ -163,7 +168,7 @@ function Main() {
         onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />} />
     <LanguagePicker language={language} visible={showLanguages} onChoose={language => setPreferences(value => ({ ...value, language }))} onClose={() => setShowLanguages(false)} />
     <LocationSheet language={language} visible={showLocation} state={locationState} onClose={() => setShowLocation(false)} />
-  </SafeAreaView></QuranThemeContext.Provider>;
+  </SafeAreaView></QuranThemeContext.Provider></TextSizeContext.Provider>;
 }
 
 const styles = StyleSheet.create({

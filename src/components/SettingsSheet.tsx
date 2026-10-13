@@ -1,5 +1,7 @@
+import { TextSizeSetting } from './TextSizeSetting';
+import { Text } from '../text-size';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { methods, type PrayerSettings } from '../domain/prayers';
 import { translations, isRTL, localizeCopy, bilingual, type Language } from '../i18n';
@@ -19,10 +21,11 @@ type Props = {
   onClose: () => void; prayer: PrayerSettings; onPrayerChange: (value: PrayerSettings) => void;
   timezone: string; compassMode: 'live' | 'north'; onCompassModeChange: (mode: 'live' | 'north') => void;
   quran: ReactNode; notifications: ReactNode;
+  textSize: number; onTextSizeChange: (size:number)=>void;
   mainMenuOnPhones: boolean; onMainMenuChange: (enabled: boolean) => void;
 };
 
-export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChange, timezone, compassMode, onCompassModeChange, quran, notifications, mainMenuOnPhones, onMainMenuChange }: Props) {
+export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChange, timezone, compassMode, onCompassModeChange, quran, notifications, textSize, onTextSizeChange, mainMenuOnPhones, onMainMenuChange }: Props) {
   const { styles } = useReaderStyles(baseStyles);
   const { theme, themeId, setThemeId } = useReaderTheme();
   const [creditsVisible,setCreditsVisible]=useState(false);
@@ -45,6 +48,7 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
         <Pressable accessibilityRole="button" testID="settings-close" accessibilityLabel={c.close} onPress={onClose} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable>
       </View>
       <ScrollView testID="overall-settings" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <TextSizeSetting language={language} size={textSize} onChange={onTextSizeChange}/>
         <QuranThemePicker visible={themePickerVisible} language={language} themeId={themeId} onChoose={setThemeId} onClose={() => setThemePickerVisible(false)} />
         <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language, 'لون التطبيق', 'App color')} style={[styles.choice, rtl && styles.reverse]} onPress={() => setThemePickerVisible(true)}>
           <View style={[styles.colorChoice, rtl && styles.reverse]}><Ionicons name="color-palette-outline" size={22} color={theme.accent} /><Text style={[styles.choiceText, textStyle]}>{bilingual(language, 'لون التطبيق', 'App color')} · {bilingual(language, theme.arabicName, theme.name)}</Text></View>

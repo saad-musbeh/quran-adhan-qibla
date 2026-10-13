@@ -1,5 +1,6 @@
+import { Text } from '../text-size';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { bilingual, isRTL, localeFor, translations, type Language } from '../i18n';
@@ -47,7 +48,7 @@ export function LocationSheet({ language, visible, state, onClose }: Props) {
           <Text style={[styles.note, align]}>{t.locationPrivacy}</Text>
           {location && <Text style={[styles.note, align]}>{t.updated}: {new Date(location.timestamp).toLocaleString(localeFor(language))}
             {location.source === 'device' && location.accuracy != null && Number.isFinite(location.accuracy)
-              ? ` · ${t.accuracy}: ±${Math.round(location.accuracy)} ${t.meters}` : ''}</Text>}
+              ? ` · ${t.accuracy}: ±${Math.round(location.accuracy).toLocaleString(localeFor(language))} ${t.meters}` : ''}</Text>}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

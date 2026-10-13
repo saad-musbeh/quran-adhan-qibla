@@ -17,7 +17,10 @@ export function useVerseLoopPicker(language:Language,audio:QuranAudioController)
     if(!first){startAt(key);return}
     const result=createQuranLoopRange(first,key);
     if(!result.ok){
-      Alert.alert(bilingual(language, 'نطاق التكرار', 'Loop range'),bilingual(language, (result.error==='different-surah'?'اختر آية النهاية من السورة نفسها.':'اختر آية النهاية بعد آية البداية أو اختر الآية نفسها.'), (result.error==='different-surah'?'Choose the ending ayah in the same surah.':'Choose the same ayah or an ayah after the starting ayah.')));
+      Alert.alert(bilingual(language, 'نطاق التكرار', 'Loop range'),result.error==='different-surah'
+        ? bilingual(language,'اختر آية النهاية من السورة نفسها.','Choose the ending ayah in the same surah.')
+        : bilingual(language,'اختر آية النهاية بعد آية البداية أو اختر الآية نفسها.','Choose the same ayah or an ayah after the starting ayah.'),
+        [{text:bilingual(language,'حسنًا','OK')}]);
       return;
     }
     pause();setStartKey(first);setEndKey(key);setInitialRange({surah:result.surah,start:result.start,end:result.end});setPickMode(null);setVisible(true);

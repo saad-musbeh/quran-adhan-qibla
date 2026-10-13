@@ -1,5 +1,6 @@
+import { Text } from '../text-size';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { bilingual, isRTL, translations, type Language } from '../i18n';
 import type { Tab } from '../domain/navigation';

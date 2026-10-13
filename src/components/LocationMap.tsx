@@ -1,9 +1,10 @@
+import { Text, useTextScale } from '../text-size';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { LEAFLET_CSS, LEAFLET_JS, LEAFLET_LICENSE } from './map-assets/leaflet-runtime';
 import { parseMapMessage, type SelectedCoordinates } from './map-assets/map-message';
-import { isRTL, localizeCopy, type Language } from '../i18n';
+import { isRTL, localizeCopy, bilingual, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 
 type Props = {
@@ -27,8 +28,10 @@ function mapHtml(center: SelectedCoordinates | undefined, language: Language, hi
     && Math.abs(center.latitude) <= 90 && Math.abs(center.longitude) <= 180
     ? center : { latitude: 20, longitude: 0 };
   const direction = isRTL(language) ? 'rtl' : 'ltr';
-  return `<!doctype html><html lang="${escapeHtml(language)}" dir="${direction}"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>${LEAFLET_CSS}html,body,#map{height:100%;width:100%;margin:0;background:#eef2f4}.hint{position:absolute;z-index:500;top:8px;left:50%;transform:translateX(-50%);padding:5px 9px;border-radius:6px;background:${theme.appSurface};color:#F4EFE4;font:13px sans-serif;white-space:nowrap;box-shadow:0 1px 4px #0003}</style><script>${LEAFLET_JS}</script></head><body><!-- ${LEAFLET_LICENSE} --><div id="map"></div><div class="hint">${escapeHtml(hint)}</div><script>
-const map=L.map('map',{zoomControl:true,attributionControl:true,preferCanvas:true,worldCopyJump:false}).setView([${initial.latitude},${initial.longitude}],${center ? 12 : 2});
+  return `<!doctype html><html lang="${escapeHtml(language)}" dir="${direction}"><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>${LEAFLET_CSS}html,body,#map{height:100%;width:100%;margin:0;background:#eef2f4}.hint{position:absolute;z-index:500;top:8px;left:50%;transform:translateX(-50%);padding:5px 9px;border-radius:6px;background:${theme.appSurface};color:#F4EFE4;font:calc(13px * var(--text-scale,1)) sans-serif;max-width:calc(100% - 24px);text-align:center;box-shadow:0 1px 4px #0003}.leaflet-control-attribution{font-size:calc(11px * var(--text-scale,1))}.leaflet-popup-content{font-size:calc(13px * var(--text-scale,1))}</style><script>${LEAFLET_JS}</script></head><body><!-- ${LEAFLET_LICENSE} --><div id="map"></div><div class="hint">${escapeHtml(hint)}</div><script>
+window.setTextScale=value=>document.documentElement.style.setProperty('--text-scale',String(value));
+const map=L.map('map',{zoomControl:false,attributionControl:true,preferCanvas:true,worldCopyJump:false}).setView([${initial.latitude},${initial.longitude}],${center ? 12 : 2});
+map.zoomControl=L.control.zoom({zoomInTitle:${JSON.stringify(bilingual(language,'تكبير الخريطة','Zoom in')).replace(/</g,'\\u003c')},zoomOutTitle:${JSON.stringify(bilingual(language,'تصغير الخريطة','Zoom out')).replace(/</g,'\\u003c')}}).addTo(map);
 const tileLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{minZoom:2,maxZoom:19,updateWhenIdle:true,keepBuffer:2,detectRetina:false,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
 let tileErrors=0,tileFailed=false,tileReady=false;const tileTimeout=setTimeout(()=>{if(!tileReady){tileFailed=true;window.setMapEnabled(false);window.ReactNativeWebView.postMessage(JSON.stringify({type:'map-error'}));}},15000);
 tileLayer.on('tileload',()=>{tileErrors=0;if(!tileReady){tileReady=true;clearTimeout(tileTimeout);window.ReactNativeWebView.postMessage(JSON.stringify({type:'map-ready'}));}});tileLayer.on('tileerror',()=>{if(tileFailed)return;tileErrors+=1;if(tileErrors>=3){tileFailed=true;clearTimeout(tileTimeout);window.setMapEnabled(false);window.ReactNativeWebView.postMessage(JSON.stringify({type:'map-error'}));}});
@@ -41,6 +44,7 @@ ${center ? `choose(L.latLng(${initial.latitude},${initial.longitude}));` : ''}
 
 export function LocationMap({ language, initialCoordinates, onSelect, disabled = false }: Props) {
   const { colors: theme, styles } = useReaderStyles(baseStyles);
+  const textScale = useTextScale();
   const t = localizeCopy(language, copy);
   const [selected, setSelected] = useState<SelectedCoordinates | null>(null);
   const [failed, setFailed] = useState(false);
@@ -51,7 +55,9 @@ export function LocationMap({ language, initialCoordinates, onSelect, disabled =
   const isRtl = isRTL(language);
   const setMapEnabledScript = `window.setMapEnabled && window.setMapEnabled(${!disabled}); true;`;
 
+  const scaleScript = `window.setTextScale && window.setTextScale(${textScale}); true;`;
   useEffect(() => { webView.current?.injectJavaScript(setMapEnabledScript); }, [setMapEnabledScript]);
+  useEffect(() => { webView.current?.injectJavaScript(scaleScript); }, [scaleScript]);
   const handleNavigation = (request: WebViewNavigation) => {
     if (request.url === 'about:blank') return true;
     if (request.url === 'https://www.openstreetmap.org/copyright') void Linking.openURL(request.url);
@@ -69,7 +75,7 @@ export function LocationMap({ language, initialCoordinates, onSelect, disabled =
         originWhitelist={['about:blank', 'https://www.openstreetmap.org']}
         onShouldStartLoadWithRequest={handleNavigation}
         onLoadStart={() => { setLoading(true); setFailed(false); }}
-        onLoadEnd={() => { webView.current?.injectJavaScript(setMapEnabledScript); }}
+        onLoadEnd={() => { webView.current?.injectJavaScript(setMapEnabledScript+scaleScript); }}
         onError={() => { setLoading(false); setFailed(true); }}
         onHttpError={() => { setLoading(false); setFailed(true); }}
         onMessage={event => {

@@ -1,4 +1,5 @@
 import type { Language } from './domain/languages.ts';
+import { localizeCopy } from './localization.ts';
 
 type NotificationCopy = {
   title: string;
@@ -337,15 +338,15 @@ const copies: Record<Language, NotificationCopy> = {
 export function notificationCopy(language: Language, platform = 'android'): NotificationCopy {
   const copy = copies[language];
   if (platform !== 'ios') return copy;
-  return {...copy, ...(language === 'ar' ? {
+  return {...copy, ...localizeCopy(language, { ar: {
     toggle: 'تنبيهات الصلاة',
     note: 'يُشغّل iOS مقطع أذان قصيرًا (٢٩ ثانية). يتحكم الهاتف في الصوت ووضع التركيز. افتح التطبيق أسبوعيًا لتحديث المواقيت المحفوظة.',
     permission: 'اسمح بالإشعارات في إعدادات iOS.',
     channelOff: 'صوت تنبيهات الصلاة مكتوم. راجع إعدادات الإشعارات في iOS.',
-  } : {
+  }, en: {
     toggle: 'Prayer alerts',
     note: 'iOS plays a short Adhan excerpt (29 seconds). Phone sound and Focus settings apply. Open the app weekly to refresh saved prayer alerts.',
     permission: 'Allow notifications in iOS settings.',
     channelOff: 'Prayer alert sounds are muted. Check iOS notification settings.',
-  })};
+  } })};
 }

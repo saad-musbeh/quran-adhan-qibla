@@ -1,6 +1,7 @@
+import { Text, TextInput, useTextScale } from '../text-size';
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { useTafsirLibrary } from '../use-tafsir-library';
 import { ScreenLayer } from './ScreenLayer';
@@ -17,6 +18,7 @@ import type { QuranAudioController } from '../use-quran-audio';
 type Props = { tafsirLibrary: ReturnType<typeof useTafsirLibrary>; onBookOpenChange: (open:boolean)=>void; active: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onReadingChromeChange: (visible: boolean) => void; onSettingsChange: (settings: QuranReaderSettings) => void };
 
 export function QuranLibrary(props: Props) {
+  const textScale = useTextScale();
   const { colors, styles } = useReaderStyles(baseStyles), { language, active } = props;
   const rtl = isRTL(language);
   const window=useWindowDimensions();
@@ -58,7 +60,7 @@ export function QuranLibrary(props: Props) {
   const updateBook = (id: string, change: (book: QuranBook) => QuranBook) => setBooks(values => values.map(book => book.id === id ? change(book) : book));
   return <View style={[styles.root,{backgroundColor:colors.appBackground}]}>
     <ScreenLayer active={!selectedId} background={colors.appBackground}>
-      <ScrollView onLayout={event=>setShelfWidth(event.nativeEvent.layout.width)} contentContainerStyle={styles.shelf}>
+      <ScrollView onLayout={event=>setShelfWidth(event.nativeEvent.layout.width)} contentContainerStyle={[styles.shelf,{paddingTop:Math.max(48,48*textScale)+10,paddingBottom:Math.max(80,80*textScale)}]}>
         <Text style={[styles.heading,rtl&&styles.rtl]}>{bilingual(language,'مكتبتي القرآنية','My Quran library')}</Text>
         <Text style={[styles.hint,rtl&&styles.rtl]}>{bilingual(language,'لكل مصحف موضع قراءة وإشارات مرجعية مستقلة.','Each book keeps its own reading position and bookmarks.')}</Text>
         {!ready&&<ActivityIndicator color={colors.accent}/>}

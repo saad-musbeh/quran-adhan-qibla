@@ -1,13 +1,7 @@
+import { Text } from '../text-size';
 import React, {useMemo, useState} from 'react';
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { selectedLocationLabel } from '../domain/cities';
 import {nextPrayer, prayerNames} from '../domain/prayers';
 import { isRTL, localeFor, localizeCopy, translations, type Language } from '../i18n';
 import type {useLocation} from '../use-location';
@@ -41,7 +35,8 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
   const compact = availableHeight > 0 && availableHeight <= 500;
   const upcoming = useMemo(() => times?.length === prayerNames.length ? nextPrayer(times, now) : null, [times, now]);
   const location = state.location;
-  const sourceLabel = location ? `${copy[location.source]}${location.label ? ` · ${location.label}` : ''}` : '';
+  const locationLabel = useMemo(() => location ? selectedLocationLabel(location,language) : undefined, [location,language]);
+  const sourceLabel = location ? `${copy[location.source]}${locationLabel ? ` · ${locationLabel}` : ''}` : '';
 
   const retryLocation = () => { void state.locate(); };
   const locationError = state.error ? t[state.error] : null;
@@ -50,7 +45,7 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
     <View style={[styles.heading, rtl && styles.rowRtl]}>
       <View style={styles.headingCopy}>
         <Text style={[styles.title, compact && styles.titleCompact, rtl && styles.textRtl]}>{t.adhanTitle}</Text>
-        {location && times && <Text numberOfLines={1} style={[styles.date, compact && styles.dateCompact, rtl && styles.textRtl]}>{now.toLocaleDateString(locale, {weekday: compact ? 'short' : 'long', day: 'numeric', month: compact ? 'short' : 'long'})}{compact ? ` · ${timezone}` : ''}</Text>}
+        {location && times && <Text style={[styles.date, compact && styles.dateCompact, rtl && styles.textRtl]}>{now.toLocaleDateString(locale, {weekday: compact ? 'short' : 'long', day: 'numeric', month: compact ? 'short' : 'long'})}{compact ? ` · ${timezone}` : ''}</Text>}
       </View>
 
     </View>
@@ -71,7 +66,7 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
       {!calculationAvailable && <Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{t.unavailable}</Text>}
     </View> : <>
       <View style={[styles.locationStrip, rtl && styles.rowRtl]}>
-        <Text numberOfLines={1} style={[styles.locationText, rtl && styles.textRtl]}>{sourceLabel}</Text>
+        <Text style={[styles.locationText, rtl && styles.textRtl]}>{sourceLabel}</Text>
         {state.loading ? <ActivityIndicator color="#D6BA7A" size="small" /> : null}
       </View>
 
@@ -101,7 +96,7 @@ export function AdhanScreen({language, state, times, error, calculationAvailable
         </View>
 
         </View>
-        {!compact && <Text numberOfLines={1} style={[styles.timezone, rtl && styles.textRtl]}>{t.phoneTimezone}: {timezone}</Text>}
+        {!compact && <Text style={[styles.timezone, rtl && styles.textRtl]}>{t.phoneTimezone}: {timezone}</Text>}
       </>}
     </>}
 

@@ -1,4 +1,5 @@
-import { Linking,Modal,Pressable,ScrollView,StyleSheet,Text,View } from 'react-native';
+import { Text } from '../text-size';
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bilingual,isRTL,type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
@@ -32,27 +33,31 @@ export function CreditsSheet({language,visible,onClose}:{language:Language;visib
         {book.publicationSource&&link(bilingual(language,'مرجع تاريخ النشر','Publication date reference'),book.publicationSource)}
         {book.compositionSource&&link(bilingual(language,'مرجع تاريخ التأليف','Composition date reference'),book.compositionSource)}
       </View>)}
-      {link('QuranEnc · publishers, edition metadata and reuse terms','https://quranenc.com/ar/home/api/')}
-      {link('Quranpedia.net · source edition 2026-08-10 · data license','https://api.quranpedia.net/dumps/LICENSE.md')}
+      {link(bilingual(language,'QuranEnc · الناشرون وبيانات الطبعات وشروط إعادة الاستخدام','QuranEnc · publishers, edition metadata and reuse terms'),'https://quranenc.com/ar/home/api/')}
+      {link(bilingual(language,'Quranpedia.net · طبعة المصدر 2026-08-10 · ترخيص البيانات','Quranpedia.net · source edition 2026-08-10 · data license'),'https://api.quranpedia.net/dumps/LICENSE.md')}
       <Text style={[styles.body,align]}>{bilingual(language,'تُحفظ نصوص QuranEnc ومعلومات ناشرها وإصدارها دون تعديل. نصوص الموسوعة القرآنية مأخوذة من تنزيلاتها الرسمية ذات بصمة SHA-256؛ تنسيقات HTML تُعرض كنصوص، والمقاطع المتكررة تُخزّن مرة واحدة مع الحفاظ على إحالات الآيات.','QuranEnc text and publisher/edition metadata are retained without edits. Quranpedia editions come from official SHA-256 verified dumps; HTML is displayed as text and repeated passages are stored once with their original verse references.')}</Text>
-      {link('Tazkirul Quran · Goodword Books / CPS · translation and commentary copyright free','https://cpsglobal.org/sites/default/files/2025-01/Quran-Commentary.pdf')}
-      {link('QUL · tafsir source resources','https://qul.tarteel.ai/resources/tafsir')}
-      {link('spa5k/tafsir_api · pinned digital source license','https://github.com/spa5k/tafsir_api/blob/9ae590abdaaa38462f4f91cc141903aa6f72cc23/LICENSE')}
+      {link(bilingual(language,'Tazkirul Quran · Goodword Books / CPS · الترجمة والتفسير متاحان دون قيود حقوق النشر','Tazkirul Quran · Goodword Books / CPS · translation and commentary copyright free'),'https://cpsglobal.org/sites/default/files/2025-01/Quran-Commentary.pdf')}
+      {link(bilingual(language,'QUL · مصادر التفسير','QUL · tafsir source resources'),'https://qul.tarteel.ai/resources/tafsir')}
+      {link(bilingual(language,'spa5k/tafsir_api · ترخيص المصدر الرقمي المحدد','spa5k/tafsir_api · pinned digital source license'),'https://github.com/spa5k/tafsir_api/blob/9ae590abdaaa38462f4f91cc141903aa6f72cc23/LICENSE')}
       <Text style={styles.notice}>{TAFSIR_MIRROR_LICENSE}</Text>
       <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'التلاوات والأذان','Recitations and Adhan')}</Text>
-      {link('Quran recitations · EveryAyah.com','https://everyayah.com/')}
+      {link(bilingual(language,'تلاوات القرآن · EveryAyah.com','Quran recitations · EveryAyah.com'),'https://everyayah.com/')}
       {link('Beautiful adhan · Adam-synagda · CC0 1.0','https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg')}
       <Text style={[styles.body,align]}>{bilingual(language,'صوت أذان iOS مقتطف مدته ٢٩ ثانية مع تلاشي النهاية من التسجيل الأصلي.','The iOS Adhan alert is a 29-second excerpt with an ending fade from the original recording.')}</Text>
       <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'المدن والخريطة','Cities and map')}</Text>
-      {link('Place names and coordinates adapted from GeoNames · CC BY 4.0','https://www.geonames.org')}
+      {link(bilingual(language,'أسماء الأماكن وإحداثياتها مستمدة من GeoNames · CC BY 4.0','Place names and coordinates adapted from GeoNames · CC BY 4.0'),'https://www.geonames.org')}
       {link('Creative Commons Attribution 4.0','https://creativecommons.org/licenses/by/4.0/')}
-      {link('Country sampling · Pew Research Center · Religious Composition by Country, 2010–2020','https://doi.org/10.58094/5shf-2d69')}
+      {link(bilingual(language,'اختيار الدول · Pew Research Center · Religious Composition by Country, 2010–2020','Country sampling · Pew Research Center · Religious Composition by Country, 2010–2020'),'https://doi.org/10.58094/5shf-2d69')}
       {link('© OpenStreetMap contributors · ODbL','https://www.openstreetmap.org/copyright')}
       {link('Leaflet 1.9.4 · Vladimir Agafonkin / CloudMade · BSD-2-Clause','https://leafletjs.com')}
       <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'خط القرآن','Quran font')}</Text>
       {link('Amiri · The Amiri Project Authors · SIL Open Font License 1.1','https://github.com/aliftype/amiri')}
       <Text style={styles.notice}>{AMIRI_LICENSE}</Text>
-      {link('Quran · Adhan · Qibla · source and software licenses','https://github.com/saad-musbeh/quran-adhan-qibla')}
+      <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'ترجمات الواجهة','Interface translations')}</Text>
+      <Text style={[styles.body,align]}>{bilingual(language,'ترجمات الواجهة مسودات آلية تنتظر مراجعة متحدثين أصليين.','Interface translations are machine-assisted drafts awaiting native-speaker review.')}</Text>
+      {link('Google Translate','https://translate.google.com/')}
+      {link('Unicode CLDR','https://cldr.unicode.org/')}
+      {link(bilingual(language,'قرآن · أذان · قبلة · تراخيص المصادر والبرمجيات','Quran · Adhan · Qibla · source and software licenses'),'https://github.com/saad-musbeh/quran-adhan-qibla')}
     </ScrollView>
   </View></Modal>;
 }

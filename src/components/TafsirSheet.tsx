@@ -1,7 +1,8 @@
+import { Text } from '../text-size';
 import { bilingual, localizeCopy, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getSurah, getVerse } from '../domain/quran';
@@ -39,7 +40,7 @@ export function TafsirSheet({ library, verseKey, language, dark, quranFontLoaded
       <View accessibilityViewIsModal style={[styles.sheet, { backgroundColor: paper, borderColor: colors.accent }]}>
         <View style={[styles.header,{backgroundColor:catalogue?headerPaper:paper,borderColor:colors.accent}]}>
           <Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={c.close} onPress={onClose}><Ionicons name="close" size={24} color={ink}/></Pressable>
-          <View style={styles.titleGroup}><Text accessibilityRole="header" style={[styles.title,{color:ink},catalogue&&{textAlign:ar?'right':'left',writingDirection:ar?'rtl':'ltr'}]}>{catalogue?c.books:book?.title}</Text><Text style={[styles.reference,{color:ink}]}>{getSurah(surah)?.arabicName} · {String(ayah).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[Number(d)])}</Text></View>
+          <View style={styles.titleGroup}><Text accessibilityRole="header" style={[styles.title,{color:ink},catalogue&&{textAlign:ar?'right':'left',writingDirection:ar?'rtl':'ltr'}]}>{catalogue?c.books:book?.title}</Text><Text style={[styles.reference,{color:ink}]}>{getSurah(surah)?.arabicName} · {ayah.toLocaleString(localeFor(language),{useGrouping:false})}</Text></View>
           <Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={catalogue?c.back:c.books} disabled={catalogue&&!library.selectedId} onPress={()=>setShowBooks(!catalogue)}><Ionicons name={catalogue?'document-text-outline':'library-outline'} size={23} color={ink}/></Pressable>
         </View>
         {catalogue?<ScrollView contentContainerStyle={styles.catalogue}>
@@ -53,7 +54,7 @@ export function TafsirSheet({ library, verseKey, language, dark, quranFontLoaded
             return <View key={item.id} style={[styles.bookRow,{borderColor:colors.accent},selected&&{backgroundColor:selectedPaper}]}>
               <View style={styles.statusColumn}>
                 <Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{selected:saved,disabled:!library.ready||Boolean(library.isDownloading&&!loading)}} disabled={!library.ready||Boolean(library.isDownloading&&!loading)} onPress={()=>{if(loading){choiceRevision.current+=1;setPendingBook(null);library.cancelDownload()}else void choose(item.id)}}><Ionicons name={loading?'close-circle-outline':saved?'checkmark-circle-outline':'arrow-down-circle-outline'} size={32} color="#BD8744"/></Pressable>
-                {loading?<Text style={[styles.progress,{color:ink}]}>{library.progress}%</Text>:saved?<Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={`${c.remove}: ${item.title}`} onPress={()=>{setPendingBook(null);void library.deleteBook(item.id).catch(()=>setRemoveError(true))}}><Ionicons name="trash-outline" size={18} color={ink}/></Pressable>:null}
+                {loading?<Text style={[styles.progress,{color:ink}]}>{library.progress.toLocaleString(localeFor(language))}%</Text>:saved?<Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={`${c.remove}: ${item.title}`} onPress={()=>{setPendingBook(null);void library.deleteBook(item.id).catch(()=>setRemoveError(true))}}><Ionicons name="trash-outline" size={18} color={ink}/></Pressable>:null}
               </View>
               <Pressable style={styles.bookDetails} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{selected,disabled:!library.ready||Boolean(library.isDownloading&&!loading)}} disabled={!library.ready||Boolean(library.isDownloading&&!loading)} onPress={()=>{if(loading){choiceRevision.current+=1;setPendingBook(null);library.cancelDownload()}else void choose(item.id)}}>
                 <Text style={[styles.bookTitle,{color:ink},alignment]}>{item.shortTitle??item.title}</Text>

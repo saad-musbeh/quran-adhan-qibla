@@ -1,7 +1,8 @@
+import { Text, useTextScale } from '../text-size';
 import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from '../i18n';
 import type { QuranTheme } from '../domain/quran-theme';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import { gunzipSync, strFromU8 } from 'fflate';
@@ -51,6 +52,8 @@ function pageDescriptor(page: number) {
 }
 
 export function MushafPageView(props: Props) {
+  const textScale = useTextScale();
+  const latestTextScale = useRef(textScale); latestTextScale.current = textScale;
   const web = useRef<WebView>(null);
   const latest = useRef(props); latest.current = props;
   const cached = useRef(new Set<number>());
@@ -58,13 +61,13 @@ export function MushafPageView(props: Props) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const state = () => ({ language:latest.current.language, ui:mushafLabels(latest.current.language), dark:latest.current.dark, theme:latest.current.theme, activeKey:latest.current.activeKey, bookmarkedKeys:latest.current.bookmarkedKeys??[],loopPickMode:latest.current.loopPickMode??null,loopStartKey:latest.current.loopStartKey??null,loopEndKey:latest.current.loopEndKey??null });
+  const state = () => ({ textScale:latestTextScale.current, language:latest.current.language, ui:mushafLabels(latest.current.language), dark:latest.current.dark, theme:latest.current.theme, activeKey:latest.current.activeKey, bookmarkedKeys:latest.current.bookmarkedKeys??[],loopPickMode:latest.current.loopPickMode??null,loopStartKey:latest.current.loopStartKey??null,loopEndKey:latest.current.loopEndKey??null });
   useEffect(() => {
     let alive = true;
     const initial = latest.current;
     setError(false); setReady(false); setHtml(null); cached.current.clear();
     void preloadMushafResources(initial.asset).then(({svg,font}) => {
-      if (alive) setHtml(buildMushafDocument(initial, svg, font));
+      if (alive) setHtml(buildMushafDocument({...initial,textScale:latestTextScale.current}, svg, font));
     }).catch(() => { if (alive) setError(true); });
     return () => { alive=false; };
   }, [attempt, props.pageStep]);
@@ -98,7 +101,7 @@ export function MushafPageView(props: Props) {
     })();
     return () => { alive=false; };
   }, [ready, props.page, props.asset, props.pageStep]);
-  useEffect(() => { if (ready) web.current?.injectJavaScript(`window.updateState(${JSON.stringify(state())});true;`); }, [ready, props.activeKey, props.bookmarkedKeys, props.language, props.dark, props.theme, props.loopPickMode, props.loopStartKey, props.loopEndKey]);
+  useEffect(() => { if (ready) web.current?.injectJavaScript(`window.updateState(${JSON.stringify(state())});true;`); }, [ready, props.activeKey, props.bookmarkedKeys, props.language, props.dark, props.theme, props.loopPickMode, props.loopStartKey, props.loopEndKey, textScale]);
   useEffect(() => { if (ready) web.current?.injectJavaScript(`window.zoomPage(${props.zoom??1});true;`); }, [ready, props.zoom]);
   const message = (event: WebViewMessageEvent) => {
     try {

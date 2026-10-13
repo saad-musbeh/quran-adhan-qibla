@@ -23,7 +23,7 @@
 - [x] Build the reader, font-size controls, bookmarks, and six independently saved reading copies.
 - [x] Add verse search and selectable source-hosted recitations with private offline downloads.
 - [x] Add an optional four-book QuranEnc tafsir library with release checks and private, atomic offline downloads; keep tafsir text out of the runtime bundle.
-- [x] Keep Quran source path and verse data unchanged while centering all 604 pages at equal 12.75% artwork margins and cropping only the empty opening-page viewBoxes.
+- [x] Keep Quran source path and verse data unchanged while centering all 604 pages at equal 6% artwork margins and cropping only the empty opening-page viewBoxes.
 - [x] Add the original geometric opening frame and theme-aware reader frame/metadata/controls; persist the five app-wide color themes through the top gear sheet.
 - [x] Add immediate same-surah looping from a long-pressed ayah, an optional ending-ayah review editor, direct start/end selection on the page, and native playlist loop-all playback.
 - [x] Verify the 0.3.3 reader themes, opening pages, ayah loop selection, offline native queue transitions, and foreground playback on the Android emulator. See [reader QA](READER-COMPASS-QA.md); physical-device and native iOS checks remain pending.
