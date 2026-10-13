@@ -27,9 +27,45 @@ final class QuranUITests: XCTestCase {
     XCTFail("Reader tools were not available")
   }
 
+  private func ensureBookCount(_ count: Int) {
+    for number in 2...count {
+      let book = app.buttons["open-book-\(number)"]
+      if book.exists { continue }
+      let add = app.buttons["add-quran-book"]
+      XCTAssertTrue(add.waitForExistence(timeout: 5))
+      for _ in 0..<6 {
+        if add.isHittable { break }
+        app.scrollViews.firstMatch.swipeUp()
+      }
+      XCTAssertTrue(add.isHittable)
+      let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: add)
+      XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 10), .completed)
+      add.tap()
+      XCTAssertTrue(book.waitForExistence(timeout: 5))
+    }
+  }
+
+  private func expectSpread(_ pages: String) {
+    let number = app.staticTexts["reader-page-number"]
+    let spread = XCTNSPredicateExpectation(predicate: NSPredicate { _,_ in number.label.hasPrefix(pages) }, object: number)
+    XCTAssertEqual(XCTWaiter.wait(for: [spread], timeout: 15), .completed)
+  }
+
+  private func turnSpread(onRightPage: Bool, forward: Bool) {
+    let start = app.webViews.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: onRightPage ? 0.75 : 0.25, dy: 0.5))
+    start.press(forDuration: 0.01, thenDragTo: start.withOffset(CGVector(dx: 0, dy: forward ? -90 : 90)))
+    revealReader()
+  }
+
   func testTabletMainMenuAndLandscapeReading() throws {
     let size=app.windows.firstMatch.frame.size
     guard min(size.width,size.height)>=600 else { throw XCTSkip("Tablet layout requires an iPad simulator") }
+    // This workflow runs the tablet test alone on a fresh simulator.
+    XCTAssertFalse(app.buttons["open-book-2"].exists)
+    XCTAssertTrue(app.buttons["add-quran-book"].exists)
+    ensureBookCount(6)
+    XCTAssertFalse(app.buttons["add-quran-book"].exists)
+    XCTAssertFalse(app.buttons["open-book-7"].exists)
     app.buttons["open-main-menu"].tap()
     XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.buttons["menu-adhan"].exists)
@@ -40,15 +76,21 @@ final class QuranUITests: XCTestCase {
     revealReader()
     XCUIDevice.shared.orientation = .landscapeLeft
     defer { XCUIDevice.shared.orientation = .portrait }
-    let spread=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in self.app.webViews.count==2 },object:app)
+    let spread=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in self.app.webViews.count==1 },object:app)
     XCTAssertEqual(XCTWaiter.wait(for:[spread],timeout:15),.completed)
     revealReader()
+    expectSpread("١–٢")
     screenshot("iPad landscape two-page Mushaf")
-    let start=app.webViews.firstMatch.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5))
-    start.press(forDuration:0.01,thenDragTo:start.withOffset(CGVector(dx:0,dy:-90)))
-    revealReader()
-    XCTAssertTrue(app.staticTexts["reader-page-number"].label.hasPrefix("٣–٤"))
-    app.buttons["reader-library"].tap()
+    turnSpread(onRightPage: false, forward: true)
+    expectSpread("٣–٤")
+    turnSpread(onRightPage: true, forward: false)
+    expectSpread("١–٢")
+    turnSpread(onRightPage: true, forward: true)
+    expectSpread("٣–٤")
+    app.buttons["open-main-menu"].tap()
+    XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 5))
+    screenshot("iPad home page landscape")
+    app.buttons["menu-quran"].tap()
     XCTAssertTrue(app.buttons["open-book-6"].waitForExistence(timeout: 10))
     XCTAssertTrue(app.buttons["open-book-6"].label.hasSuffix("3"))
     XCTAssertTrue(app.buttons["open-book-5"].label.hasSuffix("1"))
@@ -57,6 +99,7 @@ final class QuranUITests: XCTestCase {
   }
 
   func testBooksKeepIndependentPagesAndNames() {
+    ensureBookCount(2)
     screenshot("Quran shelf")
     app.buttons["rename-book-1"].tap()
     let name = app.textFields["book-name-input"]
@@ -88,9 +131,16 @@ final class QuranUITests: XCTestCase {
   }
 
   func testDefaultVoiceAndNativePlaybackControls() {
+    ensureBookCount(2)
     app.buttons["open-book-2"].tap()
     revealReader()
-    app.buttons["reader-audio-controls"].tap()
+    let selector = app.buttons["reader-audio-controls"]
+    XCTAssertEqual(selector.label, "القارئ")
+    selector.tap()
+    let defaultVoice = app.descendants(matching: .any)["reciter-ghamdi"]
+    XCTAssertTrue(defaultVoice.waitForExistence(timeout: 10))
+    XCTAssertEqual(defaultVoice.label, "سعد الغامدي")
+    defaultVoice.tap()
     let reciter = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "سعد الغامدي")).firstMatch
     XCTAssertTrue(reciter.waitForExistence(timeout: 10))
     app.buttons["audio-play-pause"].tap()
@@ -172,6 +222,7 @@ final class QuranUITests: XCTestCase {
   }
 
   func testRepeatedTabTransitions() {
+    ensureBookCount(2)
     // The library must retain its dock after the normal auto-hide delay.
     Thread.sleep(forTimeInterval: 5)
     XCTAssertTrue(app.descendants(matching: .any)["tab-adhan"].isHittable)

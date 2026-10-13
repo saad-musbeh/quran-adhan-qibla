@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use **`codex/tablet-location`** for the current **0.4.5-test** source. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
+Use the **`v0.4.7-test`** release source or **`codex/quran-library-book-spread-cities`** for the current development source. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ If the developer directory is `/Library/Developer/CommandLineTools`, select the 
 ## Current source and development build
 
 ```sh
-git clone --branch codex/tablet-location --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
+git clone --branch v0.4.7-test --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
 cd quran-adhan-qibla
 git log -1 --oneline
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -62,17 +62,17 @@ For a bundled device build, use `npx expo run:ios --device --configuration Relea
 ## Checks for the tester
 
 1. **Native core:** choose a city and confirm prayer times/Qibla calculations appear. Check GPS and live compass on a phone; simulator readings cannot establish compass accuracy.
-2. **Six books:** each initially starts at Al-Fatiha. Save different pages/names in two books, restart the app and confirm they remain independent. Return to the shelf to access Adhan/Qibla.
-3. **Reader:** first opening, gold borders, night ayah numbers, long-press actions and enlarged reading. Up/right beyond halfway advances; shorter drags return. Check down/left and zoom/pan.
+2. **Quran library:** a fresh library starts with one copy at Al-Fatiha. Add copies up to six; existing saved copies must remain intact. Save different pages/names in two books, restart the app and confirm they remain independent. Return to the shelf to access Adhan/Qibla.
+3. **Reader:** first opening, gold borders, night ayah numbers, long-press actions and enlarged reading. A deliberate up/right swipe advances; small movements return. Check down/left and zoom/pan. In landscape, either leaf must turn and zoom the whole spread together. Check the top Home button and microphone-labelled reciter selector.
 4. **Audio:** reciter switching, previous/replay/play-pause/next/stop, speeds, multi-ayah loops across several cycles, downloaded audio in airplane mode, screen lock, lock-screen controls, headphones and interruptions.
 5. **Tafsir:** download/select each book, check publication dates and passage ranges, then read offline after restarting.
-6. **Prayer alerts:** choose a location, enable alerts in the Adhan alerts section of Settings, allow notifications and confirm upcoming alerts appear. Try the five-second test and disable alerts to cancel the schedule. iOS plays a labelled 29-second Adhan excerpt; check Silent Mode, Focus and notification sound settings on the phone. Reopen at least weekly to refresh the eight-date schedule.
+6. **Prayer alerts:** choose a location, enable alerts in the Adhan alerts section of Settings, allow notifications and confirm upcoming alerts appear. Choose different voices for two prayers, test each, and mute one prayer to keep only its silent notification. Check the stronger Fajr-only voice. Disable the master switch to cancel all reminders. iOS plays a labelled 29-second Adhan excerpt; check Silent Mode, Focus and notification sound settings on the phone. Reopen at least weekly to refresh the eight-date schedule.
 7. **Downloads:** download a surah, change voices, continue a partial download, then remove a saved surah. In Manage downloads → Recitations, start/cancel the whole-Quran job, then start it again to reuse saved files; keep the app open. Audio/tafsir totals and saved counts should follow the files. Confirm offline playback after restart.
-8. **Layout:** Arabic RTL, English, iPhone safe areas, iPad and larger text.
+8. **Layout:** Arabic RTL, English, iPhone safe areas, iPad and larger text. Check Light and Dark for all five colors and saved appearance after restart. In landscape Adhan, the next prayer must stay on the right; after Isha it must show tomorrow’s separately calculated Fajr.
 
 ## Current status
 
-Version **0.4.5**, iOS build **15**, on `codex/tablet-location`. The merged 0.4.2 source remains on `main` until this follow-up branch is merged. Android and iOS share the six-book reader, twenty reciters, Saad Al-Ghamdi default, download manager, playback recovery, themes and retained screen layers. Local iOS prayer notifications are implemented with a 29-second sound; no APNs entitlement is requested.
+Version **0.4.7**, iOS build **17**, on `codex/quran-library-book-spread-cities` and release tag `v0.4.7-test`. The source includes one initial Quran copy with additions up to six, shared landscape spreads, twenty Quran reciters, six Adhan recordings, per-salah sound choices, the download manager, playback recovery, light/dark themes and retained screen layers. Local iOS prayer notifications use 29-second excerpts; no APNs entitlement is requested. Current iOS native compilation/runtime status must be checked in the release notes and its linked workflow; successful JavaScript exports do not establish native behavior.
 
 The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated, so name/relaunch checks were not completed. Those two failures remain unresolved.
 

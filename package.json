@@ -1,6 +1,6 @@
 {
   "name": "quran-adhan-qibla",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": "Open-source Quran, Adhan, and Qibla app for iOS and Android, built with React Native and Rust",
   "license": "MIT",
   "repository": {

@@ -87,7 +87,7 @@ The explicit bundle step refreshes JSON catalogs too; Gradle can otherwise reuse
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use `codex/tablet-location` for the current 0.4.4-test source. `main` retains the merged 0.4.2 source until this branch is merged. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use the `v0.4.7-test` release source or `codex/quran-library-book-spread-cities` for the current development source. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
