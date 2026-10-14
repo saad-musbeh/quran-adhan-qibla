@@ -27,6 +27,16 @@ A separate standalone browser document used the app’s actual `buildMushafDocum
 
 ## Native verification limits
 
-Android build and APK integrity results are recorded below when packaging finishes. No Android device was attached for this follow-up. The previous local emulator crashes before launching the app, so native compass motion, Android WebView rendering, permission recovery and alert delivery for this revision remain unverified locally. An iOS build/runtime check requires macOS and is still pending.
+Android release compilation succeeds for ARM64, x86_64 and the two-ABI universal APK. Integrity checks confirm the release signing certificate, current Hermes bundle, freshly compiled Rust input/output, 16 KB ZIP/ELF alignment, all 604 original compressed Quran pages and all six Android Adhan recordings. No Android device was attached for this follow-up. The previous local emulator crashes before launching the app, so native compass motion, Android WebView rendering, permission recovery and alert delivery for this revision remain unverified locally. An iOS build/runtime check requires macOS and is still pending.
 
 The user reported completion of the v0.5.1 phone follow-up, is reviewing interface translations, and plans iOS testing for the weekend. Those reports do not substitute for testing this new revision. New localized interface strings remain machine-assisted drafts; Quran verse translations are permanently excluded.
+
+## Android preview artifacts
+
+These development builds retain package version 0.5.1 / Android code 20 and the existing signing key; they have not replaced the GitHub release assets.
+
+| Build | Size | SHA-256 |
+| --- | --- | --- |
+| quran-controls-preview-arm64-v8a.apk | 95.68 MiB | `4c7d46ccc73c3f50f12c0aeef2d2c9b0e0fb2bd3ebe8a3841244142010c7eacc` |
+| quran-controls-preview-x86_64.apk | 95.78 MiB | `c829a3bd7b1eb08fcc33448b7a641491b43904821007dfe7094a1e261193033c` |
+| quran-controls-preview-universal.apk | 101.44 MiB | `801b0f6a0539c5c69211fbc0e9069bf47a88c04397890b4902155b37009ba8db` |
