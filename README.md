@@ -93,7 +93,7 @@ See [Android APK size and validation](docs/ANDROID-SIZE.md) for measured before/
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use the `v0.5.1` release source or `codex/release-0.5.1` for the current source. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use the `v0.5.2` release source or `codex/release-0.5.2` for the current source. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -157,3 +157,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Code is licensed under [MIT](LICENSE). R
 - [Expo foreground location](https://docs.expo.dev/versions/v57.0.0/sdk/location/)
 
 The compact-controls/high-latitude follow-up is documented in [validation notes](docs/NAVIGATION-HIGH-LATITUDE-QA.md). Native device checks for that revision are separate from the user-reported v0.5.1 phone checks.
+
+Version 0.5.2 includes the compact controls, shared appearance/location controls, animated compass, inline page/juz navigation, high-latitude settings and offline Privacy page. See [release notes](docs/RELEASE-0.5.2.md) for downloads and verification limits.
