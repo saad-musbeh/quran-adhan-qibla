@@ -1,8 +1,8 @@
 /** Hafs verse recordings, verified against EveryAyah's recitations.js catalogue. */
 export const RECITERS = [
+  { id: 'husary', name: 'Mahmoud Khalil Al-Husary', arabicName: 'محمود خليل الحصري', directory: 'Husary_128kbps' },
   { id: 'ghamdi', name: 'Saad Al-Ghamdi', arabicName: 'سعد الغامدي', directory: 'Ghamadi_40kbps' },
   { id: 'alafasy', name: 'Mishary Rashid Alafasy', arabicName: 'مشاري راشد العفاسي', directory: 'Alafasy_128kbps' },
-  { id: 'husary', name: 'Mahmoud Khalil Al-Husary', arabicName: 'محمود خليل الحصري', directory: 'Husary_128kbps' },
   { id: 'sudais', name: 'Abdurrahmaan As-Sudais', arabicName: 'عبدالرحمن السديس', directory: 'Abdurrahmaan_As-Sudais_64kbps' },
   { id: 'abdulbasit', name: 'Abdul Basit Abdus Samad', arabicName: 'عبد الباسط عبد الصمد', directory: 'Abdul_Basit_Murattal_192kbps' },
   { id: 'minshawi', name: 'Muhammad Siddiq Al-Minshawi', arabicName: 'محمد صديق المنشاوي', directory: 'Minshawy_Murattal_128kbps' },
@@ -23,7 +23,7 @@ export const RECITERS = [
 ] as const;
 
 export type ReciterId = typeof RECITERS[number]['id'];
-export const DEFAULT_RECITER_ID: ReciterId = 'ghamdi';
+export const DEFAULT_RECITER_ID: ReciterId = 'husary';
 
 export function emptyReciterDownloads(): Record<ReciterId, number[]> {
   return Object.fromEntries(RECITERS.map(reciter => [reciter.id, [] as number[]])) as Record<ReciterId, number[]>;

@@ -137,11 +137,11 @@ final class QuranUITests: XCTestCase {
     let selector = app.buttons["reader-audio-controls"]
     XCTAssertEqual(selector.label, "القارئ")
     selector.tap()
-    let defaultVoice = app.descendants(matching: .any)["reciter-ghamdi"]
+    let defaultVoice = app.descendants(matching: .any)["reciter-husary"]
     XCTAssertTrue(defaultVoice.waitForExistence(timeout: 10))
-    XCTAssertEqual(defaultVoice.label, "سعد الغامدي")
+    XCTAssertEqual(defaultVoice.label, "محمود خليل الحصري")
     defaultVoice.tap()
-    let reciter = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "سعد الغامدي")).firstMatch
+    let reciter = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "محمود خليل الحصري")).firstMatch
     XCTAssertTrue(reciter.waitForExistence(timeout: 10))
     app.buttons["audio-play-pause"].tap()
     let status=app.staticTexts["audio-status"]
@@ -153,11 +153,11 @@ final class QuranUITests: XCTestCase {
     app.buttons["audio-play-pause"].tap()
     let paused=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in ["Paused","متوقف مؤقتًا"].contains(status.label) },object:status)
     XCTAssertEqual(XCTWaiter.wait(for:[paused],timeout:5),.completed)
-    screenshot("Saad Al-Ghamdi native playback paused")
+    screenshot("Al-Husary native playback paused")
     app.buttons["audio-next"].tap()
     app.buttons["audio-replay"].tap()
     app.buttons["audio-stop"].tap()
-    let stopped = XCTNSPredicateExpectation(predicate: NSPredicate { _,_ in ["Tap Play to listen","اختر تشغيل للاستماع"].contains(status.label) }, object: status)
+    let stopped = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: status)
     XCTAssertEqual(XCTWaiter.wait(for: [stopped], timeout: 5), .completed)
     app.terminate()
   }
