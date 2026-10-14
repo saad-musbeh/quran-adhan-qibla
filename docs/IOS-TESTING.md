@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use the **`v0.4.8-test`** release source or **`codex/prayer-countdowns-startup`** for the current development source. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
+Use the **`v0.5.0`** release source or **`codex/smaller-android-apk`** for the current development source. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ If the developer directory is `/Library/Developer/CommandLineTools`, select the 
 ## Current source and development build
 
 ```sh
-git clone --branch v0.4.8-test --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
+git clone --branch v0.5.0 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
 cd quran-adhan-qibla
 git log -1 --oneline
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -72,7 +72,7 @@ For a bundled device build, use `npx expo run:ios --device --configuration Relea
 
 ## Current status
 
-Version **0.4.8**, iOS build **18**, on `codex/prayer-countdowns-startup` and release tag `v0.4.8-test`. The source includes one initial Quran copy with additions up to six, shared landscape spreads, twenty Quran reciters, six Adhan recordings, per-salah sound choices, the download manager, playback recovery, light/dark themes and retained screen layers. Local iOS prayer notifications use 29-second excerpts; no APNs entitlement is requested. Current iOS native compilation/runtime status must be checked in the release notes and its linked workflow; successful JavaScript exports do not establish native behavior.
+Version **0.5.0**, iOS build **19**, on `codex/smaller-android-apk` and release tag `v0.5.0`. The source includes one initial Quran copy with additions up to six, shared landscape spreads, twenty Quran reciters, six Adhan recordings, per-salah sound choices, the download manager, playback recovery, light/dark themes and retained screen layers. Local iOS prayer notifications use 29-second excerpts; no APNs entitlement is requested. Current iOS native compilation/runtime status must be checked in the release notes and its linked workflow; successful JavaScript exports do not establish native behavior.
 
 The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated, so name/relaunch checks were not completed. Those two failures remain unresolved.
 

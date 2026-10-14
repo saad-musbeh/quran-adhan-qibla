@@ -3,6 +3,8 @@
 Release builds retain the complete offline Quran and worldwide city catalogue.
 The original 0.4.8 test APK was 182,493,745 bytes (174.04 MiB).
 
+The published 0.4.5 and 0.4.6 APKs were 152,052,133 and 152,057,493 bytes (about 145.01 MiB). Against those commonly installed versions, the 0.5.0 ARM64 APK is 34.1% smaller and the universal APK is 30.1% smaller.
+
 ## Changes
 
 - Package each of the 604 pinned original SVG pages in an independent Zstandard frame instead of gzip. The assets shrink from 95,248,101 to 70,340,492 bytes. Decoding is pure JavaScript and preserves the exact original bytes, paths and verse polygons; every page is checked against its original SHA-256.
@@ -23,7 +25,7 @@ npm run apk:android
 python3 scripts/apk-size.py dist/android/app-arm64-v8a-release.apk
 ```
 
-`apk:android` checks each generated APK for all 604 original packed pages, all six exact OGG recordings, and a Rust library for every included ABI. Outputs stay in ignored `dist/android/`; generated projects, native binaries and signing credentials stay out of Git. These APKs retain version 0.4.8 / code 18 and the existing local test signing identity; no store release is published.
+`apk:android` checks each generated APK for all 604 original packed pages, all six exact OGG recordings, and a Rust library for every included ABI. Outputs stay in ignored `dist/android/`; generated projects, native binaries and signing credentials stay out of Git. Release APKs use version 0.5.0 / code 19 and the existing local test signing identity; no store release is published.
 
 ## Measured artifacts (14 October 2026)
 
@@ -38,3 +40,5 @@ python3 scripts/apk-size.py dist/android/app-arm64-v8a-release.apk
 On an isolated API 36 x86_64 emulator, the smaller APK installs over the existing 0.4.8 app without clearing storage. All five saved books/location/app/audio records survive unchanged. Three cold starts pass with an empty crash log. The saved phone Home opt-out opens Adhan with native Rust prayer calculations and countdowns. With Wi-Fi and mobile data disabled, the saved Quran book opens at page 10; decoded verse polygons and labels appear in the native hierarchy, and swipes advance to page 11 and return to page 10. The ATD emulator screenshots are black, so these checks establish behavior and accessibility structure, not a visual review.
 
 Linux iOS prebuild verifies six exact WAV excerpts, no Android OGGs and no APNs entitlement. Native iOS compilation/runtime, physical ARM64-device behavior, compass/GPS accuracy and physical notification delivery/sound remain unverified. No Quran artwork or recording was rasterized, rounded, truncated, transcoded or removed.
+
+For version 0.5.0, direct upgrades from the commonly installed 0.4.5 and 0.4.6 releases also pass with all six books, existing preferences/location and seven source-hosted cached Sudais recordings retained. Offline reader and native cached playback checks pass. See [0.5.0 release notes](RELEASE-0.5.0.md).
