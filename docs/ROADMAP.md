@@ -31,8 +31,9 @@
 - [x] Add a saved audio/tafsir download manager and playback failure/reconnection recovery.
 - [x] Add full-Quran downloads with cancellation, cached-ayah continuation and job-specific retry.
 - [x] Keep library navigation visible, merge global settings and add original floral opening-page frames.
+- [x] Put shared light/dark appearance in the banner, simplify reader tools, enlarge search, and enter page/juz numbers inline.
 - [x] Keep landscape pages, turns, zoom and panning together in one book spread.
-- [ ] Select licensed translations.
+Quran verse translations are permanently out of scope and will not be added.
 - [ ] Verify Quran audio interruptions and lock-screen behavior on physical Android/iOS devices.
 
 ## Prayer times and Adhan
@@ -42,7 +43,7 @@
 - [x] Add worldwide offline city search (all eligible GeoNames cities500 places), online map selection, and manual coordinate alternatives.
 - [x] Persist validated location and preferences across app sessions.
 - [x] Use the phone’s calendar/timezone/DST, six calculation methods, Asr school, and optional Ramadan Isha.
-- [ ] Add configurable high-latitude and polar rules (currently middle-of-night below 65°, polar locations unsupported).
+- [x] Add configurable middle/seventh/angle twilight rules and an explicit nearest-usable-latitude polar approximation, shared by schedules and alerts.
 - [x] Check Makkah and London reference schedules, winter/summer DST, and explicit polar rejection.
 - [ ] Expand prayer reference fixtures across more regions and boundary conditions.
 - [x] Add optional Android prayer notifications with a CC0 Adhan channel sound, permission recovery and a test alert.
@@ -51,18 +52,21 @@
 - [x] Show tomorrow’s separately calculated Fajr as the next Adhan after Isha, on the right in landscape.
 - [x] Show a minute-updated countdown for each salah’s next actual occurrence, including tomorrow, only while visible and foregrounded.
 - [x] Display offline city/approximate-nearby labels and an accessible location picker action on Adhan.
-- [ ] Validate prayer alert sound, Focus/Silent Mode and interruptions on physical phones.
+- [x] User reports completing the 0.5.1 real-phone notification follow-up checks.
+- [ ] Expand physical-phone Focus/Silent Mode and interruption testing on both platforms.
 - [x] Reconcile Android/iOS reminders at launch/resume, midnight, and location/settings/language changes.
 - [ ] Validate background clock/timezone changes and reboot restoration on physical phones.
 
 ## Qibla and release
 
-- [x] Add a circular compass direction guide, live/fixed mode controls and a location card without camera permission.
+- [x] Add a circular compass direction guide, live/fixed mode controls and a shared Adhan/Qibla location strip without camera permission.
+- [x] Interpolate compass rotation on the native animation driver, using the shortest turn across north and respecting Reduce Motion.
 - [x] Keep main screens compact, with swipe navigation and tabs that hide after inactivity.
 - [x] Add device heading, true/magnetic north handling, and calibration guidance.
-- [ ] Verify live compass accuracy and sensor lifecycle on physical Android/iOS devices.
+- [x] User reports completing 0.5.1 real-phone compass/GPS follow-up checks; device details/logs were not recorded.
+- [ ] Verify the new animated compass on physical devices and complete native iOS checks.
 - [x] Allow optional manual location entry without requiring GPS permission.
 - [x] Create and configure the Android Quran/direction launcher and notification icons.
 - [x] Use the Quran/direction launcher icon on iOS.
-- [ ] Add offline persistence, data attribution, and a privacy description matching actual behavior.
+- [x] Persist selected location/preferences, show data attribution in Credits, and document actual local storage, permissions and optional network services in Settings → Privacy.
 - [ ] Test battery/background behavior, device builds, and store distribution.
