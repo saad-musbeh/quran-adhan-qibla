@@ -10,6 +10,8 @@ import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CreditsSheet } from './CreditsSheet';
 import { QuranThemePicker } from './QuranThemePicker';
+import { HighLatitudeSettings } from './HighLatitudeSettings';
+import { PrivacySheet } from './PrivacySheet';
 
 const copy = {
   ar: { close: 'إغلاق الإعدادات', compass: 'عرض اتجاه القبلة', live: 'بوصلة الهاتف', north: 'عرض ثابت نحو الشمال الحقيقي', liveNote: 'ضع الهاتف مستويًا، وابتعد عن المعادن. يستخدم اتجاه الشمال الحقيقي عند توفر قراءة موثوقة.', northNote: 'الشمال الحقيقي أعلى الشاشة. هذا العرض ثابت ولا يتبع حركة الهاتف.' },
@@ -29,9 +31,10 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
   const { styles } = useReaderStyles(baseStyles);
   const { theme, themeId, setThemeId, mode, setMode } = useReaderTheme();
   const [creditsVisible,setCreditsVisible]=useState(false);
+  const [privacyVisible,setPrivacyVisible]=useState(false);
   const [themePickerVisible, setThemePickerVisible] = useState(false);
   const [methodChoicesVisible, setMethodChoicesVisible] = useState(false);
-  useEffect(() => { if (!visible) { setThemePickerVisible(false); setMethodChoicesVisible(false);setCreditsVisible(false); } }, [visible]);
+  useEffect(() => { if (!visible) { setThemePickerVisible(false); setMethodChoicesVisible(false);setCreditsVisible(false);setPrivacyVisible(false); } }, [visible]);
   const t = translations[language]; const c = localizeCopy(language, copy); const rtl = isRTL(language);
   const insets = useSafeAreaInsets();
   const textStyle = rtl ? styles.rtl : undefined;
@@ -74,14 +77,17 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
             <Switch accessibilityLabel={t.ramadan} value={prayer.ramadan} onValueChange={ramadan => onPrayerChange({ ...prayer, ramadan })}
               trackColor={{ false: '#35544B', true: '#D6BA7A' }} thumbColor="#F4EFE4" />
           </View><Text style={[styles.note, textStyle]}>{t.normalIsha}</Text></>}
-          {[t.highLatitude, t.verifyTimes, `${t.phoneTimezone}: ${timezone}`].map(note => <Text key={note} style={[styles.note, textStyle]}>{note}</Text>)}
+          <HighLatitudeSettings language={language} settings={prayer} onChange={onPrayerChange} />
+          {[t.verifyTimes, `${t.phoneTimezone}: ${timezone}`].map(note => <Text key={note} style={[styles.note, textStyle]}>{note}</Text>)}
         <Text accessibilityRole="header" style={[styles.label,textStyle]}>{c.compass}</Text>
         {choice(c.live,compassMode==='live',()=>onCompassModeChange('live'))}
         {choice(c.north,compassMode==='north',()=>onCompassModeChange('north'))}
         <Text style={[styles.note,textStyle]}>{compassMode==='live'?c.liveNote:c.northNote}</Text>
+        <Pressable testID="settings-privacy" accessibilityRole="button" style={[styles.choice,rtl&&styles.reverse]} onPress={()=>setPrivacyVisible(true)}><Text style={[styles.choiceText,textStyle]}>{bilingual(language,'الخصوصية','Privacy')}</Text><Ionicons name="shield-checkmark-outline" size={22} color={theme.accent}/></Pressable>
         <Pressable testID="settings-credits" accessibilityRole="button" style={[styles.choice,rtl&&styles.reverse]} onPress={()=>setCreditsVisible(true)}><Text style={[styles.choiceText,textStyle]}>{bilingual(language,'المصادر وحقوق النشر','Credits')}</Text><Ionicons name="information-circle-outline" size={22} color={theme.accent}/></Pressable>
       </ScrollView>
       <CreditsSheet language={language} visible={creditsVisible} onClose={()=>setCreditsVisible(false)}/>
+      <PrivacySheet language={language} visible={privacyVisible} onClose={()=>setPrivacyVisible(false)}/>
     </View>
   </Modal>;
 }

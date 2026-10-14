@@ -194,7 +194,7 @@ export function usePrayerNotifications(input: Inputs) {
     const choice = input.prayerSounds![prayer];
     return `${prayer}:${choice.enabled}:${choice.voiceId}`;
   }).join('|') : '';
-  useEffect(() => { enqueueReconcile(); }, [enqueueReconcile, input.ready, input.enabled, input.location?.latitude, input.location?.longitude, input.settings.method, input.settings.hanafi, input.settings.ramadan, input.language, input.sound, prayerSoundsKey, timezone]);
+  useEffect(() => { enqueueReconcile(); }, [enqueueReconcile, input.ready, input.enabled, input.location?.latitude, input.location?.longitude, input.settings.method, input.settings.hanafi, input.settings.ramadan, input.settings.highLatitudeRule, input.settings.polarRule, input.language, input.sound, prayerSoundsKey, timezone]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', next => {
@@ -217,7 +217,7 @@ export function usePrayerNotifications(input: Inputs) {
     };
     armNextMidnight();
     return () => clearTimeout(timer);
-  }, [enqueueReconcile, input.ready, input.enabled, input.location?.latitude, input.location?.longitude, input.settings.method, input.settings.hanafi, input.settings.ramadan, input.language, input.sound, prayerSoundsKey, timezone]);
+  }, [enqueueReconcile, input.ready, input.enabled, input.location?.latitude, input.location?.longitude, input.settings.method, input.settings.hanafi, input.settings.ramadan, input.settings.highLatitudeRule, input.settings.polarRule, input.language, input.sound, prayerSoundsKey, timezone]);
 
   /** Call only from the user's explicit enable action. Mount and foreground never prompt. */
   const requestPermission = useCallback(async () => {

@@ -1,7 +1,6 @@
 import { Text } from '../text-size';
-import { selectedLocationLabel } from '../domain/cities';
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, Pressable, StyleSheet, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import { memo, useState } from 'react';
+import { Animated, ActivityIndicator, ScrollView, Pressable, StyleSheet, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import type { useLocation } from '../use-location';
 import { isFacingTarget, relativeBearing } from '../domain/heading';
 import { useHeading } from '../use-heading';
@@ -9,6 +8,8 @@ import { bilingual, isRTL, localeFor, localizeCopy, type Language } from '../i18
 import { useReaderStyles } from '../quran-theme-context';
 import { qiblaSceneColors } from '../domain/qibla-scene';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LocationControl } from './LocationControl';
+import { useCompassRotation } from '../use-compass-rotation';
 
 type Props = {
   language: Language;
@@ -38,60 +39,67 @@ function lineBetween(x1: number, y1: number, x2: number, y2: number, color: stri
   };
 }
 
-function QiblaCompass({ bearing, trueBearing, language, heading }: { bearing: number; trueBearing: number; language: Language; heading: number | null }) {
-  const { styles: scene, colors } = useReaderStyles(baseStyles);
-  const palette = qiblaSceneColors(colors);
+function QiblaCompass({ trueBearing, language, heading }: { trueBearing: number; language: Language; heading: number | null }) {
+  const { styles } = useReaderStyles(baseStyles);
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const onLayout = (event: LayoutChangeEvent) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height });
-  const { width, height } = size;
-  const cx = width / 2;
-  const cy = height / 2;
-  const dialRadius = Math.max(0, Math.min(width, height) / 2 - 12);
-  const compassRadius = Math.max(0, dialRadius - 32);
-  const radius = Math.max(0, Math.min(dialRadius * 0.52, compassRadius - 38));
-  const radians = bearing * Math.PI / 180;
-  const targetX = cx + Math.sin(radians) * radius;
-  const targetY = cy - Math.cos(radians) * radius;
-  const arrowX = cx + Math.sin(radians) * radius * 0.55;
-  const arrowY = cy - Math.cos(radians) * radius * 0.55;
-  const cardinal = localizeCopy(language, { en: ['North', 'East', 'South', 'West'], ar: ['شمال', 'شرق', 'جنوب', 'غرب'] });
-  const compassLabels = [
-    { key: 'n', angle: 0, text: cardinal[0] }, { key: 'e', angle: 90, text: cardinal[1] },
-    { key: 's', angle: 180, text: cardinal[2] }, { key: 'w', angle: 270, text: cardinal[3] },
-  ].map(item => {
-    const angle = relativeBearing(item.angle, heading ?? 0) * Math.PI / 180;
-    return { ...item, left: cx + Math.sin(angle) * compassRadius - 30, top: cy - Math.cos(angle) * compassRadius - 11 };
-  });
+  const rotation = useCompassRotation(heading);
+  const onLayout = (event: LayoutChangeEvent) => {
+    const {width, height} = event.nativeEvent.layout;
+    setSize(current => current.width === width && current.height === height ? current : {width, height});
+  };
   const guidance = trueBearing.toLocaleString(localeFor(language), { maximumFractionDigits: 1 });
-
   const accessibilityLabel = heading !== null
     ? bilingual(language, 'دليل بوصلة حي، القبلة {guidance} درجة من الشمال الحقيقي', 'Live compass guide, Qibla {guidance} degrees from true north', { guidance })
     : bilingual(language, 'دليل ثابت للشمال، القبلة {guidance} درجة من الشمال الحقيقي', 'Fixed north guide, Qibla {guidance} degrees from true north', { guidance });
+  return <View testID="qibla-compass" onLayout={onLayout} style={styles.frame} accessible accessibilityLabel={accessibilityLabel}>
+    {size.width > 0 && size.height > 0 && <CompassArtwork width={size.width} height={size.height} bearing={trueBearing} language={language}
+      clockwise={rotation.clockwise} upright={rotation.upright} />}
+  </View>;
+}
 
-  return <View testID="qibla-compass" onLayout={onLayout} style={scene.frame} accessible accessibilityLabel={accessibilityLabel}>
-    {width > 0 && height > 0 && <>
-      <View pointerEvents="none" style={[scene.dial, { left: cx - dialRadius, top: cy - dialRadius, width: dialRadius * 2, height: dialRadius * 2, borderRadius: dialRadius, backgroundColor: palette.face }]} />
-      <View pointerEvents="none" style={[scene.innerDial, { left: cx - dialRadius * 0.63, top: cy - dialRadius * 0.63, width: dialRadius * 1.26, height: dialRadius * 1.26, borderRadius: dialRadius, backgroundColor: palette.inner }]} />
-      {Array.from({ length: 36 }, (_, index) => {
-        const angle = relativeBearing(index * 10, heading ?? 0) * Math.PI / 180;
+// Sensor updates change only two native animation nodes, not the tick/label geometry.
+const CompassArtwork = memo(function CompassArtwork({width, height, bearing, language, clockwise, upright}: {
+  width: number; height: number; bearing: number; language: Language;
+} & ReturnType<typeof useCompassRotation>) {
+  const { styles: scene, colors } = useReaderStyles(baseStyles);
+  const palette = qiblaSceneColors(colors);
+  const cx = width / 2, cy = height / 2;
+  const dialRadius = Math.max(0, Math.min(width, height) / 2 - 12);
+  const compassRadius = Math.max(0, dialRadius - 32);
+  const radius = Math.max(30, Math.min(dialRadius * 0.52, compassRadius - 38));
+  const radians = bearing * Math.PI / 180;
+  const targetX = cx + Math.sin(radians) * radius, targetY = cy - Math.cos(radians) * radius;
+  const arrowX = cx + Math.sin(radians) * radius * 0.55, arrowY = cy - Math.cos(radians) * radius * 0.55;
+  const cardinal = localizeCopy(language, { en: ['North', 'East', 'South', 'West'], ar: ['شمال', 'شرق', 'جنوب', 'غرب'] });
+  return <>
+    <View pointerEvents="none" style={[scene.dial, {left: cx - dialRadius, top: cy - dialRadius, width: dialRadius * 2, height: dialRadius * 2, borderRadius: dialRadius, backgroundColor: palette.face}]} />
+    <View pointerEvents="none" style={[scene.innerDial, {left: cx - dialRadius * 0.63, top: cy - dialRadius * 0.63, width: dialRadius * 1.26, height: dialRadius * 1.26, borderRadius: dialRadius, backgroundColor: palette.inner}]} />
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, {transform: [{rotate: clockwise}]}]}>
+      {Array.from({length: 36}, (_, index) => {
+        const angle = index * 10 * Math.PI / 180;
         const inner = dialRadius - (index % 9 === 0 ? 13 : index % 3 === 0 ? 9 : 5);
-        return <View key={index} pointerEvents="none" style={lineBetween(
-          cx + Math.sin(angle) * inner, cy - Math.cos(angle) * inner,
+        return <View key={index} style={lineBetween(cx + Math.sin(angle) * inner, cy - Math.cos(angle) * inner,
           cx + Math.sin(angle) * (dialRadius - 2), cy - Math.cos(angle) * (dialRadius - 2),
           index === 0 ? palette.direction : palette.tick, index % 3 === 0 ? 0.8 : 0.35, index % 9 === 0 ? 2 : 1)} />;
       })}
-      <View pointerEvents="none" style={lineBetween(cx, cy, targetX, targetY, palette.direction, 1, 3)} />
-      <View pointerEvents="none" style={[scene.pathArrow, { borderBottomColor: palette.direction, left: arrowX - 8, top: arrowY - 7, transform: [{ rotate: `${bearing}deg` }] }]} />
-      <View pointerEvents="none" style={[scene.youMarker, { backgroundColor: palette.marker, borderColor: palette.markerBorder, left: cx - 9, top: cy - 9 }]} />
-      <View pointerEvents="none" style={[scene.kaabaMarker, { left: targetX - 16, top: targetY - 15 }]}>
+      <View style={lineBetween(cx, cy, targetX, targetY, palette.direction, 1, 3)} />
+      <View style={[scene.pathArrow, {borderBottomColor: palette.direction, left: arrowX - 8, top: arrowY - 7, transform: [{rotate: `${bearing}deg`}]}]} />
+      <Animated.View style={[scene.kaabaMarker, {left: targetX - 16, top: targetY - 15, transform: [{rotate: upright}]}]}>
         <View style={scene.kaabaTop} /><View style={scene.kaabaSide} /><View style={scene.kaabaFront}>
-          <View style={[scene.kaabaBelt, { backgroundColor: palette.gold }]} /><View style={scene.kaabaDoor} />
+          <View style={[scene.kaabaBelt, {backgroundColor: palette.gold}]} /><View style={scene.kaabaDoor} />
         </View>
-      </View>
-    </>}
-    {compassLabels.map(item => <View key={item.key} pointerEvents="none" style={[scene.compassWord, { left: Math.max(3, Math.min(width - 63, item.left)), top: Math.max(3, Math.min(height - 25, item.top)) }]}><Text numberOfLines={1} adjustsFontSizeToFit style={[scene.compassText, item.key === 'n' && { color: palette.direction }]}>{item.text}</Text></View>)}
-  </View>;
-}
+      </Animated.View>
+      {cardinal.map((text, index) => {
+        const angle = index * Math.PI / 2;
+        return <Animated.View key={index} style={[scene.compassWord, {left: cx + Math.sin(angle) * compassRadius - 30,
+          top: cy - Math.cos(angle) * compassRadius - 11, transform: [{rotate: upright}]}]}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={[scene.compassText, index === 0 && {color: palette.direction}]}>{text}</Text>
+        </Animated.View>;
+      })}
+    </Animated.View>
+    <View pointerEvents="none" style={[scene.youMarker, {backgroundColor: palette.marker, borderColor: palette.markerBorder, left: cx - 9, top: cy - 9}]} />
+  </>;
+});
 
 export function QiblaScreen({ language, state, bearing, calculationAvailable, calculationError, active = true, mode = 'live', onModeChange, onChangeLocation }: Props) {
   const { styles, colors } = useReaderStyles(baseStyles);
@@ -101,7 +109,6 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
   const location = state.location;
   const headingState = useHeading(Boolean(active && mode === 'live' && location?.source === 'device' && bearing !== null && calculationAvailable && !calculationError), location?.source === 'device' ? location : undefined);
   const canUseLiveHeading = mode === 'live' && headingState.status === 'ready' && headingState.heading !== null;
-  const guideBearing = bearing === null ? 0 : canUseLiveHeading ? relativeBearing(bearing, headingState.heading!) : bearing;
   const turn = canUseLiveHeading && bearing !== null ? relativeBearing(bearing, headingState.heading!) : null;
   const facingQibla = turn !== null && isFacingTarget(turn);
   const localizedDirections = localizeCopy(language, directions);
@@ -133,8 +140,6 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
   const t = localizeCopy(language, copies);
   const align = rtl ? styles.rtl : styles.ltr;
   const errorCopy = state.error ? (state.error === 'locationError' ? t.locationError : t[state.error]) : null;
-  const sourceCopy = location ? t[location.source] : '';
-  const locationLabel = useMemo(() => location ? selectedLocationLabel(location,language) : undefined, [location,language]);
   const headingHint = !active ? t.paused
     : headingState.status === 'calibrating' ? t.calibrating
       : headingState.reason === 'timeout' ? t.headingTimeout
@@ -143,29 +148,19 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
 
   const modeChoices = [
     { value: 'live', icon: 'compass-outline', text: bilingual(language, 'بوصلة الهاتف', 'Phone compass') },
-    { value: 'north', icon: 'navigate-outline', text: bilingual(language, 'دليل ثابت للشمال الحقيقي', 'Fixed true-north view') },
+    { value: 'north', icon: 'navigate-outline', text: bilingual(language, 'دليل ثابت للشمال', 'Fixed north guide') },
   ] as const;
   const status = canUseLiveHeading
     ? bilingual(language, 'بوصلة مباشرة', 'Live compass')
     : bilingual(language, 'دليل ثابت للشمال', 'Fixed north guide');
-  const locationCard = location && <Pressable testID="qibla-location" accessibilityRole="button"
-    accessibilityLabel={bilingual(language, 'تغيير الموقع', 'Change location')} onPress={onChangeLocation}
-    disabled={!onChangeLocation} style={[styles.locationRow, rtl && styles.rowRtl]}>
-    <View style={styles.locationIcon}><Ionicons name="location-outline" size={22} color={colors.accent} /></View>
-    <View style={styles.locationDetails}>
-      <Text style={[styles.locationSource, align]}>{locationLabel ?? sourceCopy}</Text>
-      {locationLabel && locationLabel !== sourceCopy && <Text style={[styles.locationMeta, align]}>{sourceCopy}</Text>}
-      <Text style={styles.coordinates}>{location.latitude.toFixed(3)}, {location.longitude.toFixed(3)}</Text>
-    </View>
-    {onChangeLocation && <Ionicons name={rtl ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.appMuted} />}
-  </Pressable>;
 
   return <ScrollView testID="qibla-page" style={{ flex: 1 }} onLayout={event => setViewport(event.nativeEvent.layout)}
     contentContainerStyle={[styles.screen, landscape && styles.screenWide]}>
     <Text accessibilityRole="header" style={[styles.title, align]}>{t.title}</Text>
+    {onChangeLocation && <LocationControl testID="qibla-location" language={language} state={state} onPress={onChangeLocation} />}
     {onModeChange && <View style={[styles.modeChoices, rtl && styles.rowRtl]}>
       {modeChoices.map(choice => <Pressable key={choice.value} testID={`qibla-mode-${choice.value}`}
-        accessibilityRole="radio" accessibilityState={{ checked: mode === choice.value }} onPress={() => onModeChange(choice.value)}
+        accessibilityRole="radio" accessibilityLabel={choice.text} accessibilityState={{ checked: mode === choice.value }} onPress={() => onModeChange(choice.value)}
         style={[styles.modeChoice, rtl && styles.rowRtl, mode === choice.value && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
         <Ionicons name={choice.icon} size={19} color={mode === choice.value ? colors.appAccentInk : colors.appMuted} />
         <Text style={[styles.modeText, mode === choice.value && { color: colors.appAccentInk }]}>{choice.text}</Text>
@@ -180,8 +175,8 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
         <Text testID="qibla-bearing" style={styles.degrees}>{degrees}</Text>
         <Text style={styles.direction}>{direction}</Text>
         <Text style={styles.reference}>{bilingual(language, 'باتجاه عقارب الساعة من الشمال الحقيقي', 'Clockwise from true north')}</Text>
-        <View style={[styles.sceneArea, { height: landscape ? Math.max(220, Math.min(viewport.height - 185, 300)) : Math.max(220, Math.min(viewport.width - 64, viewport.height - 480, 280)) }]}>
-          <QiblaCompass bearing={guideBearing} trueBearing={bearing} language={language} heading={canUseLiveHeading ? headingState.heading : null} />
+        <View style={[styles.sceneArea, { height: landscape ? Math.max(200, Math.min(viewport.height - 165, 260)) : Math.max(200, Math.min(viewport.width - 64, viewport.height - 420, 240)) }]}>
+          <QiblaCompass trueBearing={bearing} language={language} heading={canUseLiveHeading ? headingState.heading : null} />
         </View>
         <View style={[styles.legend, rtl && styles.rowRtl]}>
           <View style={[styles.legendDot, { backgroundColor: qiblaSceneColors(colors).marker }]} /><Text style={styles.legendText}>{bilingual(language, 'موقعك', 'Your location')}</Text>
@@ -195,13 +190,12 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
             ? <Text accessibilityLiveRegion="polite" style={[styles.instruction, facingQibla ? styles.aligned : styles.turning, align]}>{facingQibla ? t.liveFacing : `${turn < 0 ? t.turnLeft : t.turnRight} ${Math.round(Math.abs(turn)).toLocaleString(localeFor(language))}°`}</Text>
             : <Text style={[styles.instruction, align]}>{mode === 'live' ? headingHint : t.instruction}</Text>}
         </View>
-        {locationCard}
       </View>
     </View> : <>
       <View style={styles.errorPanel}>
         <Ionicons name="compass-outline" size={42} color={colors.appMuted} />
         <Text accessibilityRole="alert" style={[styles.error, align]}>{calculationError ? t.calcError : t.unavailable}</Text>
-      </View>{locationCard}
+      </View>
     </> : <View style={styles.emptyCard}>
       <View style={styles.emptyIcon}><Ionicons name="compass-outline" size={52} color={colors.accent} /></View>
       <Text style={[styles.emptyTitle, align]}>{bilingual(language, 'اعرف اتجاه قبلتك', 'Find your direction')}</Text>
@@ -220,24 +214,24 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
 }
 
 const baseStyles = StyleSheet.create({
-  screen: { flexGrow: 1, gap: 16, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 18, width: '100%', maxWidth: 620, alignSelf: 'center' },
+  screen: { flexGrow: 1, gap: 10, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, width: '100%', maxWidth: 620, alignSelf: 'center' },
   screenWide: { maxWidth: 1100 },
-  title: { color: '#F4EFE4', fontSize: 24, fontWeight: '700' },
+  title: { color: '#F4EFE4', fontSize: 22, fontWeight: '700' },
   modeChoices: { flexDirection: 'row', gap: 8 },
-  modeChoice: { flex: 1, minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, borderWidth: 1, borderColor: '#35564C', padding: 10 },
-  modeText: { color: '#A8C1B8', fontSize: 12, fontWeight: '600', flexShrink: 1, textAlign: 'center' },
-  mainArea: { gap: 14 },
+  modeChoice: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 10, borderWidth: 1, borderColor: '#35564C', paddingHorizontal: 8, paddingVertical: 6 },
+  modeText: { color: '#A8C1B8', fontSize: 12, lineHeight: 18, fontWeight: '600', flexShrink: 1, textAlign: 'center' },
+  mainArea: { gap: 10 },
   areaWide: { flexDirection: 'row', alignItems: 'flex-start', gap: 18 },
-  heroCard: { gap: 4, padding: 16, borderRadius: 24, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41', alignItems: 'center' },
+  heroCard: { gap: 3, padding: 12, borderRadius: 20, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41', alignItems: 'center' },
   heroWide: { flex: 1.15 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 20, backgroundColor: '#102A25', maxWidth: '100%' },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 20, backgroundColor: '#102A25', maxWidth: '100%' },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { color: '#A8C1B8', fontSize: 11, fontWeight: '600', flexShrink: 1, textAlign: 'center' },
-  degrees: { color: '#F4EFE4', fontSize: 38, fontWeight: '700', fontVariant: ['tabular-nums'], textAlign: 'center', writingDirection: 'ltr', marginTop: 4 },
+  degrees: { color: '#F4EFE4', fontSize: 34, lineHeight: 42, fontWeight: '700', fontVariant: ['tabular-nums'], textAlign: 'center', writingDirection: 'ltr', marginTop: 2 },
   direction: { color: '#D6BA7A', fontSize: 16, fontWeight: '600', textAlign: 'center' },
-  reference: { color: '#A8C1B8', fontSize: 11, textAlign: 'center', marginBottom: 6 },
+  reference: { color: '#A8C1B8', fontSize: 11, textAlign: 'center', marginBottom: 2 },
   sceneArea: { width: '100%' },
-  frame: { flex: 1, overflow: 'hidden' },
+  frame: { flex: 1, overflow: 'hidden', direction: 'ltr' },
   dial: { position: 'absolute', borderWidth: 1, borderColor: '#35564C' },
   innerDial: { position: 'absolute' },
   pathArrow: { position: 'absolute', width: 0, height: 0, borderLeftWidth: 8, borderRightWidth: 8, borderBottomWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent' },
@@ -253,23 +247,17 @@ const baseStyles = StyleSheet.create({
   legend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 8 },
   legendDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#A8C1B8' },
   legendText: { color: '#A8C1B8', fontSize: 11, marginEnd: 8 },
-  guideArea: { gap: 14 },
+  guideArea: { gap: 10 },
   guideWide: { flex: 1, paddingTop: 4 },
-  guidanceCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 16, backgroundColor: '#15342E' },
+  guidanceCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 10, borderRadius: 12, backgroundColor: '#15342E' },
   instruction: { flex: 1, color: '#C1D1CA', fontSize: 13, lineHeight: 20 },
   aligned: { color: '#A8D6A0', fontWeight: '700' },
   turning: { color: '#F4EFE4', fontWeight: '600' },
-  locationRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41' },
-  locationIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#102A25', alignItems: 'center', justifyContent: 'center' },
-  locationDetails: { flex: 1, gap: 3 },
-  locationSource: { color: '#F4EFE4', fontSize: 14, fontWeight: '600' },
-  locationMeta: { color: '#A8C1B8', fontSize: 11 },
-  coordinates: { color: '#A8C1B8', fontSize: 11, fontVariant: ['tabular-nums'], textAlign: 'left', writingDirection: 'ltr' },
   emptyCard: { flexGrow: 1, justifyContent: 'center', alignItems: 'stretch', gap: 16, padding: 22, borderRadius: 24, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41' },
   emptyIcon: { width: 92, height: 92, borderRadius: 46, backgroundColor: '#102A25', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 6 },
   emptyTitle: { color: '#F4EFE4', fontSize: 22, fontWeight: '600', textAlign: 'center' },
   hint: { color: '#A8C1B8', fontSize: 14, lineHeight: 22, textAlign: 'center' },
-  primaryButton: { minHeight: 52, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, padding: 14, borderRadius: 14, backgroundColor: '#D6BA7A' },
+  primaryButton: { minHeight: 44, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: '#D6BA7A' },
   primaryText: { color: '#102A25', fontSize: 15, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
   secondaryButton: { minHeight: 44, justifyContent: 'center', alignItems: 'center', padding: 8 },
   secondaryText: { color: '#D6BA7A', fontSize: 14, textAlign: 'center' },

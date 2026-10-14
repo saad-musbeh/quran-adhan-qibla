@@ -37,6 +37,19 @@ export function smoothHeading(previous: number, next: number, alpha = 0.55): num
   return normalizeDegrees(previous + relativeBearing(next, previous) * blend);
 }
 
+/** Continuous target for animated rotation: 359 → 1 becomes 359 → 361. */
+export function unwrapHeading(previous: number, next: number): number {
+  return previous + relativeBearing(normalizeDegrees(next), normalizeDegrees(previous));
+}
+
+/** Time-based jitter filtering avoids sample-rate-dependent trailing on slow sensors. */
+export function responsiveHeading(previous: number, next: number, elapsedMs: number): number {
+  const turn = Math.abs(relativeBearing(next, previous));
+  if (turn < 0.25) return previous;
+  const alpha = turn > 12 ? 0.95 : 1 - Math.exp(-Math.max(0, elapsedMs) / 60);
+  return smoothHeading(previous, next, alpha);
+}
+
 export function isFacingTarget(relativeAngle: number, tolerance = 8): boolean {
   return Math.abs(relativeAngle) <= tolerance;
 }

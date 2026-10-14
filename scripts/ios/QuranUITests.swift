@@ -163,7 +163,9 @@ final class QuranUITests: XCTestCase {
   }
 
   func testLocalPrayerAlertsAndDownloadManager() {
-    app.buttons["open-location"].tap()
+    app.buttons["open-main-menu"].tap()
+    app.buttons["menu-adhan"].tap()
+    app.buttons["adhan-location"].tap()
     let manual = app.buttons["location-manual"]
     for _ in 0..<3 { if manual.isHittable { break }; app.scrollViews.firstMatch.swipeUp() }
     XCTAssertTrue(manual.waitForExistence(timeout: 5))
