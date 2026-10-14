@@ -25,7 +25,7 @@ npm run apk:android
 python3 scripts/apk-size.py dist/android/app-arm64-v8a-release.apk
 ```
 
-`apk:android` checks each generated APK for all 604 original packed pages, all six exact OGG recordings, and a Rust library for every included ABI. Outputs stay in ignored `dist/android/`; generated projects, native binaries and signing credentials stay out of Git. Release APKs use version 0.5.0 / code 19 and the existing local test signing identity; no store release is published.
+`apk:android` checks each generated APK for all 604 original packed pages, all six exact OGG recordings, and a Rust library for every included ABI. Outputs stay in ignored `dist/android/`; generated projects, native binaries and signing credentials stay out of Git. Current release APKs use version 0.5.1 / code 20 and the existing local test signing identity; no store release is published.
 
 ## Measured artifacts (14 October 2026)
 

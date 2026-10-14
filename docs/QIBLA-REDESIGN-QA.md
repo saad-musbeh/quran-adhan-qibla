@@ -1,6 +1,6 @@
 # Qibla redesign and additional locales
 
-Checked on 14 October 2026, following the 0.5.0 release. These changes are development source and test APKs, not a replacement for the published 0.5.0 release assets.
+Checked on 14 October 2026, following the 0.5.0 release. These changes are included in 0.5.1; the measurements below were taken from the preceding development APKs. See [0.5.1 release notes](RELEASE-0.5.1.md) for versioned artifact validation.
 
 ## Changes
 
