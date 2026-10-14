@@ -20,6 +20,7 @@ test('all five app colors provide readable light and dark controls without chang
     for (const theme of [light, dark]) {
       for (const background of [theme.appBackground, theme.appSurface, theme.appRaised]) {
         assert.ok(contrast(theme.appText, background) >= 4.5, `${base.id} ${theme.mode} text on ${background}`);
+        assert.ok(contrast(theme.appMuted, background) >= 4.5, `${base.id} ${theme.mode} secondary text on ${background}`);
         assert.ok(contrast(theme.accent, background) >= 3, `${base.id} ${theme.mode} controls on ${background}`);
       }
       assert.ok(contrast(theme.appAccentInk, theme.accent) >= 4.5);

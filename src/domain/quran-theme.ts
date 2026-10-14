@@ -54,11 +54,20 @@ export const QURAN_THEMES: readonly QuranTheme[] = [
     id: 'brown', mode: 'dark', appText: '#FAF7EF', arabicName: 'بني', name: 'Brown',
     background: '#67482F', deep: '#493321', surface: '#FAF7EF', border: '#DBAB68',
     muted: '#80654D', accent: '#DBAB68', ink: '#4E3726', lightPaper: '#FAF7EF', pale: '#F1E9DD',
-    appBackground: '#493321', appSurface: '#5D402B', appRaised: '#755435', appBorder: '#806348', appMuted: '#D6C3AE', appAccentInk: '#493321',
+    appBackground: '#493321', appSurface: '#5D402B', appRaised: '#755435', appBorder: '#806348', appMuted: '#E8DACA', appAccentInk: '#493321',
   },
 ];
 
 export const DEFAULT_QURAN_THEME_ID: QuranThemeId = 'blue';
+
+// Light app surfaces use a restrained tint. Quran paper keeps its own palette.
+const LIGHT_APP_COLORS: Record<QuranThemeId, { background: string; raised: string; border: string; muted: string }> = {
+  green: { background: '#F3F7F4', raised: '#E6EFE9', border: '#CBD9D0', muted: '#4C6557' },
+  maroon: { background: '#FAF5F6', raised: '#F2E7EB', border: '#E1CDD4', muted: '#73515B' },
+  blue: { background: '#F3F7FA', raised: '#E5EEF5', border: '#CBD9E4', muted: '#4C6578' },
+  black: { background: '#F5F6F6', raised: '#E8EBED', border: '#D1D6D9', muted: '#5D6469' },
+  brown: { background: '#FAF7F2', raised: '#F0E7DA', border: '#DFD1BF', muted: '#735A43' },
+};
 
 export function isQuranThemeId(value: unknown): value is QuranThemeId {
   return typeof value === 'string' && QURAN_THEMES.some(theme => theme.id === value);
@@ -67,11 +76,12 @@ export function isQuranThemeId(value: unknown): value is QuranThemeId {
 export function getQuranTheme(id: QuranThemeId, mode: QuranThemeMode = 'dark'): QuranTheme {
   const theme = QURAN_THEMES.find(theme => theme.id === id) ?? QURAN_THEMES[2];
   if (mode === 'dark') return theme;
+  const light = LIGHT_APP_COLORS[theme.id];
   return {
     ...theme, mode,
-    appBackground: theme.pale, appSurface: theme.lightPaper, appRaised: '#FFFFFF',
-    appText: theme.ink, appMuted: theme.muted, appBorder: theme.muted,
-    accent: theme.ink, appAccentInk: theme.lightPaper,
+    appBackground: light.background, appSurface: '#FFFFFF', appRaised: light.raised,
+    appText: theme.ink, appMuted: light.muted, appBorder: light.border,
+    accent: theme.ink, appAccentInk: '#FFFFFF',
   };
 }
 

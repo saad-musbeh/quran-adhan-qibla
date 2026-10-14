@@ -25,7 +25,7 @@ const labels: { en: Record<Tab, string> & { show: string }; ar: Record<Tab, stri
 const HIDE_DELAY_MS = 4_000;
 
 export function SwipeTabs({ hideNavigation = false, language, tab, onChange, children, reading = false, chromeVisible = false }: Props) {
-  const {styles}=useReaderStyles(baseStyles);
+  const { styles, colors } = useReaderStyles(baseStyles);
   const [dockVisible, setDockVisible] = useState(true);
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -151,7 +151,7 @@ export function SwipeTabs({ hideNavigation = false, language, tab, onChange, chi
     onTouchCancel={reading ? undefined : onTouchCancel}
   >
     <View style={styles.content}>{children}</View>
-    {hideNavigation ? null : showDock ? <View accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, isRTL(language) && styles.dockRtl]}>
+    {hideNavigation ? null : showDock ? <View accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, colors.mode === 'light' && { shadowOpacity: 0.08, elevation: 2 }, isRTL(language) && styles.dockRtl]}>
       {TABS.map(item => <Pressable
         key={item}
         testID={`tab-${item}`}
@@ -160,9 +160,9 @@ export function SwipeTabs({ hideNavigation = false, language, tab, onChange, chi
         accessibilityState={{ selected: tab === item }}
         onPress={() => chooseTab(item)}
         onPressIn={revealAndRestartTimer}
-        style={[styles.tab, tab === item && styles.tabSelected]}
+        style={[styles.tab, tab === item && { backgroundColor: colors.accent }]}
       >
-        <Text style={[styles.tabLabel, tab === item && styles.tabLabelSelected]}>{copy[item]}</Text>
+        <Text style={[styles.tabLabel, tab === item && { color: colors.appAccentInk, fontWeight: '700' }]}>{copy[item]}</Text>
       </Pressable>)}
     </View> : !reading && <Pressable
       accessibilityRole="button"
@@ -202,9 +202,7 @@ const baseStyles = StyleSheet.create({
   },
   dockRtl: { flexDirection: 'row-reverse' },
   tab: { flex: 1, minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, borderRadius: 15 },
-  tabSelected: { backgroundColor: '#FAF7EF' },
   tabLabel: { color: '#A8C1B8', fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  tabLabelSelected: { color: '#102A25', fontWeight: '700' },
   handleButton: {
     zIndex: 2,
     position: 'absolute',

@@ -7,6 +7,8 @@ import { isFacingTarget, relativeBearing } from '../domain/heading';
 import { useHeading } from '../use-heading';
 import { bilingual, isRTL, localeFor, localizeCopy, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
+import { qiblaSceneColors } from '../domain/qibla-scene';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 type Props = {
   language: Language;
@@ -17,7 +19,6 @@ type Props = {
   active?: boolean;
   mode?: 'live' | 'north';
   onModeChange?: (mode: 'live' | 'north') => void;
-  /** Accepted during parent integration; location controls live in the shared sheet, never here. */
   onChangeLocation?: () => void;
 };
 
@@ -26,88 +27,77 @@ const directions = {
   ar: ['شمال', 'شمال شرقي', 'شرق', 'جنوب شرقي', 'جنوب', 'جنوب غربي', 'غرب', 'شمال غربي'],
 } as const;
 
-function lineBetween(x1: number, y1: number, x2: number, y2: number, color: string, opacity = 1): ViewStyle {
+function lineBetween(x1: number, y1: number, x2: number, y2: number, color: string, opacity = 1, thickness = 2): ViewStyle {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const length = Math.sqrt(dx * dx + dy * dy);
   return {
-    position: 'absolute', left: (x1 + x2) / 2 - length / 2, top: (y1 + y2) / 2 - 1,
-    width: length, height: 2, borderRadius: 2, backgroundColor: color, opacity,
+    position: 'absolute', left: (x1 + x2) / 2 - length / 2, top: (y1 + y2) / 2 - thickness / 2,
+    width: length, height: thickness, borderRadius: thickness, backgroundColor: color, opacity,
     transform: [{ rotate: `${Math.atan2(dy, dx)}rad` }],
   };
 }
 
-function VirtualQiblaScene({ bearing, trueBearing, language, mode, heading }: { bearing: number; trueBearing: number; language: Language; mode: 'live' | 'north'; heading: number | null }) {
+function QiblaCompass({ bearing, trueBearing, language, heading }: { bearing: number; trueBearing: number; language: Language; heading: number | null }) {
   const { styles: scene, colors } = useReaderStyles(baseStyles);
-  const rtl = isRTL(language);
+  const palette = qiblaSceneColors(colors);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const onLayout = (event: LayoutChangeEvent) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height });
   const { width, height } = size;
-  const floorHeight = height * 0.62;
   const cx = width / 2;
-  const cy = height * 0.56;
-  const radius = Math.max(0, Math.min(width * 0.39, height * 0.35, width / 2 - 40, cy - 60, height - cy - 40));
+  const cy = height / 2;
+  const dialRadius = Math.max(0, Math.min(width, height) / 2 - 12);
+  const compassRadius = Math.max(0, dialRadius - 32);
+  const radius = Math.max(0, Math.min(dialRadius * 0.52, compassRadius - 38));
   const radians = bearing * Math.PI / 180;
   const targetX = cx + Math.sin(radians) * radius;
   const targetY = cy - Math.cos(radians) * radius;
-  const arrowX = cx + Math.sin(radians) * radius * 0.61;
-  const arrowY = cy - Math.cos(radians) * radius * 0.61;
+  const arrowX = cx + Math.sin(radians) * radius * 0.55;
+  const arrowY = cy - Math.cos(radians) * radius * 0.55;
   const cardinal = localizeCopy(language, { en: ['North', 'East', 'South', 'West'], ar: ['شمال', 'شرق', 'جنوب', 'غرب'] });
-  const cardinalWords = [cardinal[0], cardinal[1], cardinal[2], cardinal[3]];
-  const compassRadius = Math.max(0, Math.min(width * 0.43, height * 0.40, cy - 18, height - cy - 18));
   const compassLabels = [
-    { key: 'n', angle: 0, text: cardinalWords[0] }, { key: 'e', angle: 90, text: cardinalWords[1] },
-    { key: 's', angle: 180, text: cardinalWords[2] }, { key: 'w', angle: 270, text: cardinalWords[3] },
+    { key: 'n', angle: 0, text: cardinal[0] }, { key: 'e', angle: 90, text: cardinal[1] },
+    { key: 's', angle: 180, text: cardinal[2] }, { key: 'w', angle: 270, text: cardinal[3] },
   ].map(item => {
-    const angle = relativeBearing(item.angle, mode === 'live' && heading !== null ? heading : 0) * Math.PI / 180;
+    const angle = relativeBearing(item.angle, heading ?? 0) * Math.PI / 180;
     return { ...item, left: cx + Math.sin(angle) * compassRadius - 30, top: cy - Math.cos(angle) * compassRadius - 11 };
   });
   const guidance = trueBearing.toLocaleString(localeFor(language), { maximumFractionDigits: 1 });
 
-  const accessibilityLabel = mode === 'live'
-    ? bilingual(language, 'مشهد توضيحي افتراضي باتجاه حي، القبلة {guidance} درجة', 'Illustrated virtual live-heading view, Qibla at {guidance} degrees', { guidance })
-    : bilingual(language, 'مشهد توضيحي افتراضي باتجاه الشمال، القبلة {guidance} درجة', 'Illustrated virtual north-facing view, Qibla at {guidance} degrees', { guidance });
+  const accessibilityLabel = heading !== null
+    ? bilingual(language, 'دليل بوصلة حي، القبلة {guidance} درجة من الشمال الحقيقي', 'Live compass guide, Qibla {guidance} degrees from true north', { guidance })
+    : bilingual(language, 'دليل ثابت للشمال، القبلة {guidance} درجة من الشمال الحقيقي', 'Fixed north guide, Qibla {guidance} degrees from true north', { guidance });
 
-  return <View onLayout={onLayout} style={scene.frame} accessible accessibilityLabel={accessibilityLabel}>
-    <View pointerEvents="none" style={scene.sky}>
-      <View style={scene.skyGlow} />
-      <View style={[scene.mountain, scene.mountainLeft]} />
-      <View style={[scene.mountain, scene.mountainRight]} />
-    </View>
-    <View pointerEvents="none" style={scene.floor}>
-      <View style={scene.horizon} />
-      {[0.49, 0.58, 0.69, 0.82, 0.98].map(level => <View key={level} style={[scene.floorLine, { top: `${level * 100}%` }]} />)}
-      {[-0.28, 0, 0.28, 0.56, 0.84, 1.12, 1.4].map((end, index) => {
-        const startX = width * (0.5 + (end - 0.5) * 0.1);
-        return <View key={index} style={lineBetween(startX, 0, width * end, floorHeight, colors.appBorder, 0.42)} />;
-      })}
-    </View>
-    <View pointerEvents="none" style={[scene.label, rtl && scene.labelRtl]}>
-      <View style={scene.northBadge}>{mode === 'north' || heading === null ? <Text style={scene.northArrow}>↑</Text> : null}<Text style={scene.northText}>{mode === 'live' && heading !== null ? bilingual(language, 'مباشر · الشمال الحقيقي', 'LIVE · TRUE NORTH') : bilingual(language, 'الشمال الحقيقي', 'TRUE NORTH')}</Text></View>
-    </View>
+  return <View testID="qibla-compass" onLayout={onLayout} style={scene.frame} accessible accessibilityLabel={accessibilityLabel}>
     {width > 0 && height > 0 && <>
-      <View pointerEvents="none" style={lineBetween(cx, cy, targetX, targetY, colors.mode==='light'?'#167F7C':'#49C9C0', 0.72)} />
-      <View pointerEvents="none" style={[scene.pathLine, lineBetween(cx, cy, targetX, targetY, colors.accent, 1)]} />
-      <View pointerEvents="none" style={[scene.pathArrow, { left: arrowX - 9, top: arrowY - 10, transform: [{ rotate: `${bearing}deg` }] }]} />
-      <View pointerEvents="none" style={[scene.youMarker, { left: cx - 8, top: cy - 8 }]}><View style={scene.youDot} /></View>
-      <View pointerEvents="none" style={[scene.kaabaMarker, { left: targetX - 27, top: targetY - 43 }]}>
+      <View pointerEvents="none" style={[scene.dial, { left: cx - dialRadius, top: cy - dialRadius, width: dialRadius * 2, height: dialRadius * 2, borderRadius: dialRadius, backgroundColor: palette.face }]} />
+      <View pointerEvents="none" style={[scene.innerDial, { left: cx - dialRadius * 0.63, top: cy - dialRadius * 0.63, width: dialRadius * 1.26, height: dialRadius * 1.26, borderRadius: dialRadius, backgroundColor: palette.inner }]} />
+      {Array.from({ length: 36 }, (_, index) => {
+        const angle = relativeBearing(index * 10, heading ?? 0) * Math.PI / 180;
+        const inner = dialRadius - (index % 9 === 0 ? 13 : index % 3 === 0 ? 9 : 5);
+        return <View key={index} pointerEvents="none" style={lineBetween(
+          cx + Math.sin(angle) * inner, cy - Math.cos(angle) * inner,
+          cx + Math.sin(angle) * (dialRadius - 2), cy - Math.cos(angle) * (dialRadius - 2),
+          index === 0 ? palette.direction : palette.tick, index % 3 === 0 ? 0.8 : 0.35, index % 9 === 0 ? 2 : 1)} />;
+      })}
+      <View pointerEvents="none" style={lineBetween(cx, cy, targetX, targetY, palette.direction, 1, 3)} />
+      <View pointerEvents="none" style={[scene.pathArrow, { borderBottomColor: palette.direction, left: arrowX - 8, top: arrowY - 7, transform: [{ rotate: `${bearing}deg` }] }]} />
+      <View pointerEvents="none" style={[scene.youMarker, { backgroundColor: palette.marker, borderColor: palette.markerBorder, left: cx - 9, top: cy - 9 }]} />
+      <View pointerEvents="none" style={[scene.kaabaMarker, { left: targetX - 16, top: targetY - 15 }]}>
         <View style={scene.kaabaTop} /><View style={scene.kaabaSide} /><View style={scene.kaabaFront}>
-          <View style={scene.kaabaBelt} /><View style={scene.kaabaDoor} />
+          <View style={[scene.kaabaBelt, { backgroundColor: palette.gold }]} /><View style={scene.kaabaDoor} />
         </View>
       </View>
-      <View pointerEvents="none" style={[scene.kaabaLabel, { left: Math.max(5, Math.min(width - 109, targetX - 52)), top: Math.min(height - 21, targetY + 21) }]}>
-        <Text style={scene.kaabaLabelText}>{bilingual(language, 'الكعبة', 'Kaaba')}</Text>
-      </View>
     </>}
-    {compassLabels.map(item => <View key={item.key} pointerEvents="none" style={[scene.compassWord, { left: Math.max(3, Math.min(width - 63, item.left)), top: Math.max(3, Math.min(height - 25, item.top)) }]}><Text numberOfLines={1} adjustsFontSizeToFit style={scene.compassText}>{item.text}</Text></View>)}
+    {compassLabels.map(item => <View key={item.key} pointerEvents="none" style={[scene.compassWord, { left: Math.max(3, Math.min(width - 63, item.left)), top: Math.max(3, Math.min(height - 25, item.top)) }]}><Text numberOfLines={1} adjustsFontSizeToFit style={[scene.compassText, item.key === 'n' && { color: palette.direction }]}>{item.text}</Text></View>)}
   </View>;
 }
 
-export function QiblaScreen({ language, state, bearing, calculationAvailable, calculationError, active = true, mode = 'live' }: Props) {
-  const { styles } = useReaderStyles(baseStyles);
+export function QiblaScreen({ language, state, bearing, calculationAvailable, calculationError, active = true, mode = 'live', onModeChange, onChangeLocation }: Props) {
+  const { styles, colors } = useReaderStyles(baseStyles);
   const rtl = isRTL(language);
   const [viewport,setViewport]=useState({width:0,height:0});
-  const landscape=viewport.width>=680&&viewport.width>viewport.height;
+  const landscape=viewport.width>=600&&viewport.width>viewport.height;
   const location = state.location;
   const headingState = useHeading(Boolean(active && mode === 'live' && location?.source === 'device' && bearing !== null && calculationAvailable && !calculationError), location?.source === 'device' ? location : undefined);
   const canUseLiveHeading = mode === 'live' && headingState.status === 'ready' && headingState.heading !== null;
@@ -151,60 +141,142 @@ export function QiblaScreen({ language, state, bearing, calculationAvailable, ca
       : headingState.reason === 'permission' || (location?.source !== 'device' && mode === 'live') ? t.permission
         : headingState.status === 'loading' || headingState.status === 'idle' ? t.headingLoading : t.headingUnavailable;
 
-  return <ScrollView style={{flex:1}} onLayout={event=>setViewport(event.nativeEvent.layout)} contentContainerStyle={[styles.screen,landscape&&styles.screenWide]}>
-    <Text style={[styles.eyebrow, align]}>{t.title}</Text>
-    {location ? <>
-      {bearing !== null && calculationAvailable && !calculationError ? <View style={[styles.mainArea,landscape&&styles.areaWide,landscape&&rtl&&styles.rowRtl]}>
-        <View style={[styles.sceneArea,{minHeight:landscape?Math.max(240,viewport.height-95):Math.max(240,viewport.height-150)}]}>
-        <VirtualQiblaScene bearing={guideBearing} trueBearing={bearing} language={language} mode={canUseLiveHeading ? 'live' : 'north'} heading={canUseLiveHeading ? headingState.heading : null} />
-        </View><View style={[styles.guideArea,landscape&&styles.guideWide]}>
-        <View style={[styles.readout, rtl && styles.readoutRtl]}>
-          <Text style={[styles.direction, align]}>{direction}</Text>
-          <Text style={styles.degrees}>{degrees}</Text>
+  const modeChoices = [
+    { value: 'live', icon: 'compass-outline', text: bilingual(language, 'بوصلة الهاتف', 'Phone compass') },
+    { value: 'north', icon: 'navigate-outline', text: bilingual(language, 'دليل ثابت للشمال الحقيقي', 'Fixed true-north view') },
+  ] as const;
+  const status = canUseLiveHeading
+    ? bilingual(language, 'بوصلة مباشرة', 'Live compass')
+    : bilingual(language, 'دليل ثابت للشمال', 'Fixed north guide');
+  const locationCard = location && <Pressable testID="qibla-location" accessibilityRole="button"
+    accessibilityLabel={bilingual(language, 'تغيير الموقع', 'Change location')} onPress={onChangeLocation}
+    disabled={!onChangeLocation} style={[styles.locationRow, rtl && styles.rowRtl]}>
+    <View style={styles.locationIcon}><Ionicons name="location-outline" size={22} color={colors.accent} /></View>
+    <View style={styles.locationDetails}>
+      <Text style={[styles.locationSource, align]}>{locationLabel ?? sourceCopy}</Text>
+      {locationLabel && locationLabel !== sourceCopy && <Text style={[styles.locationMeta, align]}>{sourceCopy}</Text>}
+      <Text style={styles.coordinates}>{location.latitude.toFixed(3)}, {location.longitude.toFixed(3)}</Text>
+    </View>
+    {onChangeLocation && <Ionicons name={rtl ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.appMuted} />}
+  </Pressable>;
+
+  return <ScrollView testID="qibla-page" style={{ flex: 1 }} onLayout={event => setViewport(event.nativeEvent.layout)}
+    contentContainerStyle={[styles.screen, landscape && styles.screenWide]}>
+    <Text accessibilityRole="header" style={[styles.title, align]}>{t.title}</Text>
+    {onModeChange && <View style={[styles.modeChoices, rtl && styles.rowRtl]}>
+      {modeChoices.map(choice => <Pressable key={choice.value} testID={`qibla-mode-${choice.value}`}
+        accessibilityRole="radio" accessibilityState={{ checked: mode === choice.value }} onPress={() => onModeChange(choice.value)}
+        style={[styles.modeChoice, rtl && styles.rowRtl, mode === choice.value && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+        <Ionicons name={choice.icon} size={19} color={mode === choice.value ? colors.appAccentInk : colors.appMuted} />
+        <Text style={[styles.modeText, mode === choice.value && { color: colors.appAccentInk }]}>{choice.text}</Text>
+      </Pressable>)}
+    </View>}
+    {location ? bearing !== null && calculationAvailable && !calculationError ? <View style={[styles.mainArea, landscape && styles.areaWide, landscape && rtl && styles.rowRtl]}>
+      <View style={[styles.heroCard, landscape && styles.heroWide]}>
+        <View style={styles.statusBadge}>
+          <View style={[styles.statusDot, { backgroundColor: canUseLiveHeading ? qiblaSceneColors(colors).marker : colors.appMuted }]} />
+          <Text testID="qibla-status" style={styles.statusText}>{status}</Text>
         </View>
-        {canUseLiveHeading && turn !== null
-          ? <Text accessibilityLiveRegion="polite" style={[styles.instruction, facingQibla ? styles.aligned : styles.turning]}>{facingQibla ? t.liveFacing : `${turn < 0 ? t.turnLeft : t.turnRight} ${Math.round(Math.abs(turn)).toLocaleString(localeFor(language))}°`}</Text>
-          : <Text style={[styles.instruction, align]}>{mode === 'live' ? headingHint : t.instruction}</Text>}
+        <Text testID="qibla-bearing" style={styles.degrees}>{degrees}</Text>
+        <Text style={styles.direction}>{direction}</Text>
+        <Text style={styles.reference}>{bilingual(language, 'باتجاه عقارب الساعة من الشمال الحقيقي', 'Clockwise from true north')}</Text>
+        <View style={[styles.sceneArea, { height: landscape ? Math.max(220, Math.min(viewport.height - 185, 300)) : Math.max(220, Math.min(viewport.width - 64, viewport.height - 480, 280)) }]}>
+          <QiblaCompass bearing={guideBearing} trueBearing={bearing} language={language} heading={canUseLiveHeading ? headingState.heading : null} />
         </View>
-      </View> : <View style={[styles.errorPanel, styles.mainArea]}>
-        <Text style={[styles.errorHeading, align]}>{t.title}</Text>
-        <Text accessibilityRole="alert" style={[styles.error, align]}>{calculationError ? t.calcError : t.unavailable}</Text>
-      </View>}
-      <View style={[styles.locationRow, rtl && styles.rowRtl]}>
-        <View style={styles.locationDetails}>
-          <Text numberOfLines={1} style={[styles.locationSource, align]}>{location.source === 'city' ? locationLabel ?? sourceCopy : sourceCopy}</Text>
-          <Text style={styles.coordinates}>{location.latitude.toFixed(3)}, {location.longitude.toFixed(3)}</Text>
+        <View style={[styles.legend, rtl && styles.rowRtl]}>
+          <View style={[styles.legendDot, { backgroundColor: qiblaSceneColors(colors).marker }]} /><Text style={styles.legendText}>{bilingual(language, 'موقعك', 'Your location')}</Text>
+          <Ionicons name="navigate" size={15} color={qiblaSceneColors(colors).direction} /><Text style={styles.legendText}>{bilingual(language, 'الكعبة', 'Kaaba')}</Text>
         </View>
       </View>
+      <View style={[styles.guideArea, landscape && styles.guideWide]}>
+        <View style={[styles.guidanceCard, rtl && styles.rowRtl]}>
+          <Ionicons name={canUseLiveHeading && facingQibla ? 'checkmark-circle-outline' : canUseLiveHeading ? 'navigate-outline' : 'information-circle-outline'} size={22} color={colors.accent} />
+          {canUseLiveHeading && turn !== null
+            ? <Text accessibilityLiveRegion="polite" style={[styles.instruction, facingQibla ? styles.aligned : styles.turning, align]}>{facingQibla ? t.liveFacing : `${turn < 0 ? t.turnLeft : t.turnRight} ${Math.round(Math.abs(turn)).toLocaleString(localeFor(language))}°`}</Text>
+            : <Text style={[styles.instruction, align]}>{mode === 'live' ? headingHint : t.instruction}</Text>}
+        </View>
+        {locationCard}
+      </View>
+    </View> : <>
+      <View style={styles.errorPanel}>
+        <Ionicons name="compass-outline" size={42} color={colors.appMuted} />
+        <Text accessibilityRole="alert" style={[styles.error, align]}>{calculationError ? t.calcError : t.unavailable}</Text>
+      </View>{locationCard}
     </> : <View style={styles.emptyCard}>
-
+      <View style={styles.emptyIcon}><Ionicons name="compass-outline" size={52} color={colors.accent} /></View>
+      <Text style={[styles.emptyTitle, align]}>{bilingual(language, 'اعرف اتجاه قبلتك', 'Find your direction')}</Text>
+      <Text style={[styles.hint, align]}>{t.locationHint}</Text>
       {!calculationAvailable && <Text accessibilityRole="alert" style={[styles.error, align]}>{t.unavailable}</Text>}
-      <Pressable accessibilityRole="button" accessibilityState={{ disabled: state.loading, ...(state.loading ? { busy: true } : {}) }} disabled={state.loading} onPress={() => void state.locate()} style={[styles.primaryButton, state.loading && styles.disabled]}>
-        {state.loading && <ActivityIndicator size="small" color="#102A25" />}
+      <Pressable accessibilityRole="button" accessibilityState={{ disabled: state.loading, ...(state.loading ? { busy: true } : {}) }} disabled={state.loading} onPress={() => void state.locate()} style={[styles.primaryButton, rtl && styles.rowRtl, state.loading && styles.disabled]}>
+        {state.loading ? <ActivityIndicator size="small" color={colors.appAccentInk} /> : <Ionicons name="locate-outline" size={22} color={colors.appAccentInk} />}
         <Text style={styles.primaryText}>{state.loading ? t.locating : t.useLocation}</Text>
       </Pressable>
+      {onChangeLocation && <Pressable accessibilityRole="button" onPress={onChangeLocation} style={styles.secondaryButton}>
+        <Text style={styles.secondaryText}>{bilingual(language, 'خيارات أخرى للموقع', 'Other location options')}</Text>
+      </Pressable>}
       {errorCopy && <Text accessibilityRole="alert" style={[styles.error, align]}>{errorCopy}</Text>}
     </View>}
   </ScrollView>;
 }
 
 const baseStyles = StyleSheet.create({
-  sceneArea:{flex:1},guideArea:{gap:8},guideWide:{flex:0.8,justifyContent:'center'},areaWide:{flexDirection:'row',gap:24,alignItems:'stretch'},screenWide:{maxWidth:1100},
-  screen: { flexGrow: 1, minHeight: 0, gap: 8, paddingHorizontal: 14, paddingVertical: 8, width: '100%', maxWidth: 620, alignSelf: 'center' },
-  eyebrow: { color: '#D6BA7A', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
-  mainArea: { flex: 1, minHeight: 0 },
-  frame: { flex: 1, minHeight: 180, overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: '#35564C', backgroundColor: '#102A25' },
-  sky: { position: 'absolute', left: 0, right: 0, top: 0, height: '43%', overflow: 'hidden', backgroundColor: '#193D36' }, skyGlow: { position: 'absolute', width: '80%', height: '150%', left: '10%', top: '12%', borderRadius: 300, backgroundColor: '#285146', opacity: 0.45 },
-  mountain: { position: 'absolute', bottom: 0, width: 0, height: 0, borderLeftWidth: 85, borderRightWidth: 85, borderBottomWidth: 55, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#28483E' }, mountainLeft: { left: -20 }, mountainRight: { right: -28, borderLeftWidth: 115, borderRightWidth: 115, borderBottomWidth: 74, borderBottomColor: '#23443B' },
-  floor: { position: 'absolute', top: '38%', left: 0, right: 0, bottom: 0, backgroundColor: '#102A25' }, horizon: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: '#5E8276', opacity: 0.7 }, floorLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#4A7267', opacity: 0.42 },
-  label: { position: 'absolute', top: 10, left: 10, right: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 }, labelRtl: { flexDirection: 'row-reverse' }, northBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 15, backgroundColor: '#0B211DCC' }, northArrow: { color: '#D6BA7A', fontSize: 16, fontWeight: '800' }, northText: { color: '#F4EFE4', fontSize: 10, fontWeight: '700' }, virtualTag: { color: '#BDD4CB', fontSize: 9, fontWeight: '700', letterSpacing: 0.8, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12, backgroundColor: '#0B211D99' },
-  pathLine: { opacity: 0.85 }, pathArrow: { position: 'absolute', width: 0, height: 0, borderLeftWidth: 8, borderRightWidth: 8, borderBottomWidth: 14, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#F4E1A4' },
-  youMarker: { position: 'absolute', width: 16, height: 16, borderRadius: 8, backgroundColor: '#49C9C0', borderWidth: 3, borderColor: '#D8F6EF', alignItems: 'center', justifyContent: 'center' }, youDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#102A25' },
-  kaabaMarker: { position: 'absolute', width: 54, height: 48, alignItems: 'center' }, kaabaTop: { position: 'absolute', top: 0, width: 22, height: 14, backgroundColor: '#443B2A', transform: [{ rotate: '45deg' }] }, kaabaFront: { position: 'absolute', top: 9, left: 11, width: 33, height: 30, backgroundColor: '#171512', borderWidth: 1, borderColor: '#9B8042' }, kaabaSide: { position: 'absolute', top: 10, right: 2, width: 12, height: 28, backgroundColor: '#29241A', transform: [{ skewY: '-20deg' }] }, kaabaBelt: { position: 'absolute', top: 7, left: 0, right: 0, height: 4, backgroundColor: '#D6BA7A' }, kaabaDoor: { position: 'absolute', right: 5, bottom: 0, width: 7, height: 12, borderWidth: 1, borderColor: '#B99A52', backgroundColor: '#302516' },
-  kaabaLabel: { position: 'absolute', width: 104, alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, backgroundColor: '#0B211DD9' }, kaabaLabelText: { color: '#F4EFE4', fontSize: 10, fontWeight: '700' },
-  compassWord: { position: 'absolute', alignItems: 'center', justifyContent: 'center', width: 60, minHeight: 22, borderRadius: 11, backgroundColor: '#0B211D99' }, compassText: { color: '#A8C1B8', fontSize: 9, fontWeight: '700' },
-  readout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }, readoutRtl: { flexDirection: 'row-reverse' }, direction: { color: '#F4EFE4', fontSize: 16, fontWeight: '700' }, degrees: { color: '#D6BA7A', fontSize: 15, fontVariant: ['tabular-nums'] }, instruction: { color: '#C1D1CA', fontSize: 12, lineHeight: 18, textAlign: 'center' }, aligned: { color: '#A8D6A0', fontWeight: '700' }, turning: { color: '#F4EFE4', fontWeight: '700' },
-  locationRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41' }, rowRtl: { flexDirection: 'row-reverse' }, locationDetails: { flex: 1, gap: 2 }, locationSource: { color: '#F4EFE4', fontSize: 13, fontWeight: '600' }, coordinates: { color: '#A8C1B8', fontSize: 11, fontVariant: ['tabular-nums'], textAlign: 'left', writingDirection: 'ltr' },
-  emptyCard: { flex: 1, minHeight: 0, justifyContent: 'center', gap: 13, padding: 18, borderRadius: 22, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41' }, emptyTitle: { color: '#F4EFE4', fontSize: 22, fontWeight: '600' }, hint: { color: '#A8C1B8', fontSize: 14, lineHeight: 22 }, primaryButton: { minHeight: 50, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, paddingHorizontal: 16, borderRadius: 14, backgroundColor: '#D6BA7A' }, primaryText: { color: '#102A25', fontSize: 16, fontWeight: '700' }, secondaryButton: { minHeight: 44, justifyContent: 'center', alignItems: 'center', paddingVertical: 8 }, secondaryText: { color: '#D6BA7A', fontSize: 14, textDecorationLine: 'underline' }, disabled: { opacity: 0.45 },
-  errorPanel: { justifyContent: 'center', alignItems: 'center', gap: 12, padding: 20, borderRadius: 20, backgroundColor: '#15342E' }, errorHeading: { color: '#F4EFE4', fontSize: 20, fontWeight: '700' }, error: { color: '#FFB3A8', fontSize: 14, lineHeight: 20, textAlign: 'center' }, rtl: { textAlign: 'right', writingDirection: 'rtl' }, ltr: { textAlign: 'left', writingDirection: 'ltr' },
+  screen: { flexGrow: 1, gap: 16, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 18, width: '100%', maxWidth: 620, alignSelf: 'center' },
+  screenWide: { maxWidth: 1100 },
+  title: { color: '#F4EFE4', fontSize: 24, fontWeight: '700' },
+  modeChoices: { flexDirection: 'row', gap: 8 },
+  modeChoice: { flex: 1, minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, borderWidth: 1, borderColor: '#35564C', padding: 10 },
+  modeText: { color: '#A8C1B8', fontSize: 12, fontWeight: '600', flexShrink: 1, textAlign: 'center' },
+  mainArea: { gap: 14 },
+  areaWide: { flexDirection: 'row', alignItems: 'flex-start', gap: 18 },
+  heroCard: { gap: 4, padding: 16, borderRadius: 24, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41', alignItems: 'center' },
+  heroWide: { flex: 1.15 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 20, backgroundColor: '#102A25', maxWidth: '100%' },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { color: '#A8C1B8', fontSize: 11, fontWeight: '600', flexShrink: 1, textAlign: 'center' },
+  degrees: { color: '#F4EFE4', fontSize: 38, fontWeight: '700', fontVariant: ['tabular-nums'], textAlign: 'center', writingDirection: 'ltr', marginTop: 4 },
+  direction: { color: '#D6BA7A', fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  reference: { color: '#A8C1B8', fontSize: 11, textAlign: 'center', marginBottom: 6 },
+  sceneArea: { width: '100%' },
+  frame: { flex: 1, overflow: 'hidden' },
+  dial: { position: 'absolute', borderWidth: 1, borderColor: '#35564C' },
+  innerDial: { position: 'absolute' },
+  pathArrow: { position: 'absolute', width: 0, height: 0, borderLeftWidth: 8, borderRightWidth: 8, borderBottomWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent' },
+  youMarker: { position: 'absolute', width: 18, height: 18, borderRadius: 9, borderWidth: 4 },
+  kaabaMarker: { position: 'absolute', width: 32, height: 30 },
+  kaabaTop: { position: 'absolute', top: 0, left: 8, width: 16, height: 10, backgroundColor: '#443B2A', transform: [{ rotate: '45deg' }] },
+  kaabaFront: { position: 'absolute', top: 6, left: 4, width: 24, height: 22, backgroundColor: '#171512', borderWidth: 1, borderColor: '#9B8042' },
+  kaabaSide: { position: 'absolute', top: 7, right: 0, width: 6, height: 20, backgroundColor: '#29241A', transform: [{ skewY: '-20deg' }] },
+  kaabaBelt: { position: 'absolute', top: 5, left: 0, right: 0, height: 3 },
+  kaabaDoor: { position: 'absolute', right: 4, bottom: 0, width: 5, height: 9, borderWidth: 1, borderColor: '#B99A52', backgroundColor: '#302516' },
+  compassWord: { position: 'absolute', alignItems: 'center', justifyContent: 'center', width: 60, minHeight: 22 },
+  compassText: { color: '#A8C1B8', fontSize: 11, fontWeight: '700' },
+  legend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 8 },
+  legendDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#A8C1B8' },
+  legendText: { color: '#A8C1B8', fontSize: 11, marginEnd: 8 },
+  guideArea: { gap: 14 },
+  guideWide: { flex: 1, paddingTop: 4 },
+  guidanceCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 16, backgroundColor: '#15342E' },
+  instruction: { flex: 1, color: '#C1D1CA', fontSize: 13, lineHeight: 20 },
+  aligned: { color: '#A8D6A0', fontWeight: '700' },
+  turning: { color: '#F4EFE4', fontWeight: '600' },
+  locationRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41' },
+  locationIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#102A25', alignItems: 'center', justifyContent: 'center' },
+  locationDetails: { flex: 1, gap: 3 },
+  locationSource: { color: '#F4EFE4', fontSize: 14, fontWeight: '600' },
+  locationMeta: { color: '#A8C1B8', fontSize: 11 },
+  coordinates: { color: '#A8C1B8', fontSize: 11, fontVariant: ['tabular-nums'], textAlign: 'left', writingDirection: 'ltr' },
+  emptyCard: { flexGrow: 1, justifyContent: 'center', alignItems: 'stretch', gap: 16, padding: 22, borderRadius: 24, backgroundColor: '#15342E', borderWidth: 1, borderColor: '#2B4B41' },
+  emptyIcon: { width: 92, height: 92, borderRadius: 46, backgroundColor: '#102A25', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 6 },
+  emptyTitle: { color: '#F4EFE4', fontSize: 22, fontWeight: '600', textAlign: 'center' },
+  hint: { color: '#A8C1B8', fontSize: 14, lineHeight: 22, textAlign: 'center' },
+  primaryButton: { minHeight: 52, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, padding: 14, borderRadius: 14, backgroundColor: '#D6BA7A' },
+  primaryText: { color: '#102A25', fontSize: 15, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
+  secondaryButton: { minHeight: 44, justifyContent: 'center', alignItems: 'center', padding: 8 },
+  secondaryText: { color: '#D6BA7A', fontSize: 14, textAlign: 'center' },
+  disabled: { opacity: 0.45 },
+  errorPanel: { minHeight: 220, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 22, borderRadius: 24, backgroundColor: '#15342E' },
+  error: { color: '#FFB3A8', fontSize: 14, lineHeight: 22, textAlign: 'center' },
+  rowRtl: { flexDirection: 'row-reverse' },
+  rtl: { textAlign: 'right', writingDirection: 'rtl' },
+  ltr: { textAlign: 'left', writingDirection: 'ltr' },
 });

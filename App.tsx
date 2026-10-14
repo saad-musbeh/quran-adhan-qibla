@@ -125,7 +125,8 @@ function Main() {
   return <TextSizeContext.Provider value={textScale}><QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
     <StatusBar style={quranTheme.mode==='light'?'dark':'light'} />
     <View testID="app-banner"
-      style={[styles.header, styles.readingHeader, {top:insets.top, height:headerHeight, backgroundColor:quranTheme.theme.appBackground}, isRTL(language) && styles.reverse]}>
+      style={[styles.header, styles.readingHeader, {top:insets.top, height:headerHeight, backgroundColor:quranTheme.theme.appBackground,
+        elevation:quranTheme.mode==='light'?2:12, borderBottomWidth:StyleSheet.hairlineWidth, borderBottomColor:quranTheme.theme.appBorder}, isRTL(language) && styles.reverse]}>
       <Text numberOfLines={2} style={[styles.brand,{color:quranTheme.theme.appText}]}>{t.brand}</Text>
       <View style={[styles.tools, isRTL(language) && styles.reverse]}>
         {(menuEnabled||tab==='quran')&&<Pressable testID="open-main-menu" accessibilityRole="button" accessibilityLabel={bilingual(language,'القائمة الرئيسية','Main menu')} style={styles.iconButton} onPress={goHome}><Ionicons name="home-outline" color={quranTheme.theme.accent} size={23}/></Pressable>}
@@ -146,6 +147,7 @@ function Main() {
         <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
           calculationAvailable={isQiblaAvailable} calculationError={qibla.error}
           active={!homeVisible&&tab === 'qibla' && !showLocation && !showSettings && !showLanguages} mode={compassMode}
+          onChangeLocation={() => setShowLocation(true)}
           onModeChange={mode => setPreferences(value => ({ ...value, compassMode: mode }))} />
       </ScreenLayer>
       <ScreenLayer testID="screen-adhan" active={!homeVisible&&tab === 'adhan'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>

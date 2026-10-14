@@ -3,8 +3,8 @@
 ## Foundation
 
 - [x] React Native / Expo TypeScript starter for iOS and Android.
-- [x] Arabic default and searchable 35-language menu/settings shell with Quran, Adhan, and Qibla tabs.
-- [ ] Native-speaker review of the 33 new UI translations.
+- [x] Arabic default and searchable 40-language menu/settings shell with Quran, Adhan, and Qibla tabs.
+- [ ] Native-speaker review of the 38 UI translation drafts.
 - [x] Rust Qibla calculation, validation, reference tests, and C ABI.
 - [x] Swift/Kotlin bridge source and native build scripts.
 - [x] Open-source license and automated host/bundle checks.
@@ -57,7 +57,7 @@
 
 ## Qibla and release
 
-- [x] Add an illustrated camera-style direction view without camera permission.
+- [x] Add a circular compass direction guide, live/fixed mode controls and a location card without camera permission.
 - [x] Keep main screens compact, with swipe navigation and tabs that hide after inactivity.
 - [x] Add device heading, true/magnetic north handling, and calibration guidance.
 - [ ] Verify live compass accuracy and sensor lifecycle on physical Android/iOS devices.
