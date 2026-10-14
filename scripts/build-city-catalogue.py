@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GEONAMES = "https://download.geonames.org/export/dump/"
 FEATURES = {"PPLC", "PPLA", "PPLA2", "PPLA3", "PPLA4", "PPL", "PPLS"}
+CITY_CHUNK_SIZE = 4096
 
 
 def fetch(url, path):
@@ -97,7 +98,11 @@ def main():
             ["node", "-e", label_script], input=json.dumps(out_countries).encode("utf-8")))
         data_dir = ROOT / "src" / "data"
         data_dir.mkdir(parents=True, exist_ok=True)
-        for name, rows in (("cities.json", out_cities), ("countries.json", out_countries)):
+        # Bound compiled array literals: a flat 224k-element literal crossed
+        # Hermes' 65,535 dense-array boundary and crashed the release at launch.
+        city_chunks = [out_cities[offset:offset + CITY_CHUNK_SIZE]
+                       for offset in range(0, len(out_cities), CITY_CHUNK_SIZE)]
+        for name, rows in (("cities.json", city_chunks), ("countries.json", out_countries)):
             (data_dir / name).write_text(json.dumps(rows, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
         print(f"Generated {len(out_cities):,} cities across {len(out_countries)} countries/territories; {len(arabic):,} Arabic aliases", flush=True)
 
