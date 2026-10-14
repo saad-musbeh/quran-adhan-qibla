@@ -27,7 +27,7 @@
 - [x] Add the original geometric opening frame and theme-aware reader frame/metadata/controls; persist the five app-wide color themes and their light/dark variants through the top gear sheet.
 - [x] Add immediate same-surah looping from a long-pressed ayah, an optional ending-ayah review editor, direct start/end selection on the page, and native playlist loop-all playback.
 - [x] Verify the 0.3.3 reader themes, opening pages, ayah loop selection, offline native queue transitions, and foreground playback on the Android emulator. See [reader QA](READER-COMPASS-QA.md); physical-device and native iOS checks remain pending.
-- [x] Expand to twenty reciters with Saad Al-Ghamdi as the default and separate per-voice offline storage.
+- [x] Expand to twenty reciters with Al-Husary as the fresh default, preserving saved choices and separate per-voice offline storage.
 - [x] Add a saved audio/tafsir download manager and playback failure/reconnection recovery.
 - [x] Add full-Quran downloads with cancellation, cached-ayah continuation and job-specific retry.
 - [x] Keep library navigation visible, merge global settings and add original floral opening-page frames.
@@ -49,6 +49,8 @@
 - [x] Add local iOS prayer notifications, a 29-second Adhan excerpt, permission recovery and a five-second test.
 - [x] Bundle six licensed Adhan recordings, a stronger Fajr-only option, and saved voice/sound choices for each salah.
 - [x] Show tomorrow’s separately calculated Fajr as the next Adhan after Isha, on the right in landscape.
+- [x] Show a minute-updated countdown for each salah’s next actual occurrence, including tomorrow, only while visible and foregrounded.
+- [x] Display offline city/approximate-nearby labels and an accessible location picker action on Adhan.
 - [ ] Validate prayer alert sound, Focus/Silent Mode and interruptions on physical phones.
 - [x] Reconcile Android/iOS reminders at launch/resume, midnight, and location/settings/language changes.
 - [ ] Validate background clock/timezone changes and reboot restoration on physical phones.
