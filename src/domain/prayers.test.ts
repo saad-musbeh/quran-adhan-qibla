@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { calculationFlags, decodePrayerTimes, localCalendarDate, nextLocalCalendarDate, nextPrayer, nextPrayerOccurrence } from './prayers.ts';
+import { calculationFlags, countdownMinutes, countdownParts, decodePrayerTimes, localCalendarDate, nextLocalCalendarDate, nextMinuteDelay, nextPrayer, nextPrayerOccurrence, prayerOccurrenceFor } from './prayers.ts';
 
 test('uses local calendar components across UTC midnight and DST', () => {
   const before = process.env.TZ;
@@ -41,6 +41,65 @@ test('next Adhan changes at prayer boundaries and crosses to the calculated Fajr
   assert.deepEqual(nextPrayerOccurrence(today, tomorrow, new Date(600_000)), { name: 'fajr', time: tomorrow[0], tomorrow: true });
   assert.equal(nextPrayerOccurrence(today, null, new Date(600_000)), null);
   assert.equal(nextPrayerOccurrence(today, tomorrow, new Date(1000_000)), null);
+});
+
+test('each salah shows its own remaining time even when it is not the next Adhan', () => {
+  const today = decodePrayerTimes([18_000, 21_600, 43_200, 54_000, 64_800, 72_000]);
+  const tomorrow = decodePrayerTimes([104_460, 108_000, 129_600, 140_280, 151_200, 158_400]);
+  const morning = new Date(28_800_000);
+  const asr = prayerOccurrenceFor('asr', today, tomorrow, morning);
+  assert.deepEqual(asr, {name: 'asr', time: today[3], tomorrow: false});
+  assert.deepEqual(countdownParts(asr!.time, morning), {hours: 7, minutes: 0});
+  // Past prayers roll to the matching separately calculated prayer time, not today's clock time.
+  assert.deepEqual(prayerOccurrenceFor('fajr', today, tomorrow, morning), {name: 'fajr', time: tomorrow[0], tomorrow: true});
+  assert.deepEqual(prayerOccurrenceFor('asr', today, tomorrow, today[3]), {name: 'asr', time: tomorrow[3], tomorrow: true});
+  assert.equal(prayerOccurrenceFor('sunrise', today, tomorrow, morning), null);
+});
+
+test('after Isha all salah countdowns roll to tomorrow without guessing missing native times', () => {
+  const today = decodePrayerTimes([100, 200, 300, 400, 500, 600]);
+  const tomorrow = decodePrayerTimes([1001, 1102, 1203, 1304, 1405, 1506]);
+  const now = new Date(601_000);
+  for (const name of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] as const) {
+    const occurrence = prayerOccurrenceFor(name, today, tomorrow, now);
+    assert.equal(occurrence?.tomorrow, true);
+    assert.equal(prayerOccurrenceFor(name, today, null, now), null);
+  }
+  assert.equal(prayerOccurrenceFor('fajr', today, [], now), null);
+  assert.equal(prayerOccurrenceFor('fajr', today, [new Date(NaN)], now), null);
+});
+
+test('countdowns round up at minute boundaries and reject due, past, or invalid times', () => {
+  const now = new Date(0);
+  assert.equal(countdownMinutes(new Date(1), now), 1);
+  assert.equal(countdownMinutes(new Date(60_000), now), 1);
+  assert.equal(countdownMinutes(new Date(60_001), now), 2);
+  assert.deepEqual(countdownParts(new Date(3_660_000), now), {hours: 1, minutes: 1});
+  assert.equal(countdownParts(now, now), null);
+  assert.equal(countdownMinutes(new Date(-1), now), null);
+  assert.equal(countdownMinutes(new Date(NaN), now), null);
+  assert.equal(countdownMinutes(new Date(60_000), new Date(NaN)), null);
+  assert.equal(nextMinuteDelay(0), 60_000);
+  assert.equal(nextMinuteDelay(60_000), 60_000);
+  assert.equal(nextMinuteDelay(61_001), 58_999);
+  assert.equal(nextMinuteDelay(119_999), 1);
+});
+
+test('an individual salah countdown honors real 23/25-hour DST schedules', () => {
+  const before = process.env.TZ;
+  try {
+    process.env.TZ = 'America/New_York';
+    for (const [month, day, expectedHours] of [[2, 7, 23], [9, 31, 25]]) {
+      const today = [5, 6, 12, 15, 18, 20].map(hour => new Date(2026, month, day, hour));
+      const tomorrow = [5, 6, 12, 15, 18, 20].map(hour => new Date(2026, month, day + 1, hour));
+      const occurrence = prayerOccurrenceFor('asr', today, tomorrow, today[3]);
+      assert.deepEqual(occurrence, {name: 'asr', time: tomorrow[3], tomorrow: true});
+      assert.deepEqual(countdownParts(occurrence!.time, today[3]), {hours: expectedHours, minutes: 0});
+    }
+  } finally {
+    if (before === undefined) delete process.env.TZ;
+    else process.env.TZ = before;
+  }
 });
 
 test('tomorrow advances across midnight, month/year ends, and 23/25-hour local dates', () => {

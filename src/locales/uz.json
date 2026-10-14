@@ -652,5 +652,12 @@
   "m651": "Tuvalu",
   "m652": "Vatikan",
   "m653": "Uollis va Futuna",
-  "m654": "Yozuvlar o'zgartiriladi va ogohlantirishlar uchun ovoz balandligi normallashtiriladi. Kuchli bomdod balandroq; iOS 29 sekundlik parchani oxiri pasaygan holda ijro etadi."
+  "m654": "Yozuvlar o'zgartiriladi va ogohlantirishlar uchun ovoz balandligi normallashtiriladi. Kuchli bomdod balandroq; iOS 29 sekundlik parchani oxiri pasaygan holda ijro etadi.",
+  "m655": "{place} yaqinida",
+  "m656": "Xarita nuqtasi",
+  "m657": "In",
+  "m658": "h",
+  "m659": "min",
+  "m660": "{hours}h {minutes}min ichida",
+  "m661": "{minutes} daqiqada"
 }

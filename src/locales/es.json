@@ -652,5 +652,12 @@
   "m651": "Tuvalu",
   "m652": "Ciudad del Vaticano",
   "m653": "Wallis y Futuna",
-  "m654": "Las grabaciones se convierten y se normalizan el volumen para las alertas. El Fajr fuerte es más ruidoso; iOS reproduce un extracto de 29 segundos con un desvanecimiento final."
+  "m654": "Las grabaciones se convierten y se normalizan el volumen para las alertas. El Fajr fuerte es más ruidoso; iOS reproduce un extracto de 29 segundos con un desvanecimiento final.",
+  "m655": "Cerca de {place}",
+  "m656": "Punto del mapa",
+  "m657": "en",
+  "m658": "h",
+  "m659": "mín.",
+  "m660": "En {hours}h {minutes}min",
+  "m661": "En {minutes} min"
 }

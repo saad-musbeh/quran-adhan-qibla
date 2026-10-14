@@ -652,5 +652,12 @@
   "m651": "Tuvalu",
   "m652": "État de la Cité du Vatican",
   "m653": "Wallis-et-Futuna",
-  "m654": "Les enregistrements sont convertis et normalisés en volume pour les alertes. Le Fajr fort est plus fort ; iOS lit un extrait de 29 secondes avec un fondu final."
+  "m654": "Les enregistrements sont convertis et normalisés en volume pour les alertes. Le Fajr fort est plus fort ; iOS lit un extrait de 29 secondes avec un fondu final.",
+  "m655": "Près de {place}",
+  "m656": "Point de la carte",
+  "m657": "Dans",
+  "m658": "h",
+  "m659": "min",
+  "m660": "Dans {hours}h {minutes}min",
+  "m661": "Dans {minutes} min"
 }

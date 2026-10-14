@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isLanguage, type Language } from './domain/languages';
 import type { PrayerSettings } from './domain/prayers';
 import { normalizePrayerSounds, type PrayerSoundSettings } from './domain/adhan-voices';
+import { normalizeMainMenuOnPhones } from './domain/app-startup';
 
 type Preferences = {
   language: Language; prayer: PrayerSettings; compassMode: 'live' | 'north'; prayerNotifications: boolean;
@@ -14,7 +15,7 @@ type Preferences = {
 const initial: Preferences = {
   language: 'ar', prayer: { method: 0, hanafi: false, ramadan: false },
   compassMode: 'live', prayerNotifications: false, reader: { fontSize: DEFAULT_TEXT_SIZE, nightMode: false },
-  mainMenuOnPhones: false,
+  mainMenuOnPhones: true,
   prayerSounds: normalizePrayerSounds(undefined),
 };
 const key = 'app-preferences-v1';
@@ -31,7 +32,7 @@ export function usePreferences() {
         language: isLanguage(value.language) ? value.language : 'ar',
         compassMode: value.compassMode === 'north' ? 'north' : 'live',
         prayerNotifications: value.prayerNotifications === true,
-        mainMenuOnPhones: value.mainMenuOnPhones === true,
+        mainMenuOnPhones: normalizeMainMenuOnPhones(value.mainMenuOnPhones),
         prayerSounds: normalizePrayerSounds(value.prayerSounds),
         prayer: value.prayer && [0, 1, 2, 3, 4, 5].includes(value.prayer.method) ? {
           method: value.prayer.method, hanafi: value.prayer.hanafi === true, ramadan: value.prayer.ramadan === true,

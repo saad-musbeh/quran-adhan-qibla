@@ -1,9 +1,11 @@
 import { Text } from '../text-size';
+import {Ionicons} from '@expo/vector-icons';
 import React, {useMemo, useState} from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { selectedLocationLabel } from '../domain/cities';
-import {nextPrayerOccurrence, prayerNames} from '../domain/prayers';
-import { isRTL, localeFor, localizeCopy, translations, type Language } from '../i18n';
+import {prayerLocationLabel} from '../domain/cities';
+import {countdownParts, nextPrayerOccurrence, prayerNames, prayerOccurrenceFor} from '../domain/prayers';
+import {useForegroundMinuteClock} from '../use-foreground-minute-clock';
+import { bilingual, isRTL, localeFor, localizeCopy, translations, type Language } from '../i18n';
 import type {useLocation} from '../use-location';
 import { useReaderStyles } from '../quran-theme-context';
 
@@ -15,19 +17,22 @@ type Props = {
   error: 'polarUnsupported' | 'prayerError' | null;
   calculationAvailable: boolean;
   now: Date;
+  active: boolean;
+  onChangeLocation: () => void;
 };
 
-const sourceNames = {
-  en: {device: 'Device location', city: 'Selected city', map: 'Selected map point', manual: 'Manual location', nextAdhan: 'Next Adhan', tomorrow: 'Tomorrow'},
-  ar: {device: 'موقع الجهاز', city: 'المدينة المختارة', map: 'النقطة المختارة على الخريطة', manual: 'موقع مُدخل يدويًا', nextAdhan: 'الأذان القادم', tomorrow: 'الغد'},
+const screenCopy = {
+  en: {prayerTimes: 'Prayer times', nextAdhan: 'Next Adhan', tomorrow: 'Tomorrow', changeLocation: 'Change location'},
+  ar: {prayerTimes: 'مواقيت الصلاة', nextAdhan: 'الأذان القادم', tomorrow: 'غدًا', changeLocation: 'تغيير الموقع'},
 } as const;
 
-export function AdhanScreen({language, state, times, tomorrowTimes, error, calculationAvailable, now}: Props) {
+export function AdhanScreen({language, state, times, tomorrowTimes, error, calculationAvailable, now: scheduleNow, active, onChangeLocation}: Props) {
   const { styles, colors } = useReaderStyles(baseStyles);
   const t = translations[language];
-  const copy = localizeCopy(language, sourceNames);
+  const copy = localizeCopy(language, screenCopy);
   const rtl = isRTL(language);
   const locale = localeFor(language);
+  const now = useForegroundMinuteClock(active, scheduleNow);
   const [settingsError, setSettingsError] = useState(false);
   const [viewport, setViewport] = useState({width:0,height:0});
   const availableHeight=viewport.height;
@@ -35,16 +40,22 @@ export function AdhanScreen({language, state, times, tomorrowTimes, error, calcu
   const compact = availableHeight > 0 && availableHeight <= 500;
   const upcoming = useMemo(() => times?.length === prayerNames.length ? nextPrayerOccurrence(times, tomorrowTimes, now) : null, [times, tomorrowTimes, now]);
   const location = state.location;
-  const locationLabel = useMemo(() => location ? selectedLocationLabel(location,language) : undefined, [location,language]);
-  const sourceLabel = location ? locationLabel ?? copy[location.source] : '';
-
+  const locationLabel = useMemo(() => location ? prayerLocationLabel(location,language) : '', [location,language]);
+  const remainingLabel = (time: Date) => {
+    const parts = countdownParts(time, now);
+    if (!parts) return null;
+    const number = (value: number) => value.toLocaleString(locale, {useGrouping: false});
+    return parts.hours
+      ? bilingual(language,'بعد {hours} س و{minutes} د','In {hours}h {minutes}min',{hours:number(parts.hours),minutes:number(parts.minutes)})
+      : bilingual(language,'بعد {minutes} د','In {minutes} min',{minutes:number(parts.minutes)});
+  };
   const retryLocation = () => { void state.locate(); };
   const locationError = state.error ? t[state.error] : null;
 
   return <ScrollView style={styles.viewport} onLayout={event => setViewport(event.nativeEvent.layout)} contentContainerStyle={[styles.container, compact && styles.containerCompact,landscape&&styles.containerWide]}>
     <View style={[styles.heading, rtl && styles.rowRtl]}>
       <View style={styles.headingCopy}>
-        <Text style={[styles.title, compact && styles.titleCompact, rtl && styles.textRtl]}>{t.adhanTitle}</Text>
+        <Text style={[styles.title, compact && styles.titleCompact, rtl && styles.textRtl]}>{copy.prayerTimes}</Text>
       </View>
 
     </View>
@@ -64,32 +75,42 @@ export function AdhanScreen({language, state, times, tomorrowTimes, error, calcu
       </View>
       {!calculationAvailable && <Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{t.unavailable}</Text>}
     </View> : <>
-      <View style={[styles.locationStrip, rtl && styles.rowRtl]}>
-        <Text style={[styles.locationText, rtl && styles.textRtl]}>{sourceLabel}</Text>
-        {state.loading ? <ActivityIndicator color={colors.accent} size="small" /> : null}
-      </View>
+      <Pressable testID="adhan-location" accessibilityRole="button" accessibilityLabel={`${copy.changeLocation}: ${locationLabel}`} onPress={onChangeLocation} style={[styles.locationStrip, rtl && styles.rowRtl]}>
+        <Ionicons name="location-outline" color={colors.accent} size={21}/>
+        <Text style={[styles.locationText, rtl && styles.textRtl]}>{locationLabel}</Text>
+        {state.loading ? <ActivityIndicator color={colors.accent} size="small" /> : <Ionicons name={rtl ? 'chevron-back' : 'chevron-forward'} color={colors.appMuted} size={16}/>}
+      </Pressable>
+      {(locationError || settingsError) && <View style={styles.errorPanel}>
+        <Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{settingsError ? t.locationError : locationError}</Text>
+        <Pressable accessibilityRole="button" disabled={state.loading} onPress={state.error === 'blocked' ? () => {setSettingsError(false); void Linking.openSettings().catch(() => setSettingsError(true));} : retryLocation} style={styles.retryButton}>
+          <Text style={styles.retryText}>{state.error === 'blocked' ? t.openSettings : t.useLocation}</Text>
+        </Pressable>
+      </View>}
 
       {error || !calculationAvailable || !times ? <View style={styles.errorPanel}>
         <Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{error ? t[error] : !calculationAvailable ? t.unavailable : locationError ?? t.prayerError}</Text>
-        {locationError && <Pressable accessibilityRole="button" onPress={retryLocation} style={styles.retryButton}>
-          <Text style={styles.retryText}>{t.useLocation}</Text>
-        </Pressable>}
       </View> : <>
         <View style={[styles.schedule,landscape&&styles.scheduleWide]}><View style={landscape?styles.nextColumn:undefined}>
         {upcoming ? <View style={[styles.nextCard, compact && styles.nextCardCompact, rtl && styles.rowRtl]}>
           <View style={styles.nextCopy}>
             <Text style={[styles.nextLabel, compact && styles.nextLabelCompact, rtl && styles.textRtl]}>{copy.nextAdhan}{upcoming.tomorrow ? ` · ${copy.tomorrow}` : ''}</Text>
             <Text style={[styles.nextName, compact && styles.nextNameCompact, rtl && styles.textRtl]}>{t[upcoming.name]}</Text>
+            <Text testID="next-adhan-countdown" style={[styles.nextRemaining, rtl && styles.textRtl]}>{remainingLabel(upcoming.time)}</Text>
           </View>
           <Text style={[styles.nextTime, compact && styles.nextTimeCompact]}>{upcoming.time.toLocaleTimeString(locale, {hour: '2-digit', minute: '2-digit'})}</Text>
         </View> : <View style={styles.errorPanel}><Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{t.prayerError}</Text></View>}
 
         </View><View style={[styles.prayerList,landscape&&styles.listWide]}>
           {prayerNames.map((name, index) => {
-            const isNext = !upcoming?.tomorrow && name === upcoming?.name;
-            return <View key={name} style={[styles.prayerRow, compact && styles.prayerRowCompact, rtl && styles.rowRtl, isNext && styles.prayerRowNext]}>
-              <Text style={[styles.prayerName, compact && styles.prayerNameCompact, name === 'sunrise' && styles.sunriseText, isNext && styles.prayerNameNext, rtl && styles.textRtl]}>{t[name]}</Text>
-              <Text style={[styles.prayerTime, compact && styles.prayerTimeCompact, name === 'sunrise' && styles.sunriseText, isNext && styles.prayerTimeNext]}>{times[index]!.toLocaleTimeString(locale, {hour: '2-digit', minute: '2-digit'})}</Text>
+            const occurrence = prayerOccurrenceFor(name, times, tomorrowTimes, now);
+            const isNext = name === upcoming?.name;
+            const displayTime = occurrence?.time ?? times[index]!;
+            return <View testID={`prayer-row-${name}`} key={name} style={[styles.prayerRow, compact && styles.prayerRowCompact, rtl && styles.rowRtl, isNext && styles.prayerRowNext]}>
+              <View style={styles.prayerNameGroup}>
+                <Text style={[styles.prayerName, compact && styles.prayerNameCompact, name === 'sunrise' && styles.sunriseText, isNext && styles.prayerNameNext, rtl && styles.textRtl]}>{t[name]}{occurrence?.tomorrow ? ` · ${copy.tomorrow}` : ''}</Text>
+                {occurrence && <Text testID={`prayer-countdown-${name}`} style={[styles.prayerRemaining, rtl && styles.textRtl]}>{remainingLabel(occurrence.time)}</Text>}
+              </View>
+              <Text style={[styles.prayerTime, compact && styles.prayerTimeCompact, name === 'sunrise' && styles.sunriseText, isNext && styles.prayerTimeNext]}>{displayTime.toLocaleTimeString(locale, {hour: '2-digit', minute: '2-digit'})}</Text>
             </View>;
           })}
         </View>
@@ -117,21 +138,24 @@ const baseStyles = StyleSheet.create({
   linkButton: {minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: 2},
   linkText: {color: '#D6BA7A', fontSize: 14, textDecorationLine: 'underline'},
   disabled: {opacity: 0.6},
-  locationStrip: {minHeight: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8},
-  locationText: {flex: 1, color: '#A8C1B8', fontSize: 12},
+  locationStrip: {minHeight: 44, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: '#193A32', flexDirection: 'row', alignItems: 'center', gap: 8},
+  locationText: {flex: 1, color: '#F4EFE4', fontSize: 16, fontWeight: '600'},
   nextCard: {minHeight: 84, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderRadius: 16, borderWidth: 1, borderColor: '#806E42', backgroundColor: '#193A32'},
   nextCardCompact: {minHeight: 54, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 13},
   nextCopy: {flex: 1, gap: 2},
   nextLabel: {color: '#D6BA7A', fontSize: 12, fontWeight: '600'},
   nextLabelCompact: {fontSize: 11},
+  nextRemaining: {color: '#B8CDC4', fontSize: 13},
   nextName: {color: '#F4EFE4', fontSize: 22, lineHeight: 29, fontWeight: '700'},
   nextNameCompact: {fontSize: 19, lineHeight: 23},
   nextTime: {color: '#D6BA7A', fontSize: 26, fontWeight: '700', fontVariant: ['tabular-nums']},
   nextTimeCompact: {fontSize: 22},
   prayerList: {gap: 1},
-  prayerRow: {minHeight: 42, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, borderRadius: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#29463E'},
-  prayerRowCompact: {minHeight: 34, paddingHorizontal: 11, borderRadius: 8},
+  prayerRow: {minHeight: 54, gap: 10, paddingVertical: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, borderRadius: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#29463E'},
+  prayerRowCompact: {minHeight: 44, paddingVertical: 4, paddingHorizontal: 11, borderRadius: 8},
   prayerRowNext: {backgroundColor: '#284C40', borderBottomColor: 'transparent'},
+  prayerNameGroup: {flex: 1, gap: 2},
+  prayerRemaining: {color: '#A8C1B8', fontSize: 12},
   prayerName: {color: '#F4EFE4', fontSize: 16, flexShrink: 1},
   prayerNameCompact: {fontSize: 15},
   prayerNameNext: {color: '#D6BA7A', fontWeight: '700'},

@@ -652,5 +652,12 @@
   "m651": "Tuvalu",
   "m652": "Vatican",
   "m653": "Wallis and Futuna",
-  "m654": "Recordings are converted and volume-normalized for alerts. Strong Fajr is louder; iOS plays a 29-second excerpt with an ending fade."
+  "m654": "Recordings are converted and volume-normalized for alerts. Strong Fajr is louder; iOS plays a 29-second excerpt with an ending fade.",
+  "m655": "Near {place}",
+  "m656": "Map point",
+  "m657": "In",
+  "m658": "h",
+  "m659": "min",
+  "m660": "In {hours}h {minutes}min",
+  "m661": "In {minutes} min"
 }

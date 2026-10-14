@@ -27,6 +27,7 @@ import { usePreferences } from './src/use-preferences';
 import { usePrayerNotifications } from './src/use-prayer-notifications';
 import { notificationCopy } from './src/notification-i18n';
 import { PrayerNotificationSettings } from './src/components/PrayerNotificationSettings';
+import { startupHomeVisible } from './src/domain/app-startup';
 
 export default function App() {
   return <SafeAreaProvider><Main /></SafeAreaProvider>;
@@ -46,17 +47,17 @@ function Main() {
   const quranTheme = useQuranTheme();
   useEffect(() => { void SystemUI.setBackgroundColorAsync(quranTheme.theme.appBackground).catch(() => undefined); }, [quranTheme.theme.appBackground]);
   const [showSettings, setShowSettings] = useState(false);
-  const [tab, setTab] = useState<Tab>('quran');
+  const [tab, setTab] = useState<Tab>('adhan');
   const [readingBook,setReadingBook]=useState(false);
   const [homeRequest,setHomeRequest]=useState(0);
-  const [homeVisible,setHomeVisible]=useState(largeScreen);
+  const [homeVisible,setHomeVisible]=useState(true);
   const menuLoaded=useRef(false);
   const menuEnabled=largeScreen||preferences.mainMenuOnPhones;
   const goHome=()=>{setHomeRequest(value=>value+1);setHomeVisible(true);};
   useEffect(()=>{
     if (!preferencesReady||menuLoaded.current) return;
     menuLoaded.current=true;
-    if (largeScreen||preferences.mainMenuOnPhones) setHomeVisible(true);
+    setHomeVisible(startupHomeVisible(largeScreen, preferences.mainMenuOnPhones));
   },[preferencesReady,largeScreen,preferences.mainMenuOnPhones]);
   const [readingChromeVisible, setReadingChromeVisible] = useState(false);
   const [showLocation, setShowLocation] = useState(false);
@@ -149,7 +150,9 @@ function Main() {
       </ScreenLayer>
       <ScreenLayer testID="screen-adhan" active={!homeVisible&&tab === 'adhan'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
         <AdhanScreen language={language} state={locationState} times={schedule.times} tomorrowTimes={schedule.tomorrowTimes}
-          error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now}/>
+          error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now}
+          active={!homeVisible&&tab==='adhan'&&!showSettings&&!showLocation&&!showLanguages}
+          onChangeLocation={()=>setShowLocation(true)}/>
       </ScreenLayer>
       <ScreenLayer testID="screen-quran" active={!homeVisible&&tab === 'quran'} background={quranTheme.theme.appBackground}>
         <QuranLibrary homeRequest={homeRequest} onHome={goHome} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} audio={audio} settings={reader}

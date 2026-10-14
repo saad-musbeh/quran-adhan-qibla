@@ -652,5 +652,12 @@
   "m651": "Tuvalu",
   "m652": "Vatikan",
   "m653": "Ostrva Valis i Futuna",
-  "m654": "Snimci se konvertuju i normalizuju jačinu zvuka za upozorenja. Jaki Fadžr je glasniji; iOS reproducira 29-sekundni odlomak sa završetkom."
+  "m654": "Snimci se konvertuju i normalizuju jačinu zvuka za upozorenja. Jaki Fadžr je glasniji; iOS reproducira 29-sekundni odlomak sa završetkom.",
+  "m655": "Blizu {place}",
+  "m656": "Map point",
+  "m657": "U",
+  "m658": "h",
+  "m659": "min",
+  "m660": "U {hours}h {minutes}min",
+  "m661": "U {minutes} min"
 }

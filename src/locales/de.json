@@ -652,5 +652,12 @@
   "m651": "Tuvalu",
   "m652": "Vatikanstadt",
   "m653": "Wallis und Futuna",
-  "m654": "Für Alarme werden Aufzeichnungen konvertiert und volumennormalisiert. Starkes Fajr ist lauter; iOS spielt einen 29-sekündigen Ausschnitt mit einem abschließenden Fade ab."
+  "m654": "Für Alarme werden Aufzeichnungen konvertiert und volumennormalisiert. Starkes Fajr ist lauter; iOS spielt einen 29-sekündigen Ausschnitt mit einem abschließenden Fade ab.",
+  "m655": "In der Nähe von {place}",
+  "m656": "Kartenpunkt",
+  "m657": "In",
+  "m658": "h",
+  "m659": "min",
+  "m660": "In {hours} Std. {minutes} Min.",
+  "m661": "In {minutes} Min."
 }

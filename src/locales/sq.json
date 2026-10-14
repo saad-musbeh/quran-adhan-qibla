@@ -652,5 +652,12 @@
   "m651": "Tuvalu",
   "m652": "Vatikan",
   "m653": "Uollis e Futuna",
-  "m654": "Regjistrimet konvertohen dhe volumi normalizohen për sinjalizime. Sabahu i fortë është më i zhurmshëm; iOS luan një fragment 29 sekondash me një fade fundi."
+  "m654": "Regjistrimet konvertohen dhe volumi normalizohen për sinjalizime. Sabahu i fortë është më i zhurmshëm; iOS luan një fragment 29 sekondash me një fade fundi.",
+  "m655": "Pranë {place}",
+  "m656": "Pika e hartës",
+  "m657": "Në",
+  "m658": "h",
+  "m659": "min",
+  "m660": "Në {hours}h {minutes}min",
+  "m661": "Në {minutes} min"
 }

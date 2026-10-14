@@ -38,10 +38,35 @@ export function nextPrayer(times: Date[], now: Date): PrayerName | null {
 
 export type PrayerOccurrence = { name: Exclude<PrayerName, 'sunrise'>; time: Date; tomorrow: boolean };
 
+/** The next occurrence of an individual salah; sunrise has no Adhan countdown. */
+export function prayerOccurrenceFor(name: PrayerName, today: Date[], tomorrow: Date[] | null, now: Date): PrayerOccurrence | null {
+  if (name === 'sunrise') return null;
+  const index = prayerNames.indexOf(name);
+  const todayTime = today[index];
+  if (todayTime && todayTime.getTime() > now.getTime()) return {name, time: todayTime, tomorrow: false};
+  const tomorrowTime = tomorrow?.[index];
+  return tomorrowTime && tomorrowTime.getTime() > now.getTime() ? {name, time: tomorrowTime, tomorrow: true} : null;
+}
+
+/** Round up so a future prayer less than a minute away never appears overdue. */
+export function countdownMinutes(time: Date, now: Date): number | null {
+  const difference = time.getTime() - now.getTime();
+  return Number.isFinite(difference) && difference > 0 ? Math.ceil(difference / 60_000) : null;
+}
+
+export function countdownParts(time: Date, now: Date): {hours: number; minutes: number} | null {
+  const minutes = countdownMinutes(time, now);
+  return minutes === null ? null : {hours: Math.floor(minutes / 60), minutes: minutes % 60};
+}
+
+/** Re-evaluate on wall-clock minute boundaries, including after resume or clock changes. */
+export function nextMinuteDelay(nowMilliseconds: number): number {
+  return 60_000 - ((nowMilliseconds % 60_000 + 60_000) % 60_000);
+}
+
 /** Tomorrow's Fajr comes from a separately calculated schedule, never today's time + 24h. */
 export function nextPrayerOccurrence(today: Date[], tomorrow: Date[] | null, now: Date): PrayerOccurrence | null {
   const name = nextPrayer(today, now);
   if (name && name !== 'sunrise') return { name, time: today[prayerNames.indexOf(name)], tomorrow: false };
-  const fajr = tomorrow?.[0];
-  return fajr && fajr.getTime() > now.getTime() ? { name: 'fajr', time: fajr, tomorrow: true } : null;
+  return prayerOccurrenceFor('fajr', today, tomorrow, now);
 }
