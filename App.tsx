@@ -5,7 +5,7 @@ import { QuranThemeContext } from './src/quran-theme-context';
 import { useQuranTheme } from './src/use-quran-theme';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { AppState, BackHandler, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AppState, BackHandler, StyleSheet, useWindowDimensions } from 'react-native';
 import { MainMenu } from './src/components/MainMenu';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isPrayerTimesAvailable, isQiblaAvailable, prayerTimes, qiblaBearing } from './modules/islamic-core';
@@ -13,11 +13,11 @@ import { AdhanScreen } from './src/components/AdhanScreen';
 import { LocationSheet } from './src/components/LocationSheet';
 import { QiblaScreen } from './src/components/QiblaScreen';
 import { SwipeTabs, type Tab } from './src/components/SwipeTabs';
-import { localCalendarDate, nextLocalCalendarDate } from './src/domain/prayers';
-import { translations, isRTL, bilingual } from './src/i18n';
+import { localCalendarDate, nextLocalCalendarDate, polarCalculationDisabled } from './src/domain/prayers';
+import { translations } from './src/i18n';
 import { LanguagePicker } from './src/components/LanguagePicker';
 import { useLocation } from './src/use-location';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AppBanner } from './src/components/AppBanner';
 import { SettingsSheet } from './src/components/SettingsSheet';
 import { QuranSettings } from './src/components/QuranScreen';
 import { QuranLibrary } from './src/components/QuranLibrary';
@@ -86,7 +86,7 @@ function Main() {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const schedule = useMemo(() => {
     if (!location || !isPrayerTimesAvailable) return { times: null, tomorrowTimes: null, error: null };
-    if (Math.abs(location.latitude) >= 65) return { times: null, tomorrowTimes: null, error: 'polarUnsupported' as const };
+    if (polarCalculationDisabled(location.latitude, settings)) return { times: null, tomorrowTimes: null, error: 'polarUnsupported' as const };
     try {
       const times = prayerTimes(location.latitude, location.longitude, [year, month, day], settings);
       let tomorrowTimes: Date[] | null = null;
@@ -124,24 +124,8 @@ function Main() {
 
   return <TextSizeContext.Provider value={textScale}><QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
     <StatusBar style={quranTheme.mode==='light'?'dark':'light'} />
-    <View testID="app-banner"
-      style={[styles.header, styles.readingHeader, {top:insets.top, height:headerHeight, backgroundColor:quranTheme.theme.appBackground,
-        elevation:quranTheme.mode==='light'?2:12, borderBottomWidth:StyleSheet.hairlineWidth, borderBottomColor:quranTheme.theme.appBorder}, isRTL(language) && styles.reverse]}>
-      <Text numberOfLines={2} style={[styles.brand,{color:quranTheme.theme.appText}]}>{t.brand}</Text>
-      <View style={[styles.tools, isRTL(language) && styles.reverse]}>
-        {(menuEnabled||tab==='quran')&&<Pressable testID="open-main-menu" accessibilityRole="button" accessibilityLabel={bilingual(language,'القائمة الرئيسية','Main menu')} style={styles.iconButton} onPress={goHome}><Ionicons name="home-outline" color={quranTheme.theme.accent} size={23}/></Pressable>}
-        <Pressable accessibilityRole="button" testID="open-languages" accessibilityLabel={t.language} style={styles.iconButton}
-          onPress={() => setShowLanguages(true)}>
-          <Ionicons name="language-outline" color={quranTheme.theme.accent} size={23} />
-        </Pressable>
-        <Pressable accessibilityRole="button" testID="open-location" accessibilityLabel={t.locationTitle} style={styles.iconButton} onPress={() => setShowLocation(true)}>
-          <Ionicons name="location-outline" color={quranTheme.theme.accent} size={23} />
-        </Pressable>
-        <Pressable accessibilityRole="button" testID="open-settings" accessibilityLabel={t.settings} style={styles.iconButton} onPress={() => setShowSettings(true)}>
-          <Ionicons name="settings-outline" color={quranTheme.theme.accent} size={23} />
-        </Pressable>
-      </View>
-    </View>
+    <AppBanner language={language} top={insets.top} showHome={menuEnabled||tab==='quran'} onHome={goHome}
+      onLanguages={() => setShowLanguages(true)} onSettings={() => setShowSettings(true)} />
     <SwipeTabs hideNavigation={homeVisible||(tab === 'quran' && readingBook)} language={language} tab={tab} reading={homeVisible||(tab === 'quran' && readingBook)} chromeVisible={readingChromeVisible} onChange={chooseSection}>
       <ScreenLayer testID="screen-qibla" active={!homeVisible&&tab === 'qibla'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
         <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
@@ -153,11 +137,12 @@ function Main() {
       <ScreenLayer testID="screen-adhan" active={!homeVisible&&tab === 'adhan'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
         <AdhanScreen language={language} state={locationState} times={schedule.times} tomorrowTimes={schedule.tomorrowTimes}
           error={schedule.error} calculationAvailable={isPrayerTimesAvailable} now={now}
+          settings={settings} onPrayerSettings={() => setShowSettings(true)}
           active={!homeVisible&&tab==='adhan'&&!showSettings&&!showLocation&&!showLanguages}
           onChangeLocation={()=>setShowLocation(true)}/>
       </ScreenLayer>
       <ScreenLayer testID="screen-quran" active={!homeVisible&&tab === 'quran'} background={quranTheme.theme.appBackground}>
-        <QuranLibrary homeRequest={homeRequest} onHome={goHome} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} audio={audio} settings={reader}
+        <QuranLibrary homeRequest={homeRequest} onHome={goHome} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} audio={audio} settings={{...reader, nightMode:quranTheme.mode === 'dark'}}
           onReadingChromeChange={setReadingChromeVisible}
           onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
       </ScreenLayer>
@@ -175,8 +160,7 @@ function Main() {
         prayerSounds={preferences.prayerSounds} onPrayerSoundsChange={prayerSounds=>setPreferences(value=>({...value,prayerSounds}))}
         onChange={prayerNotifications => setPreferences(value => ({ ...value, prayerNotifications }))}
         onChooseLocation={() => { setShowSettings(false); setShowLocation(true); }} />}
-      quran={<QuranSettings library={tafsirLibrary} language={language} audio={audio} settings={reader}
-        onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />} />
+      quran={<QuranSettings library={tafsirLibrary} language={language} audio={audio} />} />
     <LanguagePicker language={language} visible={showLanguages} onChoose={language => setPreferences(value => ({ ...value, language }))} onClose={() => setShowLanguages(false)} />
     <LocationSheet language={language} visible={showLocation} state={locationState} onClose={() => setShowLocation(false)} />
   </SafeAreaView></QuranThemeContext.Provider></TextSizeContext.Provider>;
@@ -184,11 +168,4 @@ function Main() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0B211D' },
-  quranScreen: { backgroundColor: '#18334A' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 2, gap: 6 },
-  readingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, elevation: 12, backgroundColor: '#18334A' },
-  reverse: { flexDirection: 'row-reverse' },
-  brand: { color: '#F4EFE4', fontSize: 14, fontWeight: '600', flexShrink: 1 },
-  tools: { flexDirection: 'row', gap: 2 },
-  iconButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 22 },
 });

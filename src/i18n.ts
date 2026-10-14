@@ -40,7 +40,6 @@ const en = {
   compassNote: 'This is a fixed direction from your location, not a live compass. Keep north at the top when reading the arrow.',
   awaitingLocation: 'Choose your location above to see the result.',
   prayerError: 'A complete prayer schedule could not be calculated for this location.',
-  polarUnsupported: 'Locations at or beyond 65° north or south need a polar calculation method, which is not available yet.',
   phoneTimezone: 'Times use your phone’s timezone',
   verifyTimes: 'Calculated times may differ from your local mosque. Check the calculation method and your phone’s timezone.',
   next: 'Next prayer', finishedToday: 'Today’s prayer times have passed. The schedule changes at midnight.',
@@ -52,7 +51,6 @@ const en = {
   asrSchool: 'Asr calculation', standardAsr: 'Standard', hanafiAsr: 'Hanafi',
   ramadan: 'Ramadan: Isha 120 minutes after Maghrib',
   normalIsha: 'Otherwise, Umm al-Qura uses 90 minutes after Maghrib.',
-  highLatitude: 'High latitudes below 65° use the middle-of-the-night rule.',
   planned: 'IN DEVELOPMENT', language: 'Language',
 };
 
@@ -93,7 +91,6 @@ const ar: typeof en = {
   compassNote: 'هذا اتجاه ثابت من موقعك وليس بوصلة مباشرة. اجعل الشمال أعلى الرسم عند قراءة السهم.',
   awaitingLocation: 'اختر موقعك أعلاه لعرض النتيجة.',
   prayerError: 'تعذّر حساب جدول كامل لمواقيت الصلاة لهذا الموقع.',
-  polarUnsupported: 'المواقيت عند خطوط عرض ٦٥° أو أكثر شمالًا أو جنوبًا تحتاج إلى طريقة حساب قطبية لم تُضف بعد.',
   phoneTimezone: 'المواقيت حسب المنطقة الزمنية لهاتفك',
   verifyTimes: 'قد تختلف المواقيت المحسوبة عن مسجدك المحلي. تحقّق من طريقة الحساب والمنطقة الزمنية لهاتفك.',
   next: 'الصلاة القادمة', finishedToday: 'انتهت مواقيت الصلاة اليوم. يتغيّر الجدول عند منتصف الليل.',
@@ -105,7 +102,6 @@ const ar: typeof en = {
   asrSchool: 'حساب العصر', standardAsr: 'الجمهور', hanafiAsr: 'الحنفي',
   ramadan: 'رمضان: العشاء بعد المغرب بـ١٢٠ دقيقة',
   normalIsha: 'في غير رمضان، تعتمد أم القرى ٩٠ دقيقة بعد المغرب.',
-  highLatitude: 'للدوائر العليا دون ٦٥°، تُستخدم قاعدة منتصف الليل.',
   planned: 'قيد التطوير', language: 'اللغة',
 };
 

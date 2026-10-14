@@ -1,9 +1,9 @@
 import { Text, TextInput, textScaleForSize, useTextScale } from '../text-size';
-import { parseLocalizedInteger } from '../domain/localized-number';
+import { ReaderNumberEntry } from './ReaderNumberEntry';
 import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, BackHandler, Modal, Pressable, ScrollView, StyleSheet, Switch, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, BackHandler, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { getSurah, getVerse, surahs, verses, type Verse } from '../domain/quran';
 import { normalizeQuranSearch, searchQuran } from '../domain/quran-search';
 import { mushafSpreadPages } from '../domain/mushaf-page-turns';
@@ -25,7 +25,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 export type QuranReaderSettings = { fontSize: number; nightMode: boolean };
 type Props = { tafsirLibrary: ReturnType<typeof useTafsirLibrary>; book: QuranBook; onBookChange:(change:(book:QuranBook)=>QuranBook)=>void; onCloseBook:()=>void; onHome:()=>void; active?: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onSettingsChange?:(settings:QuranReaderSettings)=>void; onReadingChromeChange?:(visible:boolean)=>void };
-type Picker = 'surah' | 'juz' | 'page' | 'search' | 'bookmarks' | null;
+type Picker = 'surah' | 'search' | 'bookmarks' | null;
 const PAGE_COUNT = 604;
 // 6% side margins and an 84% artwork height keep the 345 × 550 source
 // calligraphy proportions while using more of the available reading area.
@@ -44,7 +44,8 @@ export function QuranScreen({ tafsirLibrary, book, onBookChange, onCloseBook, on
   const setPage=(page:number)=>onBookChange(book=>({...book,page}));
   const setBookmarks=(change:(values:number[])=>number[])=>onBookChange(book=>({...book,bookmarks:change(book.bookmarks)}));
   const setVerseBookmarks=(change:(values:string[])=>string[])=>onBookChange(book=>({...book,verseBookmarks:change(book.verseBookmarks)}));
-  const [bookVisible,setBookVisible]=useState(false); const [audioVisible,setAudioVisible]=useState(false);
+  const [audioVisible,setAudioVisible]=useState(false);
+  const [numberEditing,setNumberEditing]=useState(false);
   const [chromeVisible,setChromeVisible]=useState(false);
   const [lastInteraction, setLastInteraction] = useState(0);
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
@@ -70,12 +71,12 @@ export function QuranScreen({ tafsirLibrary, book, onBookChange, onCloseBook, on
     return () => { alive = false; subscription.remove(); };
   }, []);
   useEffect(() => {
-    if (!chromeVisible || screenReaderEnabled || picker || audioVisible || bookVisible || loop.visible) return;
+    if (!chromeVisible || screenReaderEnabled || picker || audioVisible || numberEditing || loop.visible) return;
     const timer = setTimeout(() => setChromeVisible(false), 6000);
     return () => clearTimeout(timer);
-  }, [chromeVisible, screenReaderEnabled, lastInteraction, picker, audioVisible, bookVisible, loop.visible]);
+  }, [chromeVisible, screenReaderEnabled, lastInteraction, picker, audioVisible, numberEditing, loop.visible]);
   useEffect(() => {
-    if (readerActive && !bookVisible && !loop.pickMode && active && audio.status === 'playing') {
+    if (readerActive && !loop.pickMode && active && audio.status === 'playing') {
       const playingVerse = getVerse(active.surah, active.verse);
       if (playingVerse) {
         const target = getMushafVersePage(playingVerse.surah, playingVerse.number);
@@ -107,18 +108,22 @@ export function QuranScreen({ tafsirLibrary, book, onBookChange, onCloseBook, on
       </View>
     <VerseLoopPrompt loop={loop} language={language}/>
     {chromeVisible&&!loop.pickMode&&<View pointerEvents="box-none" style={styles.chromeLayer}>
+      <View style={styles.readerTools}>
       <View style={[styles.immersiveTopControls,rtl&&styles.reverse]}>
         <Pressable accessibilityRole="button" testID="reader-library" accessibilityLabel={bilingual(language,"العودة إلى مكتبتي القرآنية","Back to my Quran library")} style={styles.chromeButton} onPress={onCloseBook}><Ionicons name="library-outline" size={22} color={colors.accent}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.bookmarks} style={styles.chromeButton} onPress={()=>setPickerAndReset('bookmarks')}><Ionicons name="bookmark-outline" size={23} color={colors.appText}/></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={c.search} style={styles.immersiveSearch} onPress={()=>setPickerAndReset('search')}><Ionicons name="search" size={19} color={colors.accent}/><Text style={[styles.immersiveSearchLabel,rtl&&styles.rtl]}>{c.search}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={c.search} style={styles.immersiveSearch} onPress={()=>setPickerAndReset('search')}><Ionicons name="search" size={24} color={colors.accent}/><Text style={[styles.immersiveSearchLabel,rtl&&styles.rtl]}>{c.search}</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.surah} style={styles.chromeButton} onPress={()=>setPickerAndReset('surah')}><Ionicons name="list" size={24} color={colors.appText}/></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={c.juz} style={styles.chromeButton} onPress={()=>setPickerAndReset('juz')}><Text style={styles.chromeJuz}>{c.juz}</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={screenReaderEnabled?(bilingual(language, 'إخفاء أدوات القراءة', 'Hide reader tools')):c.night} style={styles.chromeButton} onPress={()=>screenReaderEnabled?setChromeVisible(false):onSettingsChange?.({...settings,nightMode:!dark})}><Ionicons name={screenReaderEnabled?'close':dark?'sunny':'moon'} size={23} color={colors.appText}/></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={c.openBook} style={styles.chromeButton} onPress={()=>setBookVisible(true)}><Ionicons name="book-outline" size={21} color={colors.appText}/></Pressable>
+        {screenReaderEnabled && <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language, 'إخفاء أدوات القراءة', 'Hide reader tools')} style={styles.chromeButton} onPress={()=>setChromeVisible(false)}><Ionicons name="close" size={22} color={colors.appText}/></Pressable>}
+      </View>
+      <View style={[styles.readerNumberRow,rtl&&styles.reverse]}>
+        <ReaderNumberEntry kind="page" value={page} language={language} onNavigate={go} onEditingChange={setNumberEditing}/>
+        <ReaderNumberEntry kind="juz" value={versesOnPage[0]?.juz??1} language={language} onNavigate={go} onEditingChange={setNumberEditing}/>
+      </View>
       </View>
       <View style={[styles.immersiveBottomControls,rtl&&styles.reverse]}>
         <Pressable accessibilityRole="button" accessibilityLabel={c.previousPage} disabled={firstPage<=1} style={styles.chromeButton} onPress={()=>movePage(-1)}><Ionicons name={rtl?'chevron-forward':'chevron-back'} size={23} color={colors.appText}/></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`${c.page} ${shownPages.map(number=>localDigits(number,language)).join('–')}`} style={[styles.chromePage,spread&&{width:80}]} onPress={()=>setPickerAndReset('page')}><Text testID="reader-page-number" style={styles.chromePageText}>{shownPages.map(number=>localDigits(number,language)).join('–')} / {localDigits(PAGE_COUNT,language)}</Text></Pressable>
+        <Text testID="reader-page-number" style={styles.chromePageText}>{shownPages.map(number=>localDigits(number,language)).join('–')} / {localDigits(PAGE_COUNT,language)}</Text>
         <Pressable accessibilityRole="button" testID="reader-next-page" accessibilityLabel={c.nextPage} disabled={shownPages[shownPages.length-1]>=PAGE_COUNT} style={styles.chromeButton} onPress={()=>movePage(1)}><Ionicons name={rtl?'chevron-back':'chevron-forward'} size={23} color={colors.appText}/></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={c.bookmark} accessibilityState={{selected:bookmarks.includes(page)}} style={styles.chromeButton} onPress={()=>toggleBookmark()}><Ionicons name={bookmarks.includes(page)?'bookmark':'bookmark-outline'} size={22} color={colors.accent}/></Pressable>
       </View>
@@ -127,9 +132,9 @@ export function QuranScreen({ tafsirLibrary, book, onBookChange, onCloseBook, on
     <ReaderAudioBar language={language} audio={audio} part={versesOnPage} onOpen={()=>setAudioVisible(true)} onRepeat={loop.open}/>
     <ReaderPicker language={language} visible={picker !== null} type={picker} query={query} setQuery={setQuery} page={page} quranFontLoaded={quranFontLoaded} onClose={() => setPicker(null)} onChoosePage={go} onChooseSurah={n => go(getMushafVersePage(n,1) ?? 1)} onChooseVerse={v => { go(getMushafVersePage(v.surah,v.number) ?? 1); onSelectVerse(v); }} bookmarks={bookmarks} verseBookmarks={verseBookmarks} onChooseBookmark={v=>go(getMushafVersePage(v.surah,v.number)??1)} onRemoveVerseBookmark={toggleVerseBookmark} />
     <TafsirSheet library={tafsirLibrary} verseKey={tafsirKey} language={language} dark={dark} quranFontLoaded={quranFontLoaded} onClose={()=>setTafsirKey(null)}/>
-    <RepeatRangeSheet initialRange={loop.initialRange} onChooseOnPage={loop.beginPicking} visible={!bookVisible&&loop.visible} language={language} audio={audio} initialVerseKey={audio.currentVerseKey??(versesOnPage[0]?`${versesOnPage[0].surah}:${versesOnPage[0].number}`:null)} onClose={loop.close}/>
+    <RepeatRangeSheet initialRange={loop.initialRange} onChooseOnPage={loop.beginPicking} visible={loop.visible} language={language} audio={audio} initialVerseKey={audio.currentVerseKey??(versesOnPage[0]?`${versesOnPage[0].surah}:${versesOnPage[0].number}`:null)} onClose={loop.close}/>
     <AudioDock language={language} audio={audio} part={versesOnPage} visible={audioVisible} onClose={()=>setAudioVisible(false)} />
-    <BookReaderModal onHome={onHome} loop={loop} tafsirLibrary={tafsirLibrary} language={language} visible={bookVisible} page={page} bookmarks={bookmarks} settings={settings} audio={audio} onClose={()=>setBookVisible(false)} onNavigate={setPage} onToggleBookmark={toggleBookmark} verseBookmarks={verseBookmarks} onToggleVerseBookmark={toggleVerseBookmark} quranFontLoaded={quranFontLoaded} />
+
   </View>;
 }
 
@@ -176,23 +181,20 @@ function VerseLoopPrompt({loop,language,book=false}:{loop:VerseLoopController;la
 
 type PickerProps = { language: Language; visible: boolean; type: Picker; query: string; setQuery: (s:string)=>void; page:number; quranFontLoaded:boolean; onClose:()=>void; onChoosePage:(n:number)=>void; onChooseSurah:(n:number)=>void; onChooseVerse:(v:Verse)=>void; bookmarks:number[]; verseBookmarks:string[]; onChooseBookmark:(v:Verse)=>void; onRemoveVerseBookmark:(key:string)=>void };
 function ReaderPicker({ language, visible, type, query, setQuery, page, quranFontLoaded, onClose, onChoosePage, onChooseSurah, onChooseVerse, bookmarks, verseBookmarks, onChooseBookmark, onRemoveVerseBookmark }: PickerProps) { const {colors,styles}=useReaderStyles(baseStyles);
-  const c=localizeCopy(language, labels); const rtl=isRTL(language); const [number,setNumber]=useState('1'); const insets=useSafeAreaInsets();
-  useEffect(()=>{setNumber(type==='page'?String(page):'1');},[type,page]);
+  const c=localizeCopy(language, labels); const rtl=isRTL(language); const insets=useSafeAreaInsets();
   const normalizedQuery=normalizeQuranSearch(query);
   const filteredSurahs = surahs.filter(s => normalizeQuranSearch(`${s.arabicName} ${s.englishName} ${s.transliteration}`).includes(normalizedQuery));
   const results = type==='search' ? searchQuran(query,verses,surahs,40) : [];
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
     <View style={[styles.modalRoot,{paddingTop:insets.top,paddingBottom:insets.bottom}]}>
-      <View style={[styles.modalHeader,rtl&&styles.reverse]}><Text style={styles.modalTitle}>{type==='surah'?c.surah:type==='juz'?c.juz:type==='page'?c.page:type==='search'?c.search:c.bookmarks}</Text><Pressable accessibilityRole="button" accessibilityLabel={c.close} style={styles.close} onPress={onClose}><Text style={styles.gold}>×</Text></Pressable></View>
+      <View style={[styles.modalHeader,rtl&&styles.reverse]}><Text style={styles.modalTitle}>{type==='surah'?c.surah:type==='search'?c.search:c.bookmarks}</Text><Pressable accessibilityRole="button" accessibilityLabel={c.close} style={styles.close} onPress={onClose}><Text style={styles.gold}>×</Text></Pressable></View>
       {(type==='search'||type==='surah') && <TextInput value={query} onChangeText={setQuery} placeholder={c.search} placeholderTextColor={colors.appMuted} style={[styles.search,rtl&&styles.rtl]} autoFocus={type==='search'} />}
-      {(type==='page'||type==='juz') && <View style={[styles.numberRow,rtl&&styles.reverse]}><TextInput value={number} onChangeText={setNumber} keyboardType="number-pad" style={styles.numberInput} /><Pressable accessibilityRole="button" style={styles.chooseButton} onPress={()=>{const n=parseLocalizedInteger(number);if(n!==null){ if(type==='page')onChoosePage(n);else {const verse=verses.find(v=>v.juz===n);if(verse)onChoosePage(getMushafVersePage(verse.surah,verse.number) ?? 1);} onClose();}}}><Text style={styles.chooseText}>{c.choose}</Text></Pressable></View>}
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.list}>
         {type==='surah'&&filteredSurahs.map(s=><Pressable key={s.number} style={[styles.listItem,rtl&&styles.reverse]} onPress={()=>{onChooseSurah(s.number);onClose();}}><Text style={styles.listMain}>{s.arabicName}</Text><Text style={styles.listSub}>{localDigits(s.number,language)}</Text></Pressable>)}
         {type==='search'&&results.map(v=><VerseRow key={`${v.surah}:${v.number}`} v={v} language={language} quranFontLoaded={quranFontLoaded} onPress={()=>{onChooseVerse(v);onClose();}}/>)}
         {type==='bookmarks'&&verseBookmarks.map(key=>{const [s,a]=key.split(':').map(Number);const verse=getVerse(s,a);return verse?<View key={key} style={[styles.verseBookmarkRow,rtl&&styles.reverse]}><View style={styles.flex}><VerseRow v={verse} language={language} quranFontLoaded={quranFontLoaded} onPress={()=>{onChooseBookmark(verse);onClose();}}/></View><Pressable accessibilityRole="button" accessibilityLabel={bilingual(language, 'إزالة إشارة الآية', 'Remove verse bookmark')} style={styles.close} onPress={()=>onRemoveVerseBookmark(key)}><Ionicons name="bookmark" size={22} color={colors.accent}/></Pressable></View>:null;})}
         {type==='bookmarks'&&!bookmarks.length&&!verseBookmarks.length&&<Text style={styles.note}>{bilingual(language, 'لا توجد إشارات مرجعية بعد', 'No bookmarks yet')}</Text>}
         {type==='bookmarks'&&bookmarks.map(n=><Pressable key={n} style={styles.listItem} onPress={()=>{onChoosePage(n);onClose();}}><Text style={styles.listMain}>{c.page} {localDigits(n,language)}</Text></Pressable>)}
-        {type==='juz'&&Array.from({length:30},(_,i)=><Pressable key={i} style={styles.listItem} onPress={()=>{const v=verses.find(x=>x.juz===i+1);if(v)onChoosePage(getMushafVersePage(v.surah,v.number) ?? 1);onClose();}}><Text style={styles.listMain}>{c.juz} {localDigits(i+1,language)}</Text></Pressable>)}
         {((type==='search'&&query.trim()&&!results.length)||(type==='surah'&&query&&!filteredSurahs.length))&&<Text style={styles.note}>{c.empty}</Text>}
       </ScrollView>
     </View>
@@ -264,55 +266,12 @@ function ReciterChoices({language,audio,onChoose}:{language:Language;audio:Quran
  </View>;
 }
 
-type BookReaderProps={onHome:()=>void;loop:ReturnType<typeof useVerseLoopPicker>;tafsirLibrary:ReturnType<typeof useTafsirLibrary>;language:Language;visible:boolean;page:number;bookmarks:number[];settings:QuranReaderSettings;audio:QuranAudioController;onClose:()=>void;onNavigate:(page:number)=>void;onToggleBookmark:(page?:number)=>void;verseBookmarks:string[];onToggleVerseBookmark:(key:string)=>void;quranFontLoaded:boolean};
-function BookReaderModal({onHome,loop,tafsirLibrary,language,visible,page,bookmarks,settings,audio,onClose,onNavigate,onToggleBookmark,verseBookmarks,onToggleVerseBookmark,quranFontLoaded}:BookReaderProps){ const {colors,styles}=useReaderStyles(baseStyles);
- const c=localizeCopy(language, labels),rtl=isRTL(language),insets=useSafeAreaInsets();
- const [bookPage,setBookPage]=useState(page),[zoom,setZoom]=useState(1);
- const [tafsirKey,setTafsirKey]=useState<string|null>(null);
- const wasVisible=useRef(false); const pageVerses=useMemo(()=>printedPageVerses(bookPage),[bookPage]);
- const active=parseVerseKey(audio.currentVerseKey);
- const {width:bookWidth,height:bookHeight}=useWindowDimensions();
- useEffect(()=>{if(visible&&!wasVisible.current){setBookPage(page);setZoom(1);}wasVisible.current=visible;},[visible]);
- useEffect(()=>{if(!visible||loop.pickMode||!active||audio.status!=='playing')return;const verse=getVerse(active.surah,active.verse);if(verse&&!getMushafPageVerses(bookPage).includes(audio.currentVerseKey!)){const target=getMushafVersePage(verse.surah,verse.number);if(target){setBookPage(target);onNavigate(target);}}},[visible,audio.currentVerseKey,audio.status,bookPage]);
- const [contentSize,setContentSize]=useState({width:bookWidth,height:bookHeight-132});
- const spread=contentSize.width>=760&&contentSize.height>=320&&bookWidth>bookHeight;
- const shownPages=mushafSpreadPages(bookPage,spread),firstPage=shownPages[0];
- const firstVerses=firstPage===bookPage?pageVerses:printedPageVerses(firstPage);
- const pageWidth=Math.min((contentSize.width-4)/(spread?2:1),Math.max(0,contentSize.height-12)*READER_PAGE_ASPECT);
- const pageHeight=pageWidth/READER_PAGE_ASPECT;
- const navigate=(target:number)=>{setBookPage(target);onNavigate(target);};
- const previous=()=>{if(firstPage>1)navigate(firstPage-(spread?2:1));};
- const next=()=>{if(shownPages.at(-1)!<PAGE_COUNT)navigate(firstPage+(spread?2:1));};
- const close=()=>{setTafsirKey(null);loop.close();onNavigate(bookPage);onClose();};
- const zoomIn=()=>setZoom(value=>Math.min(3,value+.25));
- const zoomOut=()=>setZoom(value=>Math.max(1,value-.25));
- return <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={close}>
-  <View style={[styles.bookRoot,{paddingTop:insets.top,paddingBottom:insets.bottom}]}>
-   <View style={[styles.bookHeader,rtl&&styles.reverse]}><Pressable testID="book-reader-home" accessibilityRole="button" accessibilityLabel={bilingual(language,'القائمة الرئيسية','Main menu')} style={styles.bookPageButton} onPress={()=>{close();onHome()}}><Ionicons name="home-outline" size={23} color={colors.accent}/></Pressable><Text style={styles.bookTitle}>{c.bookTitle}</Text><View style={[styles.bookActions,rtl&&styles.reverse]}><Pressable accessibilityRole="button" accessibilityLabel={c.decreaseFont} style={styles.bookPageButton} disabled={zoom<=1} onPress={zoomOut}><Text style={styles.settingText}>−</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel={c.increaseFont} style={styles.bookPageButton} disabled={zoom>=3} onPress={zoomIn}><Text style={styles.settingText}>+</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel={c.close} style={styles.bookClose} onPress={close}><Text style={styles.gold}>×</Text></Pressable></View></View>
-   <View style={styles.bookContent} onLayout={event=>{const {width,height}=event.nativeEvent.layout;setContentSize(current=>current.width===width&&current.height===height?current:{width,height})}}>
-    <View style={[styles.immersivePaperFrame,{width:pageWidth*(spread?2:1),height:pageHeight}]}>
-      <MushafPageView theme={colors} {...loopPageProps(loop,audio)} pageStep={spread?2:1} page={firstPage} asset={MUSHAF_PAGE_ASSETS[firstPage]} verses={firstVerses} surahNames={chapterNames(firstVerses)} juzName={juzArabic(firstVerses[0]?.juz??1)} language={language} dark={settings.nightMode} activeKey={audio.currentVerseKey} bookmarkedKeys={verseBookmarks} onTafsirVerse={key=>{tafsirLibrary.openLibrary();setTafsirKey(key);}} onBookmarkVerse={onToggleVerseBookmark} zoom={Math.min(3,zoom*textScaleForSize(settings.fontSize))} onTap={()=>undefined} onPlayVerse={key=>playKey(audio,key)} onPageSwipe={(_delta,target)=>{setBookPage(target);onNavigate(target);}}/>
-    </View>
-   </View>
-   <TafsirSheet library={tafsirLibrary} verseKey={tafsirKey} language={language} dark={settings.nightMode} quranFontLoaded={quranFontLoaded} onClose={()=>setTafsirKey(null)}/>
-   <RepeatRangeSheet initialRange={loop.initialRange} onChooseOnPage={loop.beginPicking} visible={visible&&loop.visible} language={language} audio={audio} initialVerseKey={audio.currentVerseKey??(pageVerses[0]?`${pageVerses[0].surah}:${pageVerses[0].number}`:null)} onClose={loop.close}/>
-   <VerseLoopPrompt loop={loop} language={language} book/>
-   <View style={[styles.bookFooter,rtl&&styles.reverse]}><Pressable accessibilityRole="button" accessibilityLabel={c.previousPage} disabled={firstPage<=1} style={styles.bookPageButton} onPress={previous}><Text style={styles.pageButtonText}>{rtl?'›':'‹'}</Text></Pressable><Text style={styles.chromePageText}>{c.page} {shownPages.map(number=>localDigits(number,language)).join('–')}</Text><Pressable accessibilityRole="button" accessibilityLabel={bookmarks.includes(bookPage)?c.saved:c.bookmark} style={styles.bookPageButton} onPress={()=>onToggleBookmark(bookPage)}><Ionicons name={bookmarks.includes(bookPage)?'bookmark':'bookmark-outline'} size={22} color={colors.accent}/></Pressable><Pressable accessibilityRole="button" accessibilityLabel={c.repeat} accessibilityState={{selected:Boolean(audio.repeatRange)}} style={styles.bookPageButton} onPress={loop.open}><VerseRangeIcon color={audio.repeatRange?colors.accent:colors.appText}/></Pressable><Pressable accessibilityRole="button" accessibilityLabel={c.nextPage} disabled={shownPages.at(-1)!>=PAGE_COUNT} style={styles.bookPageButton} onPress={next}><Text style={styles.pageButtonText}>{rtl?'‹':'›'}</Text></Pressable></View>
-  </View>
- </Modal>;
-}
-
-type SettingsProps = { library:ReturnType<typeof useTafsirLibrary>; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onSettingsChange:(value:QuranReaderSettings)=>void };
-export function QuranSettings({library,language,audio,settings,onSettingsChange}:SettingsProps) {
+type SettingsProps = { library:ReturnType<typeof useTafsirLibrary>; language: Language; audio: QuranAudioController };
+export function QuranSettings({library,language,audio}:SettingsProps) {
  const {colors,styles}=useReaderStyles(baseStyles), c=localizeCopy(language,labels), rtl=isRTL(language);
  const [choosingReciter,setChoosingReciter]=useState(false);
  const reciter=RECITERS.find(reader=>reader.id===audio.reciter)!;
- const set=(key:keyof QuranReaderSettings,value:number|boolean)=>{
-  if(key==='fontSize'&&typeof value==='number')onSettingsChange({...settings,fontSize:value});
-  else if(key==='nightMode'&&typeof value==='boolean')onSettingsChange({...settings,nightMode:value});
- };
  return <View style={styles.settings}>
-  <View style={[styles.settingRow,rtl&&styles.reverse]}><Text style={[styles.settingText,styles.flex]}>{c.night}</Text><Switch accessibilityLabel={c.night} value={settings.nightMode} onValueChange={v=>set('nightMode',v)} trackColor={{false:colors.border,true:colors.accent}} thumbColor={colors.lightPaper}/></View>
   <Pressable testID="settings-reciter-picker" accessibilityRole="button" accessibilityState={{expanded:choosingReciter}} accessibilityLabel={`${c.reciter}: ${language==='ar'?reciter.arabicName:reciter.name}`} onPress={()=>setChoosingReciter(value=>!value)} style={[styles.settingChoice,rtl&&styles.reverse]}><Text style={[styles.settingText,styles.flex]}>{c.reciter} · {language==='ar'?reciter.arabicName:reciter.name}</Text><Ionicons name={choosingReciter?'chevron-up':'chevron-down'} size={20} color={colors.accent}/></Pressable>
   {choosingReciter&&<ReciterChoices language={language} audio={audio} onChoose={()=>setChoosingReciter(false)}/>}
   <DownloadManager language={language} audio={audio} library={library}/>
@@ -339,8 +298,9 @@ function formatTime(n:number,language:Language) { const seconds=Number.isFinite(
 const baseStyles=StyleSheet.create({
  loopPrompt:{position:'absolute',zIndex:20,elevation:20,left:12,right:12,minHeight:56,flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:12,paddingVertical:6,backgroundColor:'#FAF7EF',borderRadius:14,borderWidth:1,borderColor:'#BD8744'},loopPromptText:{color:'#18334A',fontSize:15,fontWeight:'600'},loopPromptReference:{color:'#526A7B',fontSize:12},
  verseBookmarkRow:{flexDirection:'row',alignItems:'center',gap:4},
- immersiveRoot:{flex:1,minHeight:0,width:'100%',backgroundColor:'#18334A',alignItems:'center',justifyContent:'center'},immersiveSpread:{flex:1,minHeight:0,width:'100%',alignItems:'center',justifyContent:'center'},immersivePaperFrame:{maxWidth:'100%',padding:1,borderWidth:1,borderColor:'#DBAB68',backgroundColor:'#DBAB68',borderRadius:12,shadowColor:'#000',shadowOpacity:.28,shadowRadius:5,shadowOffset:{width:1,height:2}},immersivePaper:{paddingHorizontal:10,paddingVertical:8},chromeLayer:{zIndex:10,elevation:6,position:'absolute',top:0,left:0,right:0,bottom:0,justifyContent:'space-between',paddingTop:4,paddingBottom:4},immersiveTopControls:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'space-around',paddingHorizontal:6,backgroundColor:'rgba(24,51,74,.96)'},immersiveBottomControls:{minHeight:52,flexDirection:'row',alignItems:'center',justifyContent:'space-around',paddingHorizontal:3,backgroundColor:'rgba(24,51,74,.96)'},chromeButton:{width:44,height:44,alignItems:'center',justifyContent:'center'},immersiveSearch:{minHeight:42,flex:1,maxWidth:190,marginHorizontal:3,borderRadius:22,backgroundColor:'#25465E',alignItems:'center',justifyContent:'center',flexDirection:'row',gap:5,paddingHorizontal:8},immersiveSearchLabel:{fontSize:12,color:'#FAF7EF',flexShrink:1},chromePage:{width:44,height:44,alignItems:'center',justifyContent:'center',paddingHorizontal:0},chromePageText:{color:'#DBAB68',fontSize:9},chromeJuz:{color:'#FAF7EF',fontSize:11},quranFont:{fontFamily:'AmiriQuran'},paper:{flex:1,minHeight:0,backgroundColor:'#FAF7EF',borderRadius:6,paddingHorizontal:15,paddingVertical:8},pageGutter:{position:'absolute',left:9,top:0,bottom:0,width:1,backgroundColor:'#D9D2BF'},darkFrame:{backgroundColor:'#626A49'},darkPaper:{backgroundColor:'#14200C'},chapter:{color:'#536A5F',fontSize:12,flex:1},bookmark:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},gold:{color:'#B18B3D',fontSize:20},pageBody:{flex:1,minHeight:0,justifyContent:'center'},pageMetadata:{height:28,flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:4,borderBottomWidth:1,borderColor:'#D7D0B8'},pageMetaText:{flex:1,color:'#72765A',fontSize:13,lineHeight:24,textAlign:'center',writingDirection:'rtl'},pageMetaJuz:{color:'#72765A',fontSize:11,lineHeight:22},paperPageNumber:{height:15,color:'#706E59',fontSize:10,textAlign:'center',includeFontPadding:false},quranSearchText:{fontSize:17,lineHeight:28,textAlign:'right',writingDirection:'rtl'},lightText:{color:'#FAF7EF'},pageButtonText:{color:'#FAF7EF',fontSize:25,lineHeight:30},disabled:{opacity:.42},
- readerAudioBar:{width:'100%',minHeight:72,paddingHorizontal:6,paddingTop:4,paddingBottom:4,borderTopWidth:StyleSheet.hairlineWidth,borderColor:'#516C80'},audioCompactReciter:{minWidth:52,minHeight:44,alignItems:'center',justifyContent:'center',gap:1},readerAudioMeta:{flexDirection:'row',alignItems:'center',gap:8,minHeight:20,paddingHorizontal:4},audioCompact:{flex:1,minHeight:44,height:44,paddingVertical:0},
+ readerTools:{backgroundColor:'#18334A',paddingBottom:7},readerNumberRow:{flexDirection:'row',gap:8,paddingHorizontal:8},
+ immersiveRoot:{flex:1,minHeight:0,width:'100%',backgroundColor:'#18334A',alignItems:'center',justifyContent:'center'},immersiveSpread:{flex:1,minHeight:0,width:'100%',alignItems:'center',justifyContent:'center'},immersivePaperFrame:{maxWidth:'100%',padding:1,borderWidth:1,borderColor:'#DBAB68',backgroundColor:'#DBAB68',borderRadius:12,shadowColor:'#000',shadowOpacity:.28,shadowRadius:5,shadowOffset:{width:1,height:2}},immersivePaper:{paddingHorizontal:10,paddingVertical:8},chromeLayer:{zIndex:10,elevation:6,position:'absolute',top:0,left:0,right:0,bottom:0,justifyContent:'space-between',paddingTop:4,paddingBottom:4},immersiveTopControls:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'space-around',paddingHorizontal:6,backgroundColor:'rgba(24,51,74,.96)'},immersiveBottomControls:{minHeight:44,flexDirection:'row',alignItems:'center',justifyContent:'space-around',paddingHorizontal:3,backgroundColor:'rgba(24,51,74,.96)'},chromeButton:{width:44,height:44,alignItems:'center',justifyContent:'center'},immersiveSearch:{minHeight:44,flex:1,marginHorizontal:6,borderRadius:22,backgroundColor:'#25465E',alignItems:'center',justifyContent:'center',flexDirection:'row',gap:5,paddingHorizontal:8},immersiveSearchLabel:{fontSize:14,color:'#FAF7EF',flexShrink:1},chromePage:{width:44,height:44,alignItems:'center',justifyContent:'center',paddingHorizontal:0},chromePageText:{color:'#DBAB68',fontSize:12},chromeJuz:{color:'#FAF7EF',fontSize:11},quranFont:{fontFamily:'AmiriQuran'},paper:{flex:1,minHeight:0,backgroundColor:'#FAF7EF',borderRadius:6,paddingHorizontal:15,paddingVertical:8},pageGutter:{position:'absolute',left:9,top:0,bottom:0,width:1,backgroundColor:'#D9D2BF'},darkFrame:{backgroundColor:'#626A49'},darkPaper:{backgroundColor:'#14200C'},chapter:{color:'#536A5F',fontSize:12,flex:1},bookmark:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},gold:{color:'#B18B3D',fontSize:20},pageBody:{flex:1,minHeight:0,justifyContent:'center'},pageMetadata:{height:28,flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:4,borderBottomWidth:1,borderColor:'#D7D0B8'},pageMetaText:{flex:1,color:'#72765A',fontSize:13,lineHeight:24,textAlign:'center',writingDirection:'rtl'},pageMetaJuz:{color:'#72765A',fontSize:11,lineHeight:22},paperPageNumber:{height:15,color:'#706E59',fontSize:10,textAlign:'center',includeFontPadding:false},quranSearchText:{fontSize:17,lineHeight:28,textAlign:'right',writingDirection:'rtl'},lightText:{color:'#FAF7EF'},pageButtonText:{color:'#FAF7EF',fontSize:25,lineHeight:30},disabled:{opacity:.42},
+ readerAudioBar:{width:'100%',minHeight:72,paddingHorizontal:6,paddingTop:4,paddingBottom:4,borderTopWidth:StyleSheet.hairlineWidth,borderColor:'#516C80'},audioCompactReciter:{width:44,minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center',gap:1},readerAudioMeta:{flexDirection:'row',alignItems:'center',gap:8,minHeight:20,paddingHorizontal:4},audioCompact:{flex:1,minHeight:44,height:44,paddingVertical:0},
  audioOverlay:{flex:1,justifyContent:'flex-end',paddingHorizontal:12,backgroundColor:'rgba(0,0,0,0.55)'},audioPanel:{width:'100%',maxWidth:600,alignSelf:'center',paddingHorizontal:12,paddingBottom:14,borderRadius:22,borderWidth:1,borderColor:'#516C80',backgroundColor:'#18334A'},audioReciter:{color:'#BCD0DF',fontSize:12,textAlign:'center',paddingBottom:10},audioControls:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',minHeight:44},reciterPicker:{minHeight:62,borderWidth:1,borderColor:'#DBAB68',borderRadius:12,flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:10,paddingVertical:8},reciterList:{maxHeight:210},audioButton:{flex:1,minWidth:44,minHeight:68,gap:6,paddingHorizontal:2,paddingVertical:8,alignItems:'center',justifyContent:'center',borderRadius:11},audioPrimary:{backgroundColor:'#DBAB68'},audioButtonText:{color:'#FAF7EF',fontSize:10,lineHeight:14,textAlign:'center',fontWeight:'600'},audioPrimaryText:{color:'#25465E'},audioMeta:{color:'#BCD0DF',fontSize:10,textAlign:'center',minHeight:13},audioError:{flex:1},audioMetaRow:{minHeight:44,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},audioRetry:{minHeight:44,minWidth:54,alignItems:'center',justifyContent:'center'},audioRetryText:{color:'#DBAB68',fontSize:12,fontWeight:'700'},
  modalRoot:{flex:1,backgroundColor:'#14293C',paddingTop:10},modalHeader:{minHeight:58,paddingHorizontal:18,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},modalTitle:{color:'#FAF7EF',fontSize:20,fontWeight:'600'},close:{width:48,height:48,alignItems:'center',justifyContent:'center'},search:{marginHorizontal:16,marginBottom:10,minHeight:48,borderWidth:1,borderColor:'#516C80',borderRadius:12,paddingHorizontal:14,color:'#FAF7EF',fontSize:16},numberRow:{flexDirection:'row',gap:10,paddingHorizontal:16,paddingBottom:10},numberInput:{flex:1,minHeight:48,borderWidth:1,borderColor:'#516C80',borderRadius:12,paddingHorizontal:12,color:'#FAF7EF'},chooseButton:{minWidth:90,minHeight:48,alignItems:'center',justifyContent:'center',borderRadius:12,backgroundColor:'#516C80'},chooseText:{color:'#FAF7EF'},list:{paddingHorizontal:16,paddingBottom:30,gap:7},listItem:{minHeight:48,borderWidth:1,borderColor:'#516C80',borderRadius:12,padding:11,justifyContent:'center',gap:3},listMain:{color:'#FAF7EF',fontSize:15,textAlign:'right',writingDirection:'rtl'},listSub:{color:'#BCD0DF',fontSize:12},note:{color:'#BCD0DF',padding:12},
  bookRoot:{flex:1,backgroundColor:'#18334A',paddingHorizontal:0},bookHeader:{minHeight:56,flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:4},bookActions:{flexDirection:'row',alignItems:'center',gap:5},bookTitle:{flex:1,flexShrink:1,color:'#FAF7EF',fontSize:18,fontWeight:'600'},bookClose:{width:48,height:48,alignItems:'center',justifyContent:'center',borderRadius:12,backgroundColor:'#25465E'},bookContent:{flex:1,minHeight:0,alignItems:'center',justifyContent:'center',paddingBottom:10},bookFrame:{flex:1,minHeight:0,maxHeight:900,alignSelf:'center',width:'100%',maxWidth:760,padding:7,borderRadius:20,backgroundColor:'#DBAB68'},bookPaper:{flex:1,minHeight:0,borderRadius:14,backgroundColor:'#FAF7EF',paddingHorizontal:18,paddingVertical:12},bookPageHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',minHeight:48,borderBottomWidth:1,borderColor:'#516C80'},bookTextArea:{flex:1,minHeight:0,justifyContent:'center',paddingHorizontal:4},zoomScrollContent:{flexGrow:1,paddingBottom:24},bookFooter:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',minHeight:54,borderTopWidth:1,borderColor:'#516C80'},bookPageButton:{minWidth:48,minHeight:48,alignItems:'center',justifyContent:'center',borderRadius:11,backgroundColor:'#25465E'},bookPageNumber:{flex:1,textAlign:'center',color:'#536A5F',fontSize:13,fontWeight:'600'},

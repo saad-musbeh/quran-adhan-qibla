@@ -2,7 +2,9 @@ import { Text } from '../text-size';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React, {useMemo, useState} from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import {prayerLocationLabel} from '../domain/cities';
+import {LocationControl} from './LocationControl';
+import {highLatitudeCopy} from './HighLatitudeSettings';
+import type {PrayerSettings} from '../domain/prayers';
 import {countdownParts, nextPrayerOccurrence, prayerNames, prayerOccurrenceFor} from '../domain/prayers';
 import {useForegroundMinuteClock} from '../use-foreground-minute-clock';
 import { bilingual, isRTL, localeFor, localizeCopy, translations, type Language } from '../i18n';
@@ -19,6 +21,8 @@ type Props = {
   now: Date;
   active: boolean;
   onChangeLocation: () => void;
+  settings?: PrayerSettings;
+  onPrayerSettings?: () => void;
 };
 
 const screenCopy = {
@@ -26,7 +30,7 @@ const screenCopy = {
   ar: {prayerTimes: 'مواقيت الصلاة', nextAdhan: 'الأذان القادم', tomorrow: 'غدًا', changeLocation: 'تغيير الموقع'},
 } as const;
 
-export function AdhanScreen({language, state, times, tomorrowTimes, error, calculationAvailable, now: scheduleNow, active, onChangeLocation}: Props) {
+export function AdhanScreen({language, state, times, tomorrowTimes, error, calculationAvailable, now: scheduleNow, active, onChangeLocation, settings, onPrayerSettings}: Props) {
   const { styles, colors } = useReaderStyles(baseStyles);
   const t = translations[language];
   const copy = localizeCopy(language, screenCopy);
@@ -40,7 +44,7 @@ export function AdhanScreen({language, state, times, tomorrowTimes, error, calcu
   const compact = availableHeight > 0 && availableHeight <= 500;
   const upcoming = useMemo(() => times?.length === prayerNames.length ? nextPrayerOccurrence(times, tomorrowTimes, now) : null, [times, tomorrowTimes, now]);
   const location = state.location;
-  const locationLabel = useMemo(() => location ? prayerLocationLabel(location,language) : '', [location,language]);
+  const highLatitude = localizeCopy(language, highLatitudeCopy);
   const remainingLabel = (time: Date) => {
     const parts = countdownParts(time, now);
     if (!parts) return null;
@@ -60,6 +64,11 @@ export function AdhanScreen({language, state, times, tomorrowTimes, error, calcu
 
     </View>
 
+    <LocationControl testID="adhan-location" language={language} state={state} onPress={onChangeLocation} />
+    {location && Math.abs(location.latitude) >= 48 && settings && <Pressable testID="prayer-latitude-policy" accessibilityRole="button" onPress={onPrayerSettings} disabled={!onPrayerSettings} style={styles.latitudePolicy}>
+      <Text style={[styles.prayerRemaining, rtl && styles.textRtl]}>{Math.abs(location.latitude) >= 65 && settings.polarRule === 'nearest-latitude'
+        ? highLatitude.estimates : `${highLatitude.title} · ${highLatitude[settings.highLatitudeRule ?? 'middle']}`}</Text>
+    </Pressable>}
     {!location ? <View style={styles.emptyState}>
       <Text style={[styles.emptyBody, rtl && styles.textRtl]}>{t.adhanBody}</Text>
       {(locationError || settingsError) && <Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{settingsError ? t.locationError : locationError}</Text>}
@@ -75,11 +84,6 @@ export function AdhanScreen({language, state, times, tomorrowTimes, error, calcu
       </View>
       {!calculationAvailable && <Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{t.unavailable}</Text>}
     </View> : <>
-      <Pressable testID="adhan-location" accessibilityRole="button" accessibilityLabel={`${copy.changeLocation}: ${locationLabel}`} onPress={onChangeLocation} style={[styles.locationStrip, rtl && styles.rowRtl]}>
-        <Ionicons name="location-outline" color={colors.accent} size={21}/>
-        <Text style={[styles.locationText, rtl && styles.textRtl]}>{locationLabel}</Text>
-        {state.loading ? <ActivityIndicator color={colors.accent} size="small" /> : <Ionicons name={rtl ? 'chevron-back' : 'chevron-forward'} color={colors.appMuted} size={16}/>}
-      </Pressable>
       {(locationError || settingsError) && <View style={styles.errorPanel}>
         <Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{settingsError ? t.locationError : locationError}</Text>
         <Pressable accessibilityRole="button" disabled={state.loading} onPress={state.error === 'blocked' ? () => {setSettingsError(false); void Linking.openSettings().catch(() => setSettingsError(true));} : retryLocation} style={styles.retryButton}>
@@ -88,7 +92,8 @@ export function AdhanScreen({language, state, times, tomorrowTimes, error, calcu
       </View>}
 
       {error || !calculationAvailable || !times ? <View style={styles.errorPanel}>
-        <Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{error ? t[error] : !calculationAvailable ? t.unavailable : locationError ?? t.prayerError}</Text>
+        <Text accessibilityRole="alert" style={[styles.error, rtl && styles.textRtl]}>{error === 'polarUnsupported' ? highLatitude.disabled : error ? t[error] : !calculationAvailable ? t.unavailable : locationError ?? t.prayerError}</Text>
+        {error === 'polarUnsupported' && onPrayerSettings && <Pressable accessibilityRole="button" onPress={onPrayerSettings} style={styles.retryButton}><Text style={styles.retryText}>{t.settings}</Text></Pressable>}
       </View> : <>
         <View style={[styles.schedule,landscape&&styles.scheduleWide]}><View style={landscape?styles.nextColumn:undefined}>
         {upcoming ? <View style={[styles.nextCard, compact && styles.nextCardCompact, rtl && styles.rowRtl]}>
@@ -133,13 +138,12 @@ const baseStyles = StyleSheet.create({
   emptyState: {flex: 1, justifyContent: 'center', gap: 18},
   emptyBody: {color: '#B8CDC4', fontSize: 17, lineHeight: 26},
   actionRow: {flexDirection: 'row', gap: 10},
-  primaryButton: {minHeight: 52, flex: 1.2, paddingHorizontal: 12, borderRadius: 14, backgroundColor: '#D6BA7A', flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center'},
+  primaryButton: {minHeight: 44, flex: 1.2, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#D6BA7A', flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center'},
   primaryText: {color: '#102A25', fontSize: 15, fontWeight: '700'},
   linkButton: {minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: 2},
   linkText: {color: '#D6BA7A', fontSize: 14, textDecorationLine: 'underline'},
   disabled: {opacity: 0.6},
-  locationStrip: {minHeight: 44, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: '#193A32', flexDirection: 'row', alignItems: 'center', gap: 8},
-  locationText: {flex: 1, color: '#F4EFE4', fontSize: 16, fontWeight: '600'},
+  latitudePolicy: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
   nextCard: {minHeight: 84, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderRadius: 16, borderWidth: 1, borderColor: '#806E42', backgroundColor: '#193A32'},
   nextCardCompact: {minHeight: 54, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 13},
   nextCopy: {flex: 1, gap: 2},

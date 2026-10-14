@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import * as Location from 'expo-location';
 import type { LocationSubscription, LocationHeadingObject } from 'expo-location';
-import { magneticToTrueHeading, smoothHeading, usableTrueHeading } from './domain/heading';
+import { magneticToTrueHeading, responsiveHeading, usableTrueHeading } from './domain/heading';
 import { magneticDeclination } from '../modules/islamic-core';
 
 export type HeadingStatus = 'idle' | 'loading' | 'ready' | 'calibrating' | 'unavailable';
@@ -59,6 +59,7 @@ export function useHeading(enabled: boolean, coordinates?: { latitude: number; l
       });
     };
     previousHeading.current = null;
+    let previousSampleTime: number | null = null;
     setState({ heading: null, status: 'loading', reason: null });
 
     const timer = setTimeout(() => {
@@ -74,13 +75,14 @@ export function useHeading(enabled: boolean, coordinates?: { latitude: number; l
       }
       if (heading === null) {
         previousHeading.current = null;
+        previousSampleTime = null;
         publish({ heading: null, status: 'calibrating', reason: 'calibration' });
         return;
       }
       const previous = previousHeading.current;
-      // Follow deliberate turns promptly; suppress jitter close to rest.
-      const turn = previous === null ? 0 : Math.abs(((heading - previous + 540) % 360) - 180);
-      const smooth = previous === null ? heading : smoothHeading(previous, heading, turn > 12 ? 0.85 : 0.55);
+      const now = performance.now();
+      const smooth = previous === null ? heading : responsiveHeading(previous, heading, now - (previousSampleTime ?? now));
+      previousSampleTime = now;
       previousHeading.current = smooth;
       publish({ heading: smooth, status: 'ready', reason: null });
     };
