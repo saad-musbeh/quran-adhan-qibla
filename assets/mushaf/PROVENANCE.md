@@ -12,7 +12,7 @@ compact index extracted from the verse polygon identifiers.
 Page dimensions use SVG viewBox `0 0 345 550`. Page 599 contains verses 98:6
 through 100:5; page 600 contains 100:6 through 102:8. The importer validates
 all 604 page numbers, all 6,236 verse keys, and these page boundaries. It
-stores the original SVG bytes inside deterministic gzip assets (mtime 0) so the
+stores the original SVG bytes inside independent lossless Zstandard frames so the
 offline application can ship them more compactly. The manifest records each
 source SVG SHA-256 and its corresponding compressed asset SHA-256.
 
@@ -40,7 +40,13 @@ Primary sources:
 - [Quran.ws license](https://github.com/quran-ws/quran-svg/blob/b4155f07e4aea087d2c458069acff9f7c7e749f6/LICENSE)
 - [Quran.ws art provenance](https://github.com/quran-ws/quran-svg/blob/b4155f07e4aea087d2c458069acff9f7c7e749f6/docs/PROVENANCE.md)
 
-To reproduce assets, run `python scripts/import-mushaf.py`. It downloads only
+To reproduce assets, install the `zstd` command-line tool and run
+`python3 scripts/import-mushaf.py`. For an offline recompression of the already
+verified pages, run `python3 scripts/import-mushaf.py --repack`. Every repacked
+page must match its pinned original SVG SHA-256 before it is written. Zstandard
+1.5.7 at level 19 reduced the 604-page assets from 95,248,101 to 70,340,492 bytes.
+The app decodes one page at a time with the pure-JavaScript `fzstd` decoder;
+no native decoder, image rasterization, path rounding or content edits are used. It downloads only
 the pinned Hafs/KFGQPC pages and regenerates the compressed asset files, page
 verse index, checksums, and static Metro asset map. No source archive or network
 connection is required at app runtime.

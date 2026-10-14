@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
-import { gunzipSync, strFromU8 } from 'fflate';
+import { decodeMushafPage } from '../domain/mushaf-compression';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { Verse } from '../domain/quran';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
@@ -33,7 +33,7 @@ async function readAsset(module: number, base64 = false) {
 export function preloadMushafPage(module: number): Promise<string> {
   let pending = decodedPages.get(module);
   if (!pending) {
-    pending = readAsset(module, true).then(encoded => strFromU8(gunzipSync(Uint8Array.from(atob(encoded), character => character.charCodeAt(0)))));
+    pending = readAsset(module, true).then(encoded => decodeMushafPage(Uint8Array.from(atob(encoded), character => character.charCodeAt(0))));
     pending.catch(() => { if (decodedPages.get(module) === pending) decodedPages.delete(module); });
   }
   decodedPages.delete(module); decodedPages.set(module, pending);

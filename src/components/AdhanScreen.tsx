@@ -1,5 +1,5 @@
 import { Text } from '../text-size';
-import {Ionicons} from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, {useMemo, useState} from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {prayerLocationLabel} from '../domain/cities';

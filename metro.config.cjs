@@ -1,6 +1,8 @@
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
-if (!config.resolver.assetExts.includes('gz')) config.resolver.assetExts.push('gz');
+for (const extension of ['gz', 'zst']) {
+  if (!config.resolver.assetExts.includes(extension)) config.resolver.assetExts.push(extension);
+}
 
 module.exports = config;

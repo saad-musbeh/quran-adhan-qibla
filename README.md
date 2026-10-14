@@ -72,17 +72,23 @@ npm run android
 
 The command builds Rust for ARM64 devices and x86_64 emulators, then generates and builds the Android app. Expo's build-properties plugin limits the app to these same two ABIs so it always includes the Rust library. Set `ANDROID_NDK_HOME` if cargo-ndk cannot find your NDK.
 
-To create an APK without a connected device or running development server:
+To create standalone release APKs without a connected device or running development server:
 
 ```sh
-npm run rust:android
-npx expo prebuild --platform android --no-install
-cd android
-NODE_ENV=production ./gradlew :app:createBundleReleaseJsAndAssets --rerun-tasks --max-workers=2
-NODE_ENV=production ./gradlew :app:assembleRelease --max-workers=2
+npm run apk:android
 ```
 
-The explicit bundle step refreshes JSON catalogs too; Gradle can otherwise reuse the old bundle after JSON-only edits. The APK is written to `android/app/build/outputs/apk/release/app-release.apk`. It includes the JavaScript bundle and uses Expo's generated debug signing key for local testing. Configure your own release signing before store distribution.
+This refreshes Rust, regenerates the Android project, forces a fresh JavaScript/asset bundle, and builds APKs with R8 code/resource shrinking and compressed JavaScript/native libraries. It writes three APKs to `dist/android/`: `app-arm64-v8a-release.apk` for ARM64 phones, `app-x86_64-release.apk` for x86_64 devices/emulators, and `app-universal-release.apk` containing both. Use the matching architecture APK for the smallest download. All 604 Quran pages, the worldwide city catalogue and all six Android Adhan recordings remain offline. iOS WAV excerpts are packaged only on iOS.
+
+The APKs use Expo's generated debug signing key for local testing. Configure your own release signing before store distribution. An Android App Bundle for store distribution can be built with `NODE_ENV=production ./gradlew :app:bundleRelease --max-workers=2` from `android/`; Google Play delivers the matching architecture.
+
+Audit an APK's actual packaged bytes and verify all offline pages and sounds survived resource shrinking:
+
+```sh
+python3 scripts/apk-size.py dist/android/app-arm64-v8a-release.apk
+```
+
+See [Android APK size and validation](docs/ANDROID-SIZE.md) for measured before/after sizes and verification limits.
 
 ## iOS development build
 

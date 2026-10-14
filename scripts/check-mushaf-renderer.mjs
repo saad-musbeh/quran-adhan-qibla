@@ -2,7 +2,7 @@
 // Uses Playwright when installed, or PLAYWRIGHT_MODULE pointing to its package entry.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { gunzipSync } from 'node:zlib';
+import { decodeMushafPage } from '../src/domain/mushaf-compression.ts';
 import { createRequire } from 'node:module';
 import { buildMushafDocument, mushafLabels } from '../src/components/mushaf-document.ts';
 const require = createRequire(import.meta.url);
@@ -13,7 +13,7 @@ const verseByKey = new Map(quran.verses.map(v => [v.surah + ':' + v.number, v]))
 const cssRgb = hex => 'rgb(' + hex.slice(1).match(/../g).map(value => parseInt(value,16)).join(', ') + ')';
 function descriptor(page) {
   const verses = pages[page - 1].verseKeys.map(key => verseByKey.get(key));
-  return { page, verses, surahNames: 'سورة ' + quran.surahs.find(s => s.number === verses[0].surah).arabicName, juzName:'الجزء الثلاثون', svg: gunzipSync(readFileSync(new URL('../assets/mushaf/pages/' + String(page).padStart(3,'0') + '.svg.gz', import.meta.url))).toString() };
+  return { page, verses, surahNames: 'سورة ' + quran.surahs.find(s => s.number === verses[0].surah).arabicName, juzName:'الجزء الثلاثون', svg: decodeMushafPage(readFileSync(new URL('../assets/mushaf/pages/' + String(page).padStart(3,'0') + '.svg.zst', import.meta.url))) };
 }
 const browser = await chromium.launch({ headless:true, args:['--no-sandbox'] });
 try {

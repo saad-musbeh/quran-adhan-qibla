@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
-import {gunzipSync} from 'node:zlib';
+import {decodeMushafPage} from './mushaf-compression.ts';
 import test from 'node:test';
 
 globalThis.require = createRequire(import.meta.url);
@@ -14,7 +14,7 @@ const manifest = JSON.parse(readFileSync(new URL('../data/mushaf-manifest.json',
   pageCount: number;
   uniqueVerseCount: number;
   sourceSvgSha256: Record<string, string>;
-  bundledGzipSha256: Record<string, string>;
+  bundledZstdSha256: Record<string, string>;
 };
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
@@ -39,15 +39,14 @@ test('all official page references are indexed and map to the Quran corpus', () 
 
 test('each bundled page matches its pinned SVG and compressed-source checksums', () => {
   assert.equal(Object.keys(manifest.sourceSvgSha256).length, 604);
-  assert.equal(Object.keys(manifest.bundledGzipSha256).length, 604);
+  assert.equal(Object.keys(manifest.bundledZstdSha256).length, 604);
 
   for (const record of MUSHAF_PAGES) {
     const name = `${String(record.page).padStart(3, '0')}.svg`;
-    const packed = readFileSync(new URL(`../../assets/mushaf/pages/${name}.gz`, import.meta.url));
-    assert.equal(sha256(packed), manifest.bundledGzipSha256[`${name}.gz`], name);
-    const svgBytes = gunzipSync(packed);
-    assert.equal(sha256(svgBytes), manifest.sourceSvgSha256[name], name);
-    const svg = svgBytes.toString('utf8');
+    const packed = readFileSync(new URL(`../../assets/mushaf/pages/${name}.zst`, import.meta.url));
+    assert.equal(sha256(packed), manifest.bundledZstdSha256[`${name}.zst`], name);
+    const svg = decodeMushafPage(packed);
+    assert.equal(sha256(Buffer.from(svg, 'utf8')), manifest.sourceSvgSha256[name], name);
     assert.match(svg, /^<\?xml[^>]*\?>\s*<svg\b/, name);
     assert.doesNotMatch(svg, /<\s*(?:script|foreignObject|iframe|object|embed)\b|<!ENTITY\b/i, name);
     assert.doesNotMatch(svg, /\bhref\s*=\s*["'](?!#|data:)[^"']+/i, name);

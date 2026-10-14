@@ -4,7 +4,7 @@ import test from 'node:test';
 import { ADHAN_VOICES } from './adhan-voices.ts';
 
 const config = JSON.parse(readFileSync(new URL('../../app.json', import.meta.url), 'utf8'));
-const notification = config.expo.plugins.find((entry: unknown) => Array.isArray(entry) && entry[0] === 'expo-notifications');
+const notification = config.expo.plugins.find((entry: unknown) => Array.isArray(entry) && entry[0] === './plugins/withPlatformNotificationSounds.cjs');
 
 for (const voice of ADHAN_VOICES) {
   test(`${voice.id}: iOS notification excerpt is complete PCM WAV and shorter than 30 seconds`, () => {

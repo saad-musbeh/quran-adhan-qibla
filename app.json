@@ -39,6 +39,10 @@
             "enableSceneSupport": true
           },
           "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableBundleCompression": true,
+            "useLegacyPackaging": true,
             "buildArchs": [
               "arm64-v8a",
               "x86_64"
@@ -71,7 +75,7 @@
       "expo-asset",
       "./plugins/withLocalNotificationsOnly.cjs",
       [
-        "expo-notifications",
+        "./plugins/withPlatformNotificationSounds.cjs",
         {
           "sounds": [
             "./assets/adhan/adhan.ogg",
@@ -92,7 +96,8 @@
           "color": "#D6BA7A"
         }
       ],
-      "./plugins/withPrayerExactAlarm.cjs"
+      "./plugins/withPrayerExactAlarm.cjs",
+      "./plugins/withAndroidReleaseSize.cjs"
     ],
     "backgroundColor": "#14293C"
   }
