@@ -7,10 +7,31 @@ export const methods: { id: CalculationMethod; label: 'ummAlQura' | 'muslimWorld
   { id: 4, label: 'karachi' }, { id: 5, label: 'moonsighting' },
 ];
 
-export type PrayerSettings = { method: CalculationMethod; hanafi: boolean; ramadan: boolean };
+export type HighLatitudeSetting = 'middle' | 'seventh' | 'angle';
+export type PolarSetting = 'none' | 'nearest-latitude';
+export type PrayerSettings = {
+  method: CalculationMethod; hanafi: boolean; ramadan: boolean;
+  highLatitudeRule?: HighLatitudeSetting; polarRule?: PolarSetting;
+};
+
+/** Old saved preferences retain the previous middle-of-night / no-polar behavior. */
+export function normalizePrayerSettings(value: Partial<PrayerSettings> | null | undefined): PrayerSettings {
+  return {
+    method: value && methods.some(method => method.id === value.method) ? value.method! : 0,
+    hanafi: value?.hanafi === true, ramadan: value?.ramadan === true,
+    highLatitudeRule: value?.highLatitudeRule === 'seventh' || value?.highLatitudeRule === 'angle' ? value.highLatitudeRule : 'middle',
+    polarRule: value?.polarRule === 'nearest-latitude' ? value.polarRule : 'none',
+  };
+}
 
 export function calculationFlags(settings: PrayerSettings): number {
-  return settings.method | (settings.hanafi ? 0x10 : 0) | (settings.method === 0 && settings.ramadan ? 0x20 : 0);
+  const highLatitude = settings.highLatitudeRule === 'seventh' ? 0x40 : settings.highLatitudeRule === 'angle' ? 0x80 : 0;
+  return settings.method | (settings.hanafi ? 0x10 : 0) | (settings.method === 0 && settings.ramadan ? 0x20 : 0)
+    | highLatitude | (settings.polarRule === 'nearest-latitude' ? 0x100 : 0);
+}
+
+export function polarCalculationDisabled(latitude: number, settings: PrayerSettings): boolean {
+  return Math.abs(latitude) >= 65 && settings.polarRule !== 'nearest-latitude';
 }
 
 /** Local calendar components, never UTC's date when the user's day differs. */

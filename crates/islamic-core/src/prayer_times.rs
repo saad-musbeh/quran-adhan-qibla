@@ -2,7 +2,8 @@
 //! All output is Unix seconds in UTC; the UI formats it in the phone's timezone.
 
 use adhaan::{
-    prominent_methods, Coordinates, HighLatitudeRule, Method, Parameters, Prayer, PrayerTimes,
+    prominent_methods, Coordinates, HighLatitudeRule, Method, Parameters, PolarCircleResolver,
+    Prayer, PrayerTimes,
 };
 use jiff::civil::Date;
 
@@ -15,6 +16,8 @@ pub enum PrayerError {
 
 /// Flags: low nibble = method (0 Umm al-Qura, 1 MWL, 2 ISNA, 3 Egyptian,
 /// 4 Karachi, 5 Moonsighting Committee); bit 4 = Hanafi Asr; bit 5 = Ramadan.
+/// Bits 6–7 = twilight rule (0 middle, 1 seventh, 2 angle; 3 invalid).
+/// Bit 8 = explicitly allow nearest-usable-latitude polar approximation.
 /// Returned order: Fajr, sunrise, Dhuhr, Asr, Maghrib, Isha.
 pub fn prayer_times(
     latitude: f64,
@@ -27,12 +30,13 @@ pub fn prayer_times(
         || !longitude.is_finite()
         || longitude.abs() > 180.0
         || !(1900..=2100).contains(&date.year())
-        || flags & !0x3f != 0
+        || flags & !0x1ff != 0
+        || flags & 0xc0 == 0xc0
     {
         return Err(PrayerError::InvalidInput);
     }
     // Do not silently use the engine's nearest-city polar fallback.
-    if latitude.abs() >= 65.0 {
+    if latitude.abs() >= 65.0 && flags & 0x100 == 0 {
         return Err(PrayerError::UnsupportedLocation);
     }
     let method: &'static dyn Method = match flags & 0xf {
@@ -48,8 +52,16 @@ pub fn prayer_times(
         latitude,
         longitude,
     };
-    let mut parameters =
-        Parameters::new(method).with_high_latitude_rule(HighLatitudeRule::MiddleOfTheNight);
+    let rule = match flags & 0xc0 {
+        0x40 => HighLatitudeRule::SeventhOfTheNight,
+        0x80 => HighLatitudeRule::TwilightAngle,
+        _ => HighLatitudeRule::MiddleOfTheNight,
+    };
+    // adhaan keeps the original longitude/date and steps latitude towards the
+    // equator only when sunrise/sunset cannot be calculated. Never opt in silently.
+    let mut parameters = Parameters::new(method)
+        .with_high_latitude_rule(rule)
+        .with_polar_circle_resolver(PolarCircleResolver::NearestCity);
     if flags & 0xf == 0 && flags & 0x20 != 0 {
         parameters.isha_interval = Some(120);
     }
@@ -192,6 +204,96 @@ mod tests {
     }
 
     #[test]
+    fn stockholm_missing_twilight_obeys_selected_night_portions() {
+        let date = Date::new(2026, 6, 21).unwrap();
+        let latitude = 59.3293;
+        let longitude = 18.0686;
+        for (rule, fajr_fraction, isha_fraction) in [
+            (0, 0.5, 0.5),
+            (0x40, 1.0 / 7.0, 1.0 / 7.0),
+            (0x80, 18.0 / 60.0, 17.0 / 60.0),
+        ] {
+            let times = prayer_times(latitude, longitude, date, 1 | rule).unwrap();
+            let yesterday =
+                prayer_times(latitude, longitude, date.yesterday().unwrap(), 1).unwrap();
+            let tomorrow = prayer_times(latitude, longitude, date.tomorrow().unwrap(), 1).unwrap();
+            let expected_fajr = times[1] as f64 - (times[1] - yesterday[4]) as f64 * fajr_fraction;
+            let expected_isha = times[4] as f64 + (tomorrow[1] - times[4]) as f64 * isha_fraction;
+            assert!((times[0] as f64 - expected_fajr).abs() <= 90.0);
+            assert!((times[5] as f64 - expected_isha).abs() <= 90.0);
+        }
+        let middle = prayer_times(latitude, longitude, date, 1).unwrap();
+        let seventh = prayer_times(latitude, longitude, date, 1 | 0x40).unwrap();
+        assert!(seventh[0] > middle[0]);
+        assert!(seventh[5] < middle[5]);
+        assert_eq!(seventh[1..5], middle[1..5]);
+    }
+
+    #[test]
+    fn polar_approximation_is_opt_in_and_returns_requested_solar_day() {
+        for (latitude, longitude, date) in [
+            (69.6492, 18.9553, Date::new(2026, 6, 21).unwrap()),
+            (69.6492, 18.9553, Date::new(2026, 12, 21).unwrap()),
+            (-77.8419, 166.6863, Date::new(2026, 12, 21).unwrap()),
+            (90.0, 0.0, Date::new(2026, 6, 21).unwrap()),
+            (-90.0, 0.0, Date::new(2026, 12, 21).unwrap()),
+        ] {
+            assert_eq!(
+                prayer_times(latitude, longitude, date, 1),
+                Err(PrayerError::UnsupportedLocation)
+            );
+            for rule in [0, 0x40, 0x80] {
+                let times = prayer_times(latitude, longitude, date, 1 | 0x100 | rule).unwrap();
+                assert!(times.windows(2).all(|pair| pair[0] < pair[1]));
+                // Solar noon remains near 12:00 at this longitude on the requested
+                // date, rather than borrowing timestamps from another season/day.
+                let noon = date
+                    .at(12, 0, 0, 0)
+                    .in_tz("UTC")
+                    .unwrap()
+                    .timestamp()
+                    .as_second();
+                let solar_noon = noon as f64 - longitude * 240.0;
+                assert!((times[2] as f64 - solar_noon).abs() < 30.0 * 60.0);
+                for (index, &time) in times.iter().enumerate() {
+                    assert_eq!(
+                        islamic_core_prayer_time(
+                            latitude,
+                            longitude,
+                            date.year().into(),
+                            date.month().into(),
+                            date.day().into(),
+                            1 | 0x100 | rule as i32,
+                            index as i32
+                        ),
+                        time as f64
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn new_rules_preserve_low_latitude_times_and_fixed_isha_interval() {
+        let date = Date::new(2026, 3, 1).unwrap();
+        let original = prayer_times(24.7136, 46.6753, date, 0).unwrap();
+        for rule in [0x40, 0x80] {
+            assert_eq!(
+                prayer_times(24.7136, 46.6753, date, rule).unwrap(),
+                original
+            );
+            let ramadan = prayer_times(
+                59.3293,
+                18.0686,
+                Date::new(2026, 6, 21).unwrap(),
+                rule | 0x20,
+            )
+            .unwrap();
+            assert_eq!(ramadan[5] - ramadan[4], 120 * 60);
+        }
+    }
+
+    #[test]
     fn abi_rejects_bad_inputs_and_polar_locations_without_panicking() {
         for (lat, lon, year, month, day, flags, prayer) in [
             (f64::NAN, 0.0, 2026, 10, 11, 0, 0),
@@ -200,7 +302,8 @@ mod tests {
             (0.0, 0.0, 9999, 1, 1, 0, 0),
             (69.65, 18.96, 2026, 6, 21, 0, 0),
             (0.0, 0.0, 2026, 10, 11, 6, 0),
-            (0.0, 0.0, 2026, 10, 11, 64, 0),
+            (0.0, 0.0, 2026, 10, 11, 0xc0, 0),
+            (0.0, 0.0, 2026, 10, 11, 0x200, 0),
             (0.0, 0.0, 2026, 10, 11, 0, 6),
         ] {
             assert!(islamic_core_prayer_time(lat, lon, year, month, day, flags, prayer).is_nan());

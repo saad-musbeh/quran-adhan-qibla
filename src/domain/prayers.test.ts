@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { calculationFlags, countdownMinutes, countdownParts, decodePrayerTimes, localCalendarDate, nextLocalCalendarDate, nextMinuteDelay, nextPrayer, nextPrayerOccurrence, prayerOccurrenceFor } from './prayers.ts';
+import { calculationFlags, countdownMinutes, countdownParts, decodePrayerTimes, localCalendarDate, nextLocalCalendarDate, nextMinuteDelay, nextPrayer, nextPrayerOccurrence, normalizePrayerSettings, polarCalculationDisabled, prayerOccurrenceFor } from './prayers.ts';
 
 test('uses local calendar components across UTC midnight and DST', () => {
   const before = process.env.TZ;
@@ -19,6 +19,24 @@ test('uses local calendar components across UTC midnight and DST', () => {
 test('Ramadan interval applies only to Umm al-Qura, alongside Asr preference', () => {
   assert.equal(calculationFlags({ method: 0, hanafi: true, ramadan: true }), 48);
   assert.equal(calculationFlags({ method: 1, hanafi: false, ramadan: true }), 1);
+});
+
+test('older preferences retain their method and require explicit polar approximation', () => {
+  const migrated = normalizePrayerSettings({method: 5, hanafi: true, ramadan: false});
+  assert.deepEqual(migrated, {method: 5, hanafi: true, ramadan: false, highLatitudeRule: 'middle', polarRule: 'none'});
+  assert.equal(polarCalculationDisabled(64.99, migrated), false);
+  assert.equal(polarCalculationDisabled(65, migrated), true);
+  assert.equal(polarCalculationDisabled(-70, migrated), true);
+  assert.equal(polarCalculationDisabled(70, {...migrated, polarRule: 'nearest-latitude'}), false);
+  assert.deepEqual(normalizePrayerSettings(JSON.parse('{"method":99,"highLatitudeRule":"bad","polarRule":"bad"}')),
+    normalizePrayerSettings(null));
+});
+
+test('twilight and polar flags preserve legacy native bits and remain independent', () => {
+  const base = {method: 0, hanafi: true, ramadan: true} as const;
+  assert.equal(calculationFlags({...base, highLatitudeRule: 'middle', polarRule: 'none'}), 0x30);
+  assert.equal(calculationFlags({...base, highLatitudeRule: 'seventh', polarRule: 'nearest-latitude'}), 0x170);
+  assert.equal(calculationFlags({...base, highLatitudeRule: 'angle', polarRule: 'nearest-latitude'}), 0x1b0);
 });
 
 test('rejects missing, invalid, unordered, and duplicate native times', () => {
