@@ -14,12 +14,31 @@ test('language selection finds native names, accents and English names', () => {
   assert.equal(isLanguage('arbitrary'), false);
 });
 test('every language uses a Gregorian calendar and the correct swipe direction', () => {
-  assert.equal(LANGUAGES.length, 35);
-  assert.equal(new Set(LANGUAGES.map(item => item.id)).size, 35);
+  assert.equal(LANGUAGES.length, 40);
+  assert.equal(new Set(LANGUAGES.map(item => item.id)).size, 40);
   for (const item of LANGUAGES) {
     assert.equal(new Intl.DateTimeFormat(localeFor(item.id)).resolvedOptions().calendar, 'gregory');
     assert.equal(neighborForSwipe('quran', isRTL(item.id) ? 80 : -80, 0, item.id), 'adhan');
   }
+});
+test('new languages can be found by native name and use their script direction', () => {
+  for (const [name, language, rtl] of [
+    ['سرائیکی', 'skr', true], ['Afaan Oromoo', 'om', false],
+    ['Kurmancî', 'ku', false], ['ئۇيغۇرچە', 'ug', true], ['Wolof', 'wo', false],
+  ] as const) {
+    assert.equal(searchLanguages(name)[0]?.id, language);
+    assert.equal(isRTL(language), rtl);
+    for (const english of ['Choose language', 'Qibla direction', 'Settings', 'My Quran library', 'Appearance']) {
+      assert.notEqual(message(language, english), english, `${language}: ${english}`);
+    }
+    assert.ok(!message(language, 'In {minutes} min', { minutes: 5 }).includes('{minutes}'));
+    for (const platform of ['android', 'ios']) {
+      assert.notEqual(notificationCopy(language, platform).title, notificationCopy('en', platform).title);
+      assert.notEqual(notificationCopy(language, platform).toggle, notificationCopy('en', platform).toggle);
+    }
+  }
+  assert.equal(searchLanguages('Sorani')[0]?.id, 'ckb');
+  assert.equal(searchLanguages('Kurmanji')[0]?.id, 'ku');
 });
 test('catalogs preserve all messages and substitution variables', () => {
   const placeholders = (text: string) => [...text.matchAll(/\{\w+\}/g)].map(match => match[0]).sort();

@@ -33,6 +33,11 @@ import c30 from './locales/ky.json' with { type: 'json' };
 import c31 from './locales/tg.json' with { type: 'json' };
 import c32 from './locales/sq.json' with { type: 'json' };
 import c33 from './locales/bs.json' with { type: 'json' };
+import saraiki from './locales/skr.json' with { type: 'json' };
+import oromo from './locales/om.json' with { type: 'json' };
+import kurmanji from './locales/ku.json' with { type: 'json' };
+import uyghur from './locales/ug.json' with { type: 'json' };
+import wolof from './locales/wo.json' with { type: 'json' };
 
 export const catalogs: Record<Exclude<Language, 'ar'>, Record<string, string>> = {
   'en': c0,
@@ -69,6 +74,11 @@ export const catalogs: Record<Exclude<Language, 'ar'>, Record<string, string>> =
   'tg': c31,
   'sq': c32,
   'bs': c33,
+  'skr': saraiki,
+  'om': oromo,
+  'ku': kurmanji,
+  'ug': uyghur,
+  'wo': wolof,
 };
 const messageIds = new Map(Object.entries(c0).map(([id, text]) => [text, id]));
 

@@ -100,11 +100,14 @@ async function fillLocale(filename) {
 }
 
 const files = fs.readdirSync(directory).filter(filename => filename.endsWith('.json') && filename !== 'en.json');
+// Saraiki is not supported by this provider. Its separate draft catalogue is
+// maintained directly; do not silently substitute Punjabi or Urdu translations.
+const supportedFiles = files.filter(filename => filename !== 'skr.json');
 let next = 0;
 const failures = [];
 await Promise.all(Array.from({ length: 5 }, async () => {
-  while (next < files.length) {
-    const file = files[next++];
+  while (next < supportedFiles.length) {
+    const file = supportedFiles[next++];
     try { await fillLocale(file); } catch (error) { failures.push(error.message); console.error(error.message); }
   }
 }));

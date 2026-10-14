@@ -35,6 +35,11 @@ export const LANGUAGES = [
   { id: 'tg', name: 'Tajik', nativeName: 'Тоҷикӣ', rtl: false, locale: 'tg' },
   { id: 'sq', name: 'Albanian', nativeName: 'Shqip', rtl: false, locale: 'sq' },
   { id: 'bs', name: 'Bosnian', nativeName: 'Bosanski', rtl: false, locale: 'bs' },
+  { id: 'skr', name: 'Saraiki', nativeName: 'سرائیکی', rtl: true, locale: 'skr-Arab-PK' },
+  { id: 'om', name: 'Oromo', nativeName: 'Afaan Oromoo', rtl: false, locale: 'om' },
+  { id: 'ku', name: 'Kurdish (Kurmanji)', nativeName: 'Kurmancî', rtl: false, locale: 'ku-Latn' },
+  { id: 'ug', name: 'Uyghur', nativeName: 'ئۇيغۇرچە', rtl: true, locale: 'ug' },
+  { id: 'wo', name: 'Wolof', nativeName: 'Wolof', rtl: false, locale: 'wo' },
 ] as const;
 export type Language = typeof LANGUAGES[number]['id'];
 export function isLanguage(value: unknown): value is Language {
@@ -45,7 +50,11 @@ export function isRTL(language: Language): boolean {
 }
 export function localeFor(language: Language): string {
   // Prayer dates remain Gregorian in Persian, Arabic, and every other locale.
-  return `${LANGUAGES.find(item => item.id === language)?.locale ?? 'en'}-u-ca-gregory`;
+  const requested = LANGUAGES.find(item => item.id === language)?.locale ?? 'en';
+  // ICU on current Android/iOS builds has no Saraiki date data. Use regional
+  // Urdu date/number formatting when needed, independently of Saraiki UI copy.
+  const locale = language === 'skr' && Intl.DateTimeFormat.supportedLocalesOf(requested).length === 0 ? 'ur-PK' : requested;
+  return `${locale}-u-ca-gregory`;
 }
 export function searchLanguages(query: string) {
   const normalized = query.trim().normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase();

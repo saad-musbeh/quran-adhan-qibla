@@ -12,6 +12,7 @@ const arabicLanguageNames: Record<Language,string> = {
   so:'الصومالية',ckb:'الكردية (السورانية)',az:'الأذربيجانية',ml:'المالايالامية',ta:'التاميلية',ff:'الفولانية',de:'الألمانية',
   es:'الإسبانية','zh-Hans':'الصينية (المبسطة)',jv:'الجاوية',su:'السوندانية',yo:'اليوروبا',sd:'السندية',am:'الأمهرية',
   kk:'الكازاخية',ky:'القيرغيزية',tg:'الطاجيكية',sq:'الألبانية',bs:'البوسنية',
+  skr:'السرائكية',om:'الأورومو',ku:'الكردية (الكرمانجية)',ug:'الأويغورية',wo:'الولوف',
 };
 const normalizeLanguageSearch = (value:string) => value.normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase();
 type Props = { visible: boolean; language: Language; onChoose: (id: Language) => void; onClose: () => void };

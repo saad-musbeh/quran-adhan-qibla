@@ -17,7 +17,17 @@ type NotificationCopy = {
   channelOff: string;
 };
 
-const copies: Record<Language, NotificationCopy> = {
+const englishNotifications: NotificationCopy = {
+  title: 'Prayer notifications', toggle: 'Play Adhan at prayer times',
+  note: 'Alerts use your saved location and prayer settings. Open the app at least once a week to refresh them.',
+  location: 'Choose a location to schedule prayer alerts.', permission: 'Allow notifications in Android settings.',
+  exact: 'Allow alarms and reminders for prayer alerts at the calculated time.', settings: 'Open app settings', exactSettings: 'Alarms and reminders',
+  test: 'Test Adhan alert', testNote: 'A test alert plays in five seconds.',
+  error: 'Could not schedule alerts. Try again.', unsupported: 'Prayer alerts are available on Android.',
+  channelOff: 'Prayer alerts are muted in Android notification settings.',
+};
+
+const copies: Partial<Record<Language, NotificationCopy>> = {
   ar: {
     title: 'إشعارات الصلاة', toggle: 'تشغيل الأذان عند مواقيت الصلاة',
     note: 'تستخدم التنبيهات موقعك المحفوظ وإعدادات الصلاة. افتح التطبيق مرة واحدة على الأقل كل أسبوع لتحديثها.',
@@ -27,15 +37,7 @@ const copies: Record<Language, NotificationCopy> = {
     error: 'تعذرت جدولة التنبيهات. حاول مرة أخرى.', unsupported: 'تنبيهات الصلاة متاحة على Android.',
     channelOff: 'تنبيهات الصلاة مكتومة في إعدادات إشعارات Android.',
   },
-  en: {
-    title: 'Prayer notifications', toggle: 'Play Adhan at prayer times',
-    note: 'Alerts use your saved location and prayer settings. Open the app at least once a week to refresh them.',
-    location: 'Choose a location to schedule prayer alerts.', permission: 'Allow notifications in Android settings.',
-    exact: 'Allow alarms and reminders for prayer alerts at the calculated time.', settings: 'Open app settings', exactSettings: 'Alarms and reminders',
-    test: 'Test Adhan alert', testNote: 'A test alert plays in five seconds.',
-    error: 'Could not schedule alerts. Try again.', unsupported: 'Prayer alerts are available on Android.',
-    channelOff: 'Prayer alerts are muted in Android notification settings.',
-  },
+  en: englishNotifications,
   id: {
     title: 'Notifikasi salat', toggle: 'Putar azan pada waktu salat',
     note: 'Peringatan menggunakan lokasi tersimpan dan pengaturan salat Anda. Buka aplikasi setidaknya sekali seminggu untuk memperbaruinya.',
@@ -336,7 +338,7 @@ const copies: Record<Language, NotificationCopy> = {
 };
 
 export function notificationCopy(language: Language, platform = 'android'): NotificationCopy {
-  const copy = copies[language];
+  const copy = copies[language] ?? localizeCopy(language, { ar: copies.ar, en: englishNotifications });
   if (platform !== 'ios') return copy;
   return {...copy, ...localizeCopy(language, { ar: {
     toggle: 'تنبيهات الصلاة',
