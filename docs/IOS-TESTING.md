@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use **`codex/ios-test-0.5.3`** for the new **0.5.3 / build 22** test source. The previous release remains **`v0.5.2`**. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
+Use the **`v0.5.3`** release source or **`codex/release-0.5.3`** for the new **0.5.3 / build 22** test source. The earlier `codex/ios-test-0.5.3` branch contains the same app revision. The previous release remains **`v0.5.2`**. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ If the developer directory is `/Library/Developer/CommandLineTools`, select the 
 ## Current source and development build
 
 ```sh
-git clone --branch codex/ios-test-0.5.3 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
+git clone --branch v0.5.3 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
 cd quran-adhan-qibla
 git log -1 --oneline
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -61,7 +61,7 @@ For a bundled device build, use `npx expo run:ios --device --configuration Relea
 
 ## Updating from an older test source
 
-After checking out `codex/ios-test-0.5.3`, regenerate the native project so the four new sound resources replace the old ones:
+After checking out `v0.5.3`, regenerate the native project so the four new sound resources replace the old ones:
 
 ```sh
 npm ci
@@ -85,7 +85,7 @@ Re-select the development team in the generated workspace for a physical iPhone.
 
 ## Current status
 
-Version **0.5.3**, iOS build **22**, on `codex/ios-test-0.5.3`. See [0.5.3 testing notes](RELEASE-0.5.3.md) for this build’s validation. The previous release is `v0.5.2`. This version adds compact shared controls, smooth compass animation, inline page/juz entry, high-latitude rules and Privacy, retaining the five language additions from 0.5.1; physical-device and native iOS verification remain pending. The source includes one initial Quran copy with additions up to six, shared landscape spreads, twenty Quran reciters, four cleaned Adhan recordings, per-salah sound choices, the download manager, playback recovery, light/dark themes and retained screen layers. Local iOS prayer notifications use 29-second excerpts; no APNs entitlement is requested. Current iOS native compilation/runtime status must be checked in the release notes and its linked workflow; successful JavaScript exports do not establish native behavior.
+Version **0.5.3**, iOS build **22**, on `codex/release-0.5.3` and tag `v0.5.3`. See [0.5.3 testing notes](RELEASE-0.5.3.md) for this build’s validation. The previous release is `v0.5.2`. This version adds isolated audio-clock updates, deferred screen mounting, four cleaned Adhan voices, testing-only draft languages, corrected repeat-button contrast and press feedback; physical-device and native iOS verification remain pending. The source includes one initial Quran copy with additions up to six, shared landscape spreads, twenty Quran reciters, four cleaned Adhan recordings, per-salah sound choices, the download manager, playback recovery, light/dark themes and retained screen layers. Local iOS prayer notifications use 29-second excerpts; no APNs entitlement is requested. Current iOS native compilation/runtime status must be checked in the release notes and its linked workflow; successful JavaScript exports do not establish native behavior.
 
 The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated, so name/relaunch checks were not completed. Those two failures remain unresolved.
 

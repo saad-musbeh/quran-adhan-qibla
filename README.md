@@ -93,7 +93,7 @@ See [Android APK size and validation](docs/ANDROID-SIZE.md) for measured before/
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use the `codex/ios-test-0.5.3` for the iOS test source (0.5.3 / build 22), or `v0.5.2` for the previous release. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use the `v0.5.3` release source or `codex/release-0.5.3` for the current source (0.5.3 / build 22). The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -160,4 +160,4 @@ The compact-controls/high-latitude follow-up is documented in [validation notes]
 
 Version 0.5.2 includes the compact controls, shared appearance/location controls, animated compass, inline page/juz navigation, high-latitude settings and offline Privacy page. See [release notes](docs/RELEASE-0.5.2.md) for downloads and verification limits.
 
-Version 0.5.3 / iOS build 22 is the iOS testing follow-up: isolated audio clock rendering, deferred screen mounting, four cleaned Adhan options, testing-only draft languages, corrected Quran repeat-button contrast and accessible press feedback. See [release/testing notes](docs/RELEASE-0.5.3.md) for checks and native verification limits.
+Version 0.5.3 / Android code 22 / iOS build 22 includes Android release APKs and iOS testing source: isolated audio clock rendering, deferred screen mounting, four cleaned Adhan options, testing-only draft languages, corrected Quran repeat-button contrast and accessible press feedback. See [release/testing notes](docs/RELEASE-0.5.3.md) for checks and native verification limits.
