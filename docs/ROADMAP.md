@@ -3,7 +3,7 @@
 ## Foundation
 
 - [x] React Native / Expo TypeScript starter for iOS and Android.
-- [x] Arabic default and searchable 40-language menu/settings shell with Quran, Adhan, and Qibla tabs.
+- [x] Arabic/English default menu and 38 opt-in testing languages with Quran, Adhan, and Qibla tabs.
 - [ ] Native-speaker review of the 38 UI translation drafts.
 - [x] Rust Qibla calculation, validation, reference tests, and C ABI.
 - [x] Swift/Kotlin bridge source and native build scripts.
@@ -48,7 +48,7 @@ Quran verse translations are permanently out of scope and will not be added.
 - [ ] Expand prayer reference fixtures across more regions and boundary conditions.
 - [x] Add optional Android prayer notifications with a CC0 Adhan channel sound, permission recovery and a test alert.
 - [x] Add local iOS prayer notifications, a 29-second Adhan excerpt, permission recovery and a five-second test.
-- [x] Bundle six licensed Adhan recordings, a stronger Fajr-only option, and saved voice/sound choices for each salah.
+- [x] Bundle four cleaned licensed Adhan recordings (Makkah, Al-Madinah, Andrewler and Original) and saved voice/sound choices for each salah.
 - [x] Show tomorrow’s separately calculated Fajr as the next Adhan after Isha, on the right in landscape.
 - [x] Show a minute-updated countdown for each salah’s next actual occurrence, including tomorrow, only while visible and foregrounded.
 - [x] Display offline city/approximate-nearby labels and an accessible location picker action on Adhan.

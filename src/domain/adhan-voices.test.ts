@@ -3,13 +3,13 @@ import test from 'node:test';
 import { ADHAN_VOICES, DEFAULT_PRAYER_SOUNDS, adhanSoundForPrayer, normalizePrayerSounds, prayerSoundChannelId } from './adhan-voices.ts';
 import { NOTIFIABLE_PRAYERS, buildPrayerNotificationSchedule } from './prayer-notifications.ts';
 
-test('legacy and malformed saved preferences retain the original Adhan on all prayers', () => {
+test('legacy and malformed saved preferences use Makkah by default on all prayers', () => {
   for (const saved of [undefined, null, false, 'invalid', {}, { fajr: { enabled: 'false', voiceId: 'missing' }, dhuhr: null }]) {
     assert.deepEqual(normalizePrayerSounds(saved), DEFAULT_PRAYER_SOUNDS);
   }
-  const normalized = normalizePrayerSounds({ fajr: { enabled: false, voiceId: 'fajr-malmo' }, dhuhr: { enabled: true, voiceId: 'aaqib' }, sunrise: { enabled: false } });
-  assert.deepEqual(normalized.fajr, { enabled: false, voiceId: 'fajr-malmo' });
-  assert.deepEqual(normalized.dhuhr, { enabled: true, voiceId: 'aaqib' });
+  const normalized = normalizePrayerSounds({ fajr: { enabled: false, voiceId: 'madinah' }, dhuhr: { enabled: true, voiceId: 'original' }, sunrise: { enabled: false } });
+  assert.deepEqual(normalized.fajr, { enabled: false, voiceId: 'madinah' });
+  assert.deepEqual(normalized.dhuhr, { enabled: true, voiceId: 'original' });
   assert.deepEqual(normalized.isha, DEFAULT_PRAYER_SOUNDS.isha);
   assert.deepEqual(Object.keys(normalized), [...NOTIFIABLE_PRAYERS]);
 });
@@ -42,27 +42,31 @@ test('changing a voice or muting a prayer selects distinct immutable Android cha
 
 test('the weekly schedule keeps muted reminders and applies each prayer sound independently', () => {
   const preferences = normalizePrayerSounds({
-    fajr: { enabled: true, voiceId: 'fajr-malmo' },
-    dhuhr: { enabled: false, voiceId: 'aaqib' },
+    fajr: { enabled: true, voiceId: 'madinah' },
+    dhuhr: { enabled: false, voiceId: 'original' },
     asr: { enabled: true, voiceId: 'andrewler' },
-    maghrib: { enabled: true, voiceId: 'shalqar' },
+    maghrib: { enabled: true, voiceId: 'makkah' },
     isha: { enabled: true, voiceId: 'makkah' },
   });
   const schedule = buildPrayerNotificationSchedule(new Date(2026, 9, 13), ([year, month, day]) => [5, 6, 12, 15, 18, 20].map(hour => new Date(year, month - 1, day, hour)), 8);
   assert.equal(schedule.length, 40);
   for (const item of schedule) {
     const sound = adhanSoundForPrayer(preferences, item.prayer, 'android');
-    assert.equal(sound, ({ fajr: 'adhan_fajr_malmo.ogg', dhuhr: null, asr: 'adhan_andrewler.ogg', maghrib: 'adhan_shalqar.ogg', isha: 'adhan_makkah.ogg' })[item.prayer]);
+    assert.equal(sound, ({ fajr: 'adhan_madinah_clean.ogg', dhuhr: null, asr: 'adhan_andrewler_clean.ogg', maghrib: 'adhan_makkah_clean.ogg', isha: 'adhan_makkah_clean.ogg' })[item.prayer]);
   }
 });
 
-test('Fajr-specific wording is never selected for the other prayers, including old or malformed saved choices', () => {
-  const preferences = normalizePrayerSounds(Object.fromEntries(NOTIFIABLE_PRAYERS.map(prayer => [prayer, { enabled: true, voiceId: 'fajr-malmo' }])));
-  assert.equal(preferences.fajr.voiceId, 'fajr-malmo');
-  for (const prayer of NOTIFIABLE_PRAYERS.filter(prayer => prayer !== 'fajr')) {
-    assert.equal(preferences[prayer].voiceId, 'original');
-    preferences[prayer].voiceId = 'fajr-malmo';
-    assert.equal(adhanSoundForPrayer(preferences, prayer, 'android'), 'adhan.ogg');
-    assert.equal(adhanSoundForPrayer(preferences, prayer, 'ios'), 'adhan_short.wav');
+test('removed voices migrate to Makkah while retained choices and mute settings survive upgrades', () => {
+  for (const removed of ['aaqib','shalqar','fajr-malmo']) {
+    const settings = normalizePrayerSounds(Object.fromEntries(NOTIFIABLE_PRAYERS.map(prayer => [prayer, { enabled: false, voiceId: removed }])));
+    for (const prayer of NOTIFIABLE_PRAYERS) assert.deepEqual(settings[prayer], { enabled:false, voiceId:'makkah' });
+  }
+  for (const retained of ['original','andrewler','makkah','madinah']) {
+    const settings = normalizePrayerSounds(Object.fromEntries(NOTIFIABLE_PRAYERS.map(prayer => [prayer, { enabled:true, voiceId:retained }])));
+    for (const prayer of NOTIFIABLE_PRAYERS) assert.equal(settings[prayer].voiceId, retained);
+  }
+  assert.deepEqual(ADHAN_VOICES.map(voice => voice.id), ['makkah','madinah','andrewler','original']);
+  for (const voice of ADHAN_VOICES) {
+    assert.notEqual(prayerSoundChannelId(voice.androidSound), prayerSoundChannelId(voice.androidSound.replace('_clean','')));
   }
 });

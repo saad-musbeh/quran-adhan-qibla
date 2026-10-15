@@ -1,3 +1,35 @@
+# Current Adhan choices — 0.5.3
+
+The app exposes exactly **Makkah** (default), **Al-Madinah**, **Andrewler**, and **Original**. Aaqib, Shalqar and Malmö Fajr were removed; saved selections migrate to Makkah without changing each prayer’s enabled/muted setting. Existing Original/Andrewler/Makkah selections remain selected.
+
+The current native sound list is in `app.json`; each voice packages one `*_clean.ogg` on Android and one `*_clean_short.wav` on iOS. Original OGG inputs retained here are source fixtures, not additional packaged sounds. The exact source and output SHA-256 hashes, processing filters and measured audio statistics are in [clean-audio-manifest.json](clean-audio-manifest.json).
+
+## Al-Madinah source
+
+- Recording: “33937 ejaz215 call-to-prayer-from-the-prophet-s-mo.ogg”, credited to **ejaz215**; Commons describes it as the call to prayer from the Prophet’s Mosque. No independently verified muezzin name is claimed.
+- [Commons description / CC BY 3.0](https://commons.wikimedia.org/wiki/File:33937_ejaz215_call-to-prayer-from-the-prophet-s-mo.ogg), checked 15 October 2026.
+- [Original Freesound source](https://freesound.org/people/ejaz215/sounds/33937/) (original site unavailable during verification; Commons retains the source attribution and licence).
+- [Exact original download](https://upload.wikimedia.org/wikipedia/commons/7/7c/33937_ejaz215_call-to-prayer-from-the-prophet-s-mo.ogg), 2,974,689 bytes, 186.552698 seconds.
+- Commons SHA-1 matched the download: `4aa432b9e44804e7d72af4429bd743aa5fa9e3a4`.
+- Source SHA-256: `4d0fabe0e0ef52186646a256220f74a972ba698ac269165fed5d52de3202d656`.
+- The cleaned full recording and excerpt retain [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), with these processing changes attributed to this project. No performer or licensor endorsement is implied.
+
+## Cleaning and notification preparation
+
+All four voices are downmixed to mono **before** measurement, high-pass filtered at 80 Hz and low-pass filtered at 8.5 kHz, with mild FFmpeg `afftdn` noise reduction (`nr=6:nf=-45:tn=1`). Two-pass loudness normalization targets −18 LUFS and a −2 dBTP ceiling. Android retains the complete source timeline, words, pitch and speed, encoded as 48 kHz Vorbis. iOS separately normalizes the first 29 seconds, with a one-second ending fade, as mono 22,050 Hz 16-bit PCM. This is sound cleanup of sourced recordings, not a newly recorded or synthesized voice. Residual ambience can remain.
+
+Reproduce from the retained original OGG inputs and the verified Madinah download:
+
+```sh
+python3 scripts/prepare-adhan-audio.py --madinah-source /path/to/madinah-source.ogg
+```
+
+The script checks the Madinah input SHA-1 and writes a fresh manifest with output hashes. Vorbis container serial numbers may vary between encodes. Runtime Credits includes all four source/author/licence links and explains the cleanup/excerpt adaptation. Andrewler’s cleaned adaptations remain **CC BY-SA 4.0**, Makkah and Madinah retain **CC BY 3.0**, and Original remains **CC0**. Notification volume, Silent Mode, Focus and sound duration remain under system control. Technical decoding/measurement and source attribution were checked; physical-phone listening remains part of iOS testing.
+
+# Historical input provenance
+
+The following records describe the original 0.5.2 sound library and conversion inputs. Retired options and old excerpts listed below are not included in the 0.5.3 native sound configuration; retrieve those assets from `v0.5.2` if reproducing the older release.
+
 # Adhan recording provenance
 
 `adhan.ogg` is the unmodified “Beautiful adhan” recording by Adam-synagda.

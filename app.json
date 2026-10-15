@@ -2,7 +2,7 @@
   "expo": {
     "name": "Quran Adhan Qibla",
     "slug": "quran-adhan-qibla",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "scheme": "quranadhanqibla",
     "platforms": [
       "ios",
@@ -15,11 +15,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "org.saadmusbeh.quranadhanqibla",
       "icon": "./assets/branding/android-icon-v1.png",
-      "buildNumber": "21"
+      "buildNumber": "22"
     },
     "android": {
       "package": "org.saadmusbeh.quranadhanqibla",
-      "versionCode": 21,
+      "versionCode": 22,
       "adaptiveIcon": {
         "backgroundColor": "#1A3D2E",
         "foregroundImage": "./assets/branding/android-icon-v1.png"
@@ -78,18 +78,14 @@
         "./plugins/withPlatformNotificationSounds.cjs",
         {
           "sounds": [
-            "./assets/adhan/adhan.ogg",
-            "./assets/adhan/adhan_short.wav",
-            "./assets/adhan/adhan_aaqib.ogg",
-            "./assets/adhan/adhan_aaqib_short.wav",
-            "./assets/adhan/adhan_andrewler.ogg",
-            "./assets/adhan/adhan_andrewler_short.wav",
-            "./assets/adhan/adhan_shalqar.ogg",
-            "./assets/adhan/adhan_shalqar_short.wav",
-            "./assets/adhan/adhan_makkah.ogg",
-            "./assets/adhan/adhan_makkah_short.wav",
-            "./assets/adhan/adhan_fajr_malmo.ogg",
-            "./assets/adhan/adhan_fajr_malmo_short.wav"
+            "./assets/adhan/adhan_makkah_clean.ogg",
+            "./assets/adhan/adhan_makkah_clean_short.wav",
+            "./assets/adhan/adhan_madinah_clean.ogg",
+            "./assets/adhan/adhan_madinah_clean_short.wav",
+            "./assets/adhan/adhan_andrewler_clean.ogg",
+            "./assets/adhan/adhan_andrewler_clean_short.wav",
+            "./assets/adhan/adhan_clean.ogg",
+            "./assets/adhan/adhan_clean_short.wav"
           ],
           "enableBackgroundRemoteNotifications": false,
           "icon": "./assets/branding/notification-icon.png",

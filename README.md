@@ -2,11 +2,11 @@
 
 **قرآن · أذان · قبلة** — an open-source app for iOS and Android, built with React Native, TypeScript, Expo, and a shared Rust core.
 
-This app includes an offline Arabic Quran reader with verse audio, menus/settings in 40 languages, saved foreground location, shared Rust calculations for Qibla and today’s prayer times, and optional local prayer notifications on Android and iOS with bundled Adhan sounds.
+This app includes an offline Arabic Quran reader with verse audio, Arabic/English menus and 38 optional testing languages, saved foreground location, shared Rust calculations for Qibla and today’s prayer times, and optional local prayer notifications on Android and iOS with bundled Adhan sounds.
 
 ## What is ready
 
-- Arabic by default, a searchable language menu with 40 native-name choices, and layouts that follow the selected language. The 38 menu/settings translations include the newer home, downloads, Credits and tafsir controls; they are machine-assisted drafts awaiting native-speaker review (see [localization](docs/LOCALIZATION.md)); Quran text and surah names remain Arabic.
+- Arabic by default, with Arabic and English in the language menu. Settings → Extra testing settings → Show testing languages reveals the other 38 native-name choices; layouts follow the selected language. The 38 menu/settings translations include the newer home, downloads, Credits and tafsir controls; they are machine-assisted drafts awaiting native-speaker review (see [localization](docs/LOCALIZATION.md)); Quran text and surah names remain Arabic.
 - Quran library tabs stay visible; Adhan/Qibla tabs hide after inactivity. In Quran reading, the top language/appearance/settings banner and bottom audio controls stay visible. Tap the page to reveal reading tools; swipe the page to turn Mushaf pages, then return to the library to switch app sections.
 - New installs open the Home page on phones and tablets. Phones with the Home option disabled open Adhan; startup never opens the Quran reader. Landscape layouts use responsive book grids, a two-page tablet Mushaf with shared page turns and zoom, and scrolling prayer/Qibla views when needed. Location choices and settings open separately.
 - A persistent compact top row with Home, language, appearance, and settings icons, including during Quran reading. Home closes the reader without losing its saved position. Reading, audio, prayer, and compass preferences share one settings page. Reciter and calculation-method choices expand on demand; playback speed and loop editing stay in the player/reader.
@@ -24,7 +24,7 @@ This app includes an offline Arabic Quran reader with verse audio, menus/setting
 - iOS C ABI/XCFramework and Android JNI bridge source and build scripts.
 - MIT license, contribution guide, roadmap, and CI checks.
 
-Quran playback is separate from Adhan. In the **Adhan alerts** section of the unified settings page, enable **Play Adhan at prayer times**, allow notifications, and on Android grant **Alarms and reminders** access for exact scheduling. Each salah has its own voice and Adhan switch; switching sound off keeps a silent reminder. Six recordings are bundled, including a stronger volume-normalized Fajr-only voice. The master switch turns all alerts off. The test button schedules the chosen prayer’s alert in five seconds. Remaining prayers today and the following seven dates are scheduled locally; open the app at least weekly to refresh them. Android controls notification volume, Do Not Disturb and sound duration. iOS uses a 29-second excerpt and follows notification sound, Silent Mode and Focus settings. See [prayer notification behavior](docs/PRAYER-NOTIFICATIONS.md) and [recording provenance](assets/adhan/PROVENANCE.md). The Qibla bearing is clockwise from **true north**. Live mode rotates the scene relative to a reliable phone heading; fixed mode keeps north at the top.
+Quran playback is separate from Adhan. In the **Adhan alerts** section of the unified settings page, enable **Play Adhan at prayer times**, allow notifications, and on Android grant **Alarms and reminders** access for exact scheduling. Each salah has its own voice and Adhan switch; switching sound off keeps a silent reminder. Four cleaned, volume-matched recordings are bundled: Makkah (default), Al-Madinah, Andrewler and Original. The master switch turns all alerts off. The test button schedules the chosen prayer’s alert in five seconds. Remaining prayers today and the following seven dates are scheduled locally; open the app at least weekly to refresh them. Android controls notification volume, Do Not Disturb and sound duration. iOS uses a 29-second excerpt and follows notification sound, Silent Mode and Focus settings. See [prayer notification behavior](docs/PRAYER-NOTIFICATIONS.md) and [recording provenance](assets/adhan/PROVENANCE.md). The Qibla bearing is clockwise from **true north**. Live mode rotates the scene relative to a reliable phone heading; fixed mode keeps north at the top.
 
 ## Location and prayer times
 
@@ -78,7 +78,7 @@ To create standalone release APKs without a connected device or running developm
 npm run apk:android
 ```
 
-This refreshes Rust, regenerates the Android project, forces a fresh JavaScript/asset bundle, and builds APKs with R8 code/resource shrinking and compressed JavaScript/native libraries. It writes three APKs to `dist/android/`: `app-arm64-v8a-release.apk` for ARM64 phones, `app-x86_64-release.apk` for x86_64 devices/emulators, and `app-universal-release.apk` containing both. Use the matching architecture APK for the smallest download. All 604 Quran pages, the worldwide city catalogue and all six Android Adhan recordings remain offline. iOS WAV excerpts are packaged only on iOS.
+This refreshes Rust, regenerates the Android project, forces a fresh JavaScript/asset bundle, and builds APKs with R8 code/resource shrinking and compressed JavaScript/native libraries. It writes three APKs to `dist/android/`: `app-arm64-v8a-release.apk` for ARM64 phones, `app-x86_64-release.apk` for x86_64 devices/emulators, and `app-universal-release.apk` containing both. Use the matching architecture APK for the smallest download. All 604 Quran pages, the worldwide city catalogue and all four Android Adhan recordings remain offline. iOS WAV excerpts are packaged only on iOS.
 
 The APKs use Expo's generated debug signing key for local testing. Configure your own release signing before store distribution. An Android App Bundle for store distribution can be built with `NODE_ENV=production ./gradlew :app:bundleRelease --max-workers=2` from `android/`; Google Play delivers the matching architecture.
 
@@ -93,7 +93,7 @@ See [Android APK size and validation](docs/ANDROID-SIZE.md) for measured before/
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use the `v0.5.2` release source or `codex/release-0.5.2` for the current source. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use the `codex/ios-test-0.5.3` for the iOS test source (0.5.3 / build 22), or `v0.5.2` for the previous release. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -159,3 +159,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Code is licensed under [MIT](LICENSE). R
 The compact-controls/high-latitude follow-up is documented in [validation notes](docs/NAVIGATION-HIGH-LATITUDE-QA.md). Native device checks for that revision are separate from the user-reported v0.5.1 phone checks.
 
 Version 0.5.2 includes the compact controls, shared appearance/location controls, animated compass, inline page/juz navigation, high-latitude settings and offline Privacy page. See [release notes](docs/RELEASE-0.5.2.md) for downloads and verification limits.
+
+Version 0.5.3 / iOS build 22 is the iOS testing follow-up: isolated audio clock rendering, deferred screen mounting, four cleaned Adhan options, testing-only draft languages, corrected Quran repeat-button contrast and accessible press feedback. See [release/testing notes](docs/RELEASE-0.5.3.md) for checks and native verification limits.

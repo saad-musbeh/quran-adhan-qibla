@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use the **`v0.5.2`** release source or **`codex/release-0.5.2`** for the current development source. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
+Use **`codex/ios-test-0.5.3`** for the new **0.5.3 / build 22** test source. The previous release remains **`v0.5.2`**. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ If the developer directory is `/Library/Developer/CommandLineTools`, select the 
 ## Current source and development build
 
 ```sh
-git clone --branch v0.5.2 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
+git clone --branch codex/ios-test-0.5.3 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
 cd quran-adhan-qibla
 git log -1 --oneline
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -59,6 +59,19 @@ For signing, open `ios/QuranAdhanQibla.xcworkspace` in Xcode, select the **Quran
 
 For a bundled device build, use `npx expo run:ios --device --configuration Release`. An unsigned simulator `.app` cannot run on a physical iPhone; an IPA needs the friend's signing and provisioning setup.
 
+## Updating from an older test source
+
+After checking out `codex/ios-test-0.5.3`, regenerate the native project so the four new sound resources replace the old ones:
+
+```sh
+npm ci
+npm run rust:ios
+npx expo prebuild --clean --platform ios
+npx expo run:ios --configuration Release
+```
+
+Re-select the development team in the generated workspace for a physical iPhone. Use `--device --configuration Release` for standalone device testing. The GitHub simulator ZIP is unsigned and runs only on an iOS simulator; physical-device installation still needs the tester’s Apple signing/provisioning.
+
 ## Checks for the tester
 
 1. **Native core:** choose a city and confirm prayer times/Qibla calculations appear. Check GPS and live compass on a phone; simulator readings cannot establish compass accuracy.
@@ -66,13 +79,13 @@ For a bundled device build, use `npx expo run:ios --device --configuration Relea
 3. **Reader:** first opening, gold borders, night ayah numbers, long-press actions and enlarged reading. A deliberate up/right swipe advances; small movements return. Check down/left and zoom/pan. In landscape, either leaf must turn and zoom the whole spread together. Check the top Home button and microphone-labelled reciter selector. Fresh audio preferences should default to Al-Husary; saved choices must survive upgrades.
 4. **Audio:** reciter switching, previous/replay/play-pause/next/stop, speeds, multi-ayah loops across several cycles, downloaded audio in airplane mode, screen lock, lock-screen controls, headphones and interruptions.
 5. **Tafsir:** download/select each book, check publication dates and passage ranges, then read offline after restarting.
-6. **Prayer alerts:** choose a location, enable alerts in the Adhan alerts section of Settings, allow notifications and confirm upcoming alerts appear. Choose different voices for two prayers, test each, and mute one prayer to keep only its silent notification. Check the stronger Fajr-only voice. Disable the master switch to cancel all reminders. iOS plays a labelled 29-second Adhan excerpt; check Silent Mode, Focus and notification sound settings on the phone. Reopen at least weekly to refresh the eight-date schedule.
+6. **Prayer alerts:** choose a location, enable alerts in the Adhan alerts section of Settings, allow notifications and confirm upcoming alerts appear. Choose different voices for two prayers, test each, and mute one prayer to keep only its silent notification. Check all four voices: Makkah, Al-Madinah, Andrewler and Original. Disable the master switch to cancel all reminders. iOS plays a labelled 29-second Adhan excerpt; check Silent Mode, Focus and notification sound settings on the phone. Reopen at least weekly to refresh the eight-date schedule.
 7. **Downloads:** download a surah, change voices, continue a partial download, then remove a saved surah. In Manage downloads → Recitations, start/cancel the whole-Quran job, then start it again to reuse saved files; keep the app open. Audio/tafsir totals and saved counts should follow the files. Confirm offline playback after restart.
 8. **Layout:** Arabic RTL, English, iPhone safe areas, iPad and larger text. Check Light and Dark for all five colors and saved appearance after restart. In landscape Adhan, the next prayer must stay on the right; after Isha it must show tomorrow’s separately calculated Fajr. Each salah should show a live remaining-time label, including Asr in the morning; completed prayers should show tomorrow explicitly. Check the prominent city label and tap it to change location. Fresh startup should show Home; a phone with Home disabled should open Adhan, never Quran.
 
 ## Current status
 
-Version **0.5.2**, iOS build **21**, on `codex/release-0.5.2` and release tag `v0.5.2`. This version adds compact shared controls, smooth compass animation, inline page/juz entry, high-latitude rules and Privacy, retaining the five language additions from 0.5.1; physical-device and native iOS verification remain pending. The source includes one initial Quran copy with additions up to six, shared landscape spreads, twenty Quran reciters, six Adhan recordings, per-salah sound choices, the download manager, playback recovery, light/dark themes and retained screen layers. Local iOS prayer notifications use 29-second excerpts; no APNs entitlement is requested. Current iOS native compilation/runtime status must be checked in the release notes and its linked workflow; successful JavaScript exports do not establish native behavior.
+Version **0.5.3**, iOS build **22**, on `codex/ios-test-0.5.3`. See [0.5.3 testing notes](RELEASE-0.5.3.md) for this build’s validation. The previous release is `v0.5.2`. This version adds compact shared controls, smooth compass animation, inline page/juz entry, high-latitude rules and Privacy, retaining the five language additions from 0.5.1; physical-device and native iOS verification remain pending. The source includes one initial Quran copy with additions up to six, shared landscape spreads, twenty Quran reciters, four cleaned Adhan recordings, per-salah sound choices, the download manager, playback recovery, light/dark themes and retained screen layers. Local iOS prayer notifications use 29-second excerpts; no APNs entitlement is requested. Current iOS native compilation/runtime status must be checked in the release notes and its linked workflow; successful JavaScript exports do not establish native behavior.
 
 The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated, so name/relaunch checks were not completed. Those two failures remain unresolved.
 
@@ -91,3 +104,10 @@ For 0.4.3 use `codex/tablet-location` or its release source archive. Start on an
 Settings → App text size now affects shared app text and inputs, tafsir, and the main vector reader immediately. Default resets the saved size. Enlarged Quran pages can pan; a swipe outward from an edge turns the page. The main reader uses more of the screen and tighter artwork margins. Newly added controls, downloads, Credits and home menus use the selected language catalogue; country and language names have localized display labels. Quran text, published tafsir text and original licence notices remain source content.
 
 The 0.4.4 simulator app compiled, but its iPad landscape UI check timed out waiting for the two-WebView spread; the iPhone UI step was therefore skipped. Do not treat that run as a passed device check. The 0.4.5 commit runs the workflow again. Physical iPad/MatePad behavior is still awaiting device feedback.
+
+## 0.5.3 focused checks
+
+- Confirm the language picker shows only Arabic/English, including when searching. Enable Settings → Extra testing settings → Show testing languages to reveal the 38 drafts. Select one, restart, then disable testing languages: Arabic should return immediately and remain after restart.
+- In Quran reading, open Repeat verses in Light/Dark for each app colour and larger text. The Start repeating label must remain visible. Enter a same-surah range and verify playback/stop still work.
+- Hold/release header, navigation, playback and settings buttons. Feedback should be small and quick. Enable iOS Reduce Motion and confirm buttons still work without scaling.
+- Read/turn pages during Quran playback, switch tabs, and return. Check that the clock and ayah highlight still advance, audio continues in the background, and saved screen state survives tab changes. Compare launch responsiveness and scrolling on the same physical phone; no device performance numbers are claimed from host tests.

@@ -223,6 +223,47 @@ final class QuranUITests: XCTestCase {
     app.buttons["settings-close"].tap()
   }
 
+  func testPolishLanguageMenuAndRepeatControls() {
+    app.buttons["open-languages"].tap()
+    XCTAssertTrue(app.descendants(matching: .any)["language-ar"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.descendants(matching: .any)["language-en"].exists)
+    let search = app.textFields.firstMatch
+    search.tap()
+    search.typeText("French")
+    XCTAssertFalse(app.descendants(matching: .any)["language-fr"].exists)
+    app.buttons["language-picker-close"].tap()
+    app.buttons["open-settings"].tap()
+    let extra = app.buttons["settings-extra-testing"]
+    for _ in 0..<14 { if extra.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    XCTAssertTrue(extra.isHittable)
+    extra.tap()
+    let toggle = app.switches["settings-testing-languages"]
+    for _ in 0..<3 { if toggle.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    XCTAssertTrue(toggle.isHittable)
+    toggle.tap()
+    app.buttons["settings-close"].tap()
+    app.buttons["open-languages"].tap()
+    let testingSearch = app.textFields.firstMatch
+    testingSearch.tap()
+    testingSearch.typeText("French")
+    XCTAssertTrue(app.descendants(matching: .any)["language-fr"].waitForExistence(timeout: 5))
+    app.buttons["language-picker-close"].tap()
+    app.buttons["open-settings"].tap()
+    for _ in 0..<14 { if extra.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    extra.tap()
+    for _ in 0..<3 { if toggle.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    toggle.tap()
+    app.buttons["settings-close"].tap()
+    app.buttons["open-book-1"].tap()
+    revealReader()
+    app.buttons["reader-audio-repeat"].tap()
+    let start = app.buttons["repeat-start"]
+    XCTAssertTrue(start.waitForExistence(timeout: 5))
+    XCTAssertTrue(start.label.contains("بدء التكرار") || start.label.contains("Start repeating"))
+    screenshot("Repeat control contrast")
+    app.buttons["repeat-close"].tap()
+  }
+
   func testRepeatedTabTransitions() {
     ensureBookCount(2)
     // The library must retain its dock after the normal auto-hide delay.

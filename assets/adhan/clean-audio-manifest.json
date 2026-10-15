@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "recordings": [
+    {
+      "source": "adhan.ogg",
+      "sourceSha256": "35fe06b08fe80505c550c33fed8a783fa9901ddc81ac884958b4be048f5b2a79",
+      "targetLufs": -18,
+      "files": [
+        {
+          "integratedLufs": -17.97,
+          "truePeakDbtp": -7.78,
+          "file": "adhan_clean.ogg",
+          "sha256": "2c4aa73118efa82f895eb6bb242163cfffbce1c57ebc10160b3afeb26b5933cb",
+          "bytes": 996379,
+          "duration": 154.017979,
+          "codec": "vorbis",
+          "channels": 1,
+          "sampleRate": 48000,
+          "filter": "aformat=channel_layouts=mono,highpass=f=80,lowpass=f=8500,afftdn=nr=6:nf=-45:tn=1,loudnorm=I=-18:TP=-2:LRA=11:measured_I=-8.89:measured_TP=1.31:measured_LRA=6.90:measured_thresh=-19.75:offset=0.18:linear=true"
+        },
+        {
+          "integratedLufs": -18.0,
+          "truePeakDbtp": -8.41,
+          "file": "adhan_clean_short.wav",
+          "sha256": "885b4f5983e97f0d2f59ba660a490f4f2229593c5132d63102f26eed02a33ffc",
+          "bytes": 1278978,
+          "duration": 29.0,
+          "codec": "pcm_s16le",
+          "channels": 1,
+          "sampleRate": 22050,
+          "filter": "aformat=channel_layouts=mono,highpass=f=80,lowpass=f=8500,afftdn=nr=6:nf=-45:tn=1,atrim=duration=29,asetpts=PTS-STARTPTS,afade=t=out:st=28:d=1,loudnorm=I=-18:TP=-2:LRA=11:measured_I=-8.45:measured_TP=1.14:measured_LRA=3.00:measured_thresh=-19.00:offset=-0.11:linear=true"
+        }
+      ]
+    },
+    {
+      "source": "adhan_andrewler.ogg",
+      "sourceSha256": "08f834ac7c18fbc2ab099bd1068f13b002d57eaad08dba9eccb7cff4eab4e2d7",
+      "targetLufs": -18,
+      "files": [
+        {
+          "integratedLufs": -17.95,
+          "truePeakDbtp": -6.99,
+          "file": "adhan_andrewler_clean.ogg",
+          "sha256": "875ca117056c1e06cfe2b91d46b3b37fb09fed2f87baa86c289a3dc95bfea4f1",
+          "bytes": 1189031,
+          "duration": 183.484083,
+          "codec": "vorbis",
+          "channels": 1,
+          "sampleRate": 48000,
+          "filter": "aformat=channel_layouts=mono,highpass=f=80,lowpass=f=8500,afftdn=nr=6:nf=-45:tn=1,loudnorm=I=-18:TP=-2:LRA=11:measured_I=-17.98:measured_TP=-6.82:measured_LRA=7.90:measured_thresh=-28.77:offset=0.40:linear=true"
+        },
+        {
+          "integratedLufs": -18.0,
+          "truePeakDbtp": -7.68,
+          "file": "adhan_andrewler_clean_short.wav",
+          "sha256": "e4c3975bb32a70a1591ef4ce11dab91cb3227ad62a1d09bd3566e6cda4dd6926",
+          "bytes": 1278978,
+          "duration": 29.0,
+          "codec": "pcm_s16le",
+          "channels": 1,
+          "sampleRate": 22050,
+          "filter": "aformat=channel_layouts=mono,highpass=f=80,lowpass=f=8500,afftdn=nr=6:nf=-45:tn=1,atrim=duration=29,asetpts=PTS-STARTPTS,afade=t=out:st=28:d=1,loudnorm=I=-18:TP=-2:LRA=11:measured_I=-17.49:measured_TP=-7.17:measured_LRA=3.30:measured_thresh=-27.89:offset=-0.02:linear=true"
+        }
+      ]
+    },
+    {
+      "source": "adhan_makkah.ogg",
+      "sourceSha256": "6e04779da460e4735da86ceaffb446340ad7c719748c8dcb2a6c10324a330a3c",
+      "targetLufs": -18,
+      "files": [
+        {
+          "integratedLufs": -17.98,
+          "truePeakDbtp": -3.78,
+          "file": "adhan_makkah_clean.ogg",
+          "sha256": "c677d84c085e5040d1d0bb5c8b930221b285e2e93cee82efad6a909b0944e494",
+          "bytes": 1439726,
+          "duration": 197.086667,
+          "codec": "vorbis",
+          "channels": 1,
+          "sampleRate": 48000,
+          "filter": "aformat=channel_layouts=mono,highpass=f=80,lowpass=f=8500,afftdn=nr=6:nf=-45:tn=1,loudnorm=I=-18:TP=-2:LRA=11:measured_I=-17.99:measured_TP=-3.84:measured_LRA=8.80:measured_thresh=-28.96:offset=0.15:linear=true"
+        },
+        {
+          "integratedLufs": -18.0,
+          "truePeakDbtp": -4.61,
+          "file": "adhan_makkah_clean_short.wav",
+          "sha256": "c1538ffe72bda7c0cc8ce884e1c770c876af3369b25b2e35096dfe624f635fc2",
+          "bytes": 1278978,
+          "duration": 29.0,
+          "codec": "pcm_s16le",
+          "channels": 1,
+          "sampleRate": 22050,
+          "filter": "aformat=channel_layouts=mono,highpass=f=80,lowpass=f=8500,afftdn=nr=6:nf=-45:tn=1,atrim=duration=29,asetpts=PTS-STARTPTS,afade=t=out:st=28:d=1,loudnorm=I=-18:TP=-2:LRA=11:measured_I=-17.83:measured_TP=-4.44:measured_LRA=9.30:measured_thresh=-29.87:offset=-0.14:linear=true"
+        }
+      ]
+    },
+    {
+      "source": "madinah-source.ogg",
+      "sourceSha256": "4d0fabe0e0ef52186646a256220f74a972ba698ac269165fed5d52de3202d656",
+      "targetLufs": -18,
+      "files": [
+        {
+          "integratedLufs": -17.99,
+          "truePeakDbtp": -6.33,
+          "file": "adhan_madinah_clean.ogg",
+          "sha256": "7313556f135fd517a8707a7e8f7848ec198e68e9b0e18a4de32a084fadbcc744",
+          "bytes": 1590476,
+          "duration": 186.552708,
+          "codec": "vorbis",
+          "channels": 1,
+          "sampleRate": 48000,
+          "filter": "aformat=channel_layouts=mono,highpass=f=80,lowpass=f=8500,afftdn=nr=6:nf=-45:tn=1,loudnorm=I=-18:TP=-2:LRA=11:measured_I=-11.72:measured_TP=-0.10:measured_LRA=11.00:measured_thresh=-23.11:offset=-0.57:linear=true"
+        },
+        {
+          "integratedLufs": -18.0,
+          "truePeakDbtp": -5.27,
+          "file": "adhan_madinah_clean_short.wav",
+          "sha256": "1fe5ba1e730f5a1f36c087f8ef54cfec100e7c88f5fa6fc75ed762c2d642bba5",
+          "bytes": 1278978,
+          "duration": 29.0,
+          "codec": "pcm_s16le",
+          "channels": 1,
+          "sampleRate": 22050,
+          "filter": "aformat=channel_layouts=mono,highpass=f=80,lowpass=f=8500,afftdn=nr=6:nf=-45:tn=1,atrim=duration=29,asetpts=PTS-STARTPTS,afade=t=out:st=28:d=1,loudnorm=I=-18:TP=-2:LRA=11:measured_I=-12.90:measured_TP=-0.17:measured_LRA=7.00:measured_thresh=-23.66:offset=-1.34:linear=true"
+        }
+      ]
+    }
+  ]
+}
