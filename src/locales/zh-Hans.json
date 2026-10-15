@@ -708,5 +708,9 @@
   "m707": "输入 1 到 30 之间的 juz",
   "m708": "去",
   "m709": "切换到灯光模式",
-  "m710": "切换到深色模式"
+  "m710": "切换到深色模式",
+  "m711": "Extra testing settings",
+  "m712": "Show testing languages",
+  "m713": "Arabic and English appear by default. Enable this to test the other draft interface translations. Turning it off returns to Arabic if a testing language is selected.",
+  "m714": "Recordings have light noise reduction and matched volume for alerts. iOS plays a 29-second excerpt with an ending fade."
 }

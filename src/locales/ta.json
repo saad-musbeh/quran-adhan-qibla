@@ -708,5 +708,9 @@
   "m707": "1 முதல் 30 வரை ஒரு ஜூஸை உள்ளிடவும்",
   "m708": "போ",
   "m709": "ஒளி பயன்முறைக்கு மாறவும்",
-  "m710": "இருண்ட பயன்முறைக்கு மாறவும்"
+  "m710": "இருண்ட பயன்முறைக்கு மாறவும்",
+  "m711": "Extra testing settings",
+  "m712": "Show testing languages",
+  "m713": "Arabic and English appear by default. Enable this to test the other draft interface translations. Turning it off returns to Arabic if a testing language is selected.",
+  "m714": "Recordings have light noise reduction and matched volume for alerts. iOS plays a 29-second excerpt with an ending fade."
 }

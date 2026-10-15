@@ -1,8 +1,10 @@
+import { Pressable as NativePressable } from 'react-native';
+import { Pressable } from './Pressable';
 import { Text } from '../text-size';
 import { bilingual, localizeCopy, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getSurah, getVerse } from '../domain/quran';
@@ -36,7 +38,7 @@ export function TafsirSheet({ library, verseKey, language, dark, quranFontLoaded
   if (!verse) return null;
   return <Modal visible={Boolean(verse)} transparent animationType="fade" onRequestClose={onClose}>
     <View style={[styles.overlay, { paddingTop: Math.max(insets.top, 20), paddingBottom: insets.bottom }]}>
-      <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={c.close} onPress={onClose}/>
+      <NativePressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={c.close} onPress={onClose}/>
       <View accessibilityViewIsModal style={[styles.sheet, { backgroundColor: paper, borderColor: colors.accent }]}>
         <View style={[styles.header,{backgroundColor:catalogue?headerPaper:paper,borderColor:colors.accent}]}>
           <Pressable style={styles.icon} accessibilityRole="button" accessibilityLabel={c.close} onPress={onClose}><Ionicons name="close" size={24} color={ink}/></Pressable>

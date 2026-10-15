@@ -1,6 +1,7 @@
+import { Pressable } from './Pressable';
 import { Text } from '../text-size';
 import { memo, useState } from 'react';
-import { Animated, ActivityIndicator, ScrollView, Pressable, StyleSheet, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import { Animated, ActivityIndicator, ScrollView, StyleSheet, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import type { useLocation } from '../use-location';
 import { isFacingTarget, relativeBearing } from '../domain/heading';
 import { useHeading } from '../use-heading';

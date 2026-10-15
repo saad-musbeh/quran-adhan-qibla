@@ -708,5 +708,9 @@
   "m707": "Weka juz kuanzia 1 hadi 30",
   "m708": "Nenda",
   "m709": "Badilisha kwa hali ya mwanga",
-  "m710": "Badili hadi hali ya giza"
+  "m710": "Badili hadi hali ya giza",
+  "m711": "Extra testing settings",
+  "m712": "Show testing languages",
+  "m713": "Arabic and English appear by default. Enable this to test the other draft interface translations. Turning it off returns to Arabic if a testing language is selected.",
+  "m714": "Recordings have light noise reduction and matched volume for alerts. iOS plays a 29-second excerpt with an ending fade."
 }

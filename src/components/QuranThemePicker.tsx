@@ -1,6 +1,8 @@
+import { Pressable as NativePressable } from 'react-native';
+import { Pressable } from './Pressable';
 import { Text } from '../text-size';
 import { bilingual, isRTL, type Language } from '../i18n';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { QURAN_THEMES, getQuranTheme, type QuranThemeId, type QuranThemeMode } from '../domain/quran-theme';
@@ -24,7 +26,7 @@ export function QuranThemePicker({ visible, language, themeId, mode, onModeChang
 
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <View style={[styles.overlay, { paddingTop: Math.max(12, insets.top), paddingBottom: Math.max(8, insets.bottom) }]}>
-      <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={closeLabel} onPress={onClose} />
+      <NativePressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={closeLabel} onPress={onClose} />
       <View accessibilityViewIsModal style={[styles.sheet, { backgroundColor: currentTheme.appSurface, borderColor: currentTheme.appBorder }]}>
         <View style={[styles.header, rtl && styles.rtlRow]}>
           <Text accessibilityRole="header" style={[styles.title, { color: currentTheme.appText }, rtl && styles.rtlText]}>{title}</Text>

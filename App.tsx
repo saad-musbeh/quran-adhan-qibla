@@ -1,3 +1,4 @@
+import { PressFeedbackProvider } from './src/components/Pressable';
 import { Text, TextSizeContext, textScaleForSize } from './src/text-size';
 import * as SystemUI from 'expo-system-ui';
 import { ScreenLayer } from './src/components/ScreenLayer';
@@ -22,7 +23,8 @@ import { SettingsSheet } from './src/components/SettingsSheet';
 import { QuranSettings } from './src/components/QuranScreen';
 import { QuranLibrary } from './src/components/QuranLibrary';
 import { useTafsirLibrary } from './src/use-tafsir-library';
-import { useQuranAudio } from './src/use-quran-audio';
+import { QuranAudioProvider, useQuranAudioController } from './src/quran-audio-context';
+import { restoreLanguagePreferences } from './src/domain/languages';
 import { usePreferences } from './src/use-preferences';
 import { usePrayerNotifications } from './src/use-prayer-notifications';
 import { notificationCopy } from './src/notification-i18n';
@@ -30,7 +32,7 @@ import { PrayerNotificationSettings } from './src/components/PrayerNotificationS
 import { startupHomeVisible } from './src/domain/app-startup';
 
 export default function App() {
-  return <SafeAreaProvider><Main /></SafeAreaProvider>;
+  return <SafeAreaProvider><PressFeedbackProvider><QuranAudioProvider><Main /></QuranAudioProvider></PressFeedbackProvider></SafeAreaProvider>;
 }
 
 function Main() {
@@ -42,7 +44,6 @@ function Main() {
   const textScale = textScaleForSize(reader.fontSize);
   const headerHeight = Math.max(48,48*textScale);
   const navigationHeight = Math.max(64,64*textScale);
-  const audio = useQuranAudio();
   const tafsirLibrary = useTafsirLibrary();
   const quranTheme = useQuranTheme();
   useEffect(() => { void SystemUI.setBackgroundColorAsync(quranTheme.theme.appBackground).catch(() => undefined); }, [quranTheme.theme.appBackground]);
@@ -142,7 +143,7 @@ function Main() {
           onChangeLocation={()=>setShowLocation(true)}/>
       </ScreenLayer>
       <ScreenLayer testID="screen-quran" active={!homeVisible&&tab === 'quran'} background={quranTheme.theme.appBackground}>
-        <QuranLibrary homeRequest={homeRequest} onHome={goHome} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} audio={audio} settings={{...reader, nightMode:quranTheme.mode === 'dark'}}
+        <ConnectedQuranLibrary homeRequest={homeRequest} onHome={goHome} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} settings={{...reader, nightMode:quranTheme.mode === 'dark'}}
           onReadingChromeChange={setReadingChromeVisible}
           onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
       </ScreenLayer>
@@ -150,6 +151,7 @@ function Main() {
 
     </SwipeTabs>
     <SettingsSheet language={language} visible={showSettings}
+      testingLanguages={preferences.testingLanguages} onTestingLanguagesChange={enabled=>setPreferences(value=>({...value,...restoreLanguagePreferences(value.language,enabled)}))}
       textSize={reader.fontSize} onTextSizeChange={fontSize=>setPreferences(value=>({...value,reader:{...value.reader,fontSize}}))}
       mainMenuOnPhones={preferences.mainMenuOnPhones} onMainMenuChange={enabled=>{setPreferences(value=>({...value,mainMenuOnPhones:enabled}));if(!largeScreen){setHomeVisible(enabled&&!readingBook);if(enabled&&!readingBook)setShowSettings(false);}}}
       onClose={() => setShowSettings(false)} prayer={settings} timezone={timezone}
@@ -160,10 +162,17 @@ function Main() {
         prayerSounds={preferences.prayerSounds} onPrayerSoundsChange={prayerSounds=>setPreferences(value=>({...value,prayerSounds}))}
         onChange={prayerNotifications => setPreferences(value => ({ ...value, prayerNotifications }))}
         onChooseLocation={() => { setShowSettings(false); setShowLocation(true); }} />}
-      quran={<QuranSettings library={tafsirLibrary} language={language} audio={audio} />} />
-    <LanguagePicker language={language} visible={showLanguages} onChoose={language => setPreferences(value => ({ ...value, language }))} onClose={() => setShowLanguages(false)} />
+      quran={<ConnectedQuranSettings library={tafsirLibrary} language={language} />} />
+    <LanguagePicker extraTesting={preferences.testingLanguages} language={language} visible={showLanguages} onChoose={language => setPreferences(value => ({ ...value, language }))} onClose={() => setShowLanguages(false)} />
     <LocationSheet language={language} visible={showLocation} state={locationState} onClose={() => setShowLocation(false)} />
   </SafeAreaView></QuranThemeContext.Provider></TextSizeContext.Provider>;
+}
+
+function ConnectedQuranLibrary(props: Omit<React.ComponentProps<typeof QuranLibrary>, 'audio'>) {
+  return <QuranLibrary {...props} audio={useQuranAudioController()}/>;
+}
+function ConnectedQuranSettings(props: Omit<React.ComponentProps<typeof QuranSettings>, 'audio'>) {
+  return <QuranSettings {...props} audio={useQuranAudioController()}/>;
 }
 
 const styles = StyleSheet.create({

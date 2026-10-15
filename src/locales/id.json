@@ -708,5 +708,9 @@
   "m707": "Masuk juz 1 sampai 30",
   "m708": "Pergi",
   "m709": "Beralih ke mode terang",
-  "m710": "Beralih ke mode gelap"
+  "m710": "Beralih ke mode gelap",
+  "m711": "Extra testing settings",
+  "m712": "Show testing languages",
+  "m713": "Arabic and English appear by default. Enable this to test the other draft interface translations. Turning it off returns to Arabic if a testing language is selected.",
+  "m714": "Recordings have light noise reduction and matched volume for alerts. iOS plays a 29-second excerpt with an ending fade."
 }

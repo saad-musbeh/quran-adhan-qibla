@@ -708,5 +708,9 @@
   "m707": "Жүзді 1-ден 30-ға дейін енгізіңіз",
   "m708": "Бар",
   "m709": "Жарық режиміне ауысу",
-  "m710": "Қараңғы режимге ауысыңыз"
+  "m710": "Қараңғы режимге ауысыңыз",
+  "m711": "Extra testing settings",
+  "m712": "Show testing languages",
+  "m713": "Arabic and English appear by default. Enable this to test the other draft interface translations. Turning it off returns to Arabic if a testing language is selected.",
+  "m714": "Recordings have light noise reduction and matched volume for alerts. iOS plays a 29-second excerpt with an ending fade."
 }

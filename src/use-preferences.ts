@@ -1,7 +1,7 @@
 import { DEFAULT_TEXT_SIZE, MIN_TEXT_SIZE, MAX_TEXT_SIZE } from './text-size';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { isLanguage, type Language } from './domain/languages';
+import { restoreLanguagePreferences, type Language } from './domain/languages';
 import { normalizePrayerSettings, type PrayerSettings } from './domain/prayers';
 import { normalizePrayerSounds, type PrayerSoundSettings } from './domain/adhan-voices';
 import { normalizeMainMenuOnPhones } from './domain/app-startup';
@@ -10,10 +10,11 @@ type Preferences = {
   language: Language; prayer: PrayerSettings; compassMode: 'live' | 'north'; prayerNotifications: boolean;
   reader: { fontSize: number; nightMode: boolean };
   mainMenuOnPhones: boolean;
+  testingLanguages: boolean;
   prayerSounds: PrayerSoundSettings;
 };
 const initial: Preferences = {
-  language: 'ar', prayer: normalizePrayerSettings(null),
+  language: 'ar', testingLanguages: false, prayer: normalizePrayerSettings(null),
   compassMode: 'live', prayerNotifications: false, reader: { fontSize: DEFAULT_TEXT_SIZE, nightMode: false },
   mainMenuOnPhones: true,
   prayerSounds: normalizePrayerSounds(undefined),
@@ -29,7 +30,7 @@ export function usePreferences() {
       if (!raw || !alive) return;
       const value = JSON.parse(raw) as Partial<Preferences>;
       setPreferences({
-        language: isLanguage(value.language) ? value.language : 'ar',
+        ...restoreLanguagePreferences(value.language, value.testingLanguages),
         compassMode: value.compassMode === 'north' ? 'north' : 'live',
         prayerNotifications: value.prayerNotifications === true,
         mainMenuOnPhones: normalizeMainMenuOnPhones(value.mainMenuOnPhones),

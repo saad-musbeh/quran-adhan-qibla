@@ -1,5 +1,6 @@
+import { Pressable } from './Pressable';
 import { Text } from '../text-size';
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bilingual,isRTL,type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
@@ -47,7 +48,7 @@ export function CreditsSheet({language,visible,onClose}:{language:Language;visib
         {link(`${language==='ar'?voice.nameAr:voice.name} · ${voice.author}`,voice.source)}
         {link(voice.license,voice.license==='CC0 1.0'?'https://creativecommons.org/publicdomain/zero/1.0/':voice.license==='CC BY 3.0'?'https://creativecommons.org/licenses/by/3.0/':'https://creativecommons.org/licenses/by-sa/4.0/')}
       </View>)}
-      <Text style={[styles.body,align]}>{bilingual(language,'حُوّلت التسجيلات لتناسب التنبيهات وسُوّي مستوى صوتها. صوت الفجر القوي أعلى، ويشغّل iOS مقتطفًا مدته ٢٩ ثانية مع تلاشي النهاية.','Recordings are converted and volume-normalized for alerts. Strong Fajr is louder; iOS plays a 29-second excerpt with an ending fade.')}</Text>
+      <Text style={[styles.body,align]}>{bilingual(language,'نُقّيت التسجيلات من الضجيج الخفيف وسُوّي مستوى صوتها لتناسب التنبيهات. يشغّل iOS مقتطفًا مدته ٢٩ ثانية مع تلاشي النهاية.','Recordings have light noise reduction and matched volume for alerts. iOS plays a 29-second excerpt with an ending fade.')}</Text>
       <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'المدن والخريطة','Cities and map')}</Text>
       {link(bilingual(language,'أسماء الأماكن وإحداثياتها مستمدة من GeoNames · CC BY 4.0','Place names and coordinates adapted from GeoNames · CC BY 4.0'),'https://www.geonames.org')}
       {link('Creative Commons Attribution 4.0','https://creativecommons.org/licenses/by/4.0/')}

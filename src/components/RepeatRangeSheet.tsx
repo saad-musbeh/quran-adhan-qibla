@@ -1,9 +1,11 @@
+import { Pressable as NativePressable } from 'react-native';
+import { Pressable } from './Pressable';
 import { Text, TextInput } from '../text-size';
 import { parseLocalizedInteger } from '../domain/localized-number';
 import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Keyboard, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getSurah, surahs } from '../domain/quran';
@@ -34,9 +36,9 @@ export function RepeatRangeSheet({ visible, language, audio, initialVerseKey, in
     playError: 'Could not start recitation. Try again.', active: 'Active range', surahEnd: 'Empty = end of surah', onPage: 'Choose ayahs on the page',
   } });
   const ink = colors.ink;
-  const muted = '#536D7F';
+  const muted = colors.muted;
   const paper = colors.lightPaper;
-  const accent = '#BD8744';
+  const accent = colors.border;
   const paleBlue = colors.pale;
   const seed = useMemo(() => {
     const active = initialRange ?? audio.repeatRange;
@@ -114,10 +116,10 @@ export function RepeatRangeSheet({ visible, language, audio, initialVerseKey, in
   return <>
     <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
       <View style={[styles.overlay, { paddingTop: Math.max(12, insets.top), paddingBottom: Math.max(8, insets.bottom) }]}>
-        <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={copy.close} onPress={close} />
+        <NativePressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={copy.close} onPress={close} />
         <View accessibilityViewIsModal style={[styles.sheet, { backgroundColor: paper, borderColor: '#D2DDE3' }]}>
           <View style={[styles.header, rtl && styles.rtlRow]}>
-            <Pressable style={styles.close} accessibilityRole="button" accessibilityLabel={copy.close} onPress={close}>
+            <Pressable testID="repeat-close" style={styles.close} accessibilityRole="button" accessibilityLabel={copy.close} onPress={close}>
               <Ionicons name="close" size={23} color={ink} />
             </Pressable>
             <View style={styles.titleGroup}>
@@ -136,11 +138,11 @@ export function RepeatRangeSheet({ visible, language, audio, initialVerseKey, in
             <View style={[styles.inputsRow, rtl && styles.rtlRow]}>
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: ink }, rtl && styles.rtlText]}>{copy.from}</Text>
-                <TextInput accessibilityLabel={copy.from} keyboardType="number-pad" value={startText} onChangeText={value => { setStartText(value); setValidationError(false); }} selectTextOnFocus style={[styles.input, { color: ink, borderColor: validationError ? '#B6533F' : '#CAD7DF' }, rtl && styles.rtlText]} />
+                <TextInput testID="repeat-from" accessibilityLabel={copy.from} keyboardType="number-pad" value={startText} onChangeText={value => { setStartText(value); setValidationError(false); }} selectTextOnFocus style={[styles.input, { color: ink, borderColor: validationError ? '#B6533F' : '#CAD7DF' }, rtl && styles.rtlText]} />
               </View>
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: ink }, rtl && styles.rtlText]}>{copy.to}</Text>
-                <TextInput accessibilityLabel={copy.to} accessibilityHint={copy.surahEnd} placeholder={localizedNumber(chapter.verseCount,language)} placeholderTextColor={muted} keyboardType="number-pad" value={endText} onChangeText={value => { setEndText(value); setValidationError(false); }} selectTextOnFocus style={[styles.input, { color: ink, borderColor: validationError ? '#B6533F' : '#CAD7DF' }, rtl && styles.rtlText]} />
+                <TextInput testID="repeat-to" accessibilityLabel={copy.to} accessibilityHint={copy.surahEnd} placeholder={localizedNumber(chapter.verseCount,language)} placeholderTextColor={muted} keyboardType="number-pad" value={endText} onChangeText={value => { setEndText(value); setValidationError(false); }} selectTextOnFocus style={[styles.input, { color: ink, borderColor: validationError ? '#B6533F' : '#CAD7DF' }, rtl && styles.rtlText]} />
               </View>
             </View>
             <Text style={[styles.active,{color:muted},rtl&&styles.rtlText]}>{copy.surahEnd}</Text>
@@ -149,8 +151,8 @@ export function RepeatRangeSheet({ visible, language, audio, initialVerseKey, in
           </ScrollView>
           <View style={styles.footer}>
             {onChooseOnPage?<Pressable accessibilityRole="button" onPress={()=>{beginRevision.current+=1;setStarting(false);Keyboard.dismiss();setPickerVisible(false);onChooseOnPage()}} style={[styles.secondaryButton,{borderColor:accent,backgroundColor:paleBlue}]}><Text style={[styles.secondaryText,{color:ink}]}>{copy.onPage}</Text></Pressable>:null}
-            <Pressable accessibilityRole="button" disabled={starting} accessibilityState={{disabled:starting,busy:starting}} onPress={() => { void beginRepeat(); }} style={[styles.primaryButton, { backgroundColor: ink }]}>
-              <Text style={styles.primaryText}>{copy.start}</Text>
+            <Pressable testID="repeat-start" accessibilityRole="button" disabled={starting} accessibilityState={{disabled:starting,busy:starting}} onPress={() => { void beginRepeat(); }} style={[styles.primaryButton, { backgroundColor: ink }]}>
+              <Text style={[styles.primaryText, { color: paper }]}>{copy.start}</Text>
             </Pressable>
             {activeRange ? <Pressable accessibilityRole="button" onPress={stopRepeat} style={[styles.secondaryButton, { borderColor: accent }]}>
               <Text style={[styles.secondaryText, { color: ink }]}>{copy.stop}</Text>
@@ -162,7 +164,7 @@ export function RepeatRangeSheet({ visible, language, audio, initialVerseKey, in
 
     <Modal visible={visible && pickerVisible} transparent animationType="fade" onRequestClose={() => setPickerVisible(false)}>
       <View style={[styles.overlay, styles.pickerOverlay, { paddingTop: Math.max(12, insets.top), paddingBottom: Math.max(8, insets.bottom) }]}>
-        <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setPickerVisible(false)} />
+        <NativePressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setPickerVisible(false)} />
         <View accessibilityViewIsModal style={[styles.picker, { backgroundColor: paper, borderColor: '#D2DDE3' }]}>
           <Text accessibilityRole="header" style={[styles.pickerTitle, { color: ink }]}>{copy.choose}</Text>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.surahList}>

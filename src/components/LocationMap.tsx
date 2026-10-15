@@ -1,6 +1,7 @@
+import { Pressable } from './Pressable';
 import { Text, useTextScale } from '../text-size';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { LEAFLET_CSS, LEAFLET_JS, LEAFLET_LICENSE } from './map-assets/leaflet-runtime';
 import { parseMapMessage, type SelectedCoordinates } from './map-assets/map-message';

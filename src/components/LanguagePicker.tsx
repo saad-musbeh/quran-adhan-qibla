@@ -1,9 +1,12 @@
+import { Pressable as NativePressable } from 'react-native';
+import { Pressable } from './Pressable';
 import { Text, TextInput } from '../text-size';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Modal, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { bilingual, isRTL, searchLanguages, type Language } from '../i18n';
+import { visibleLanguages } from '../domain/languages';
 import { useReaderTheme } from '../quran-theme-context';
 
 const arabicLanguageNames: Record<Language,string> = {
@@ -15,30 +18,30 @@ const arabicLanguageNames: Record<Language,string> = {
   skr:'السرائكية',om:'الأورومو',ku:'الكردية (الكرمانجية)',ug:'الأويغورية',wo:'الولوف',
 };
 const normalizeLanguageSearch = (value:string) => value.normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase();
-type Props = { visible: boolean; language: Language; onChoose: (id: Language) => void; onClose: () => void };
-export function LanguagePicker({ visible, language, onChoose, onClose }: Props) {
+type Props = { visible: boolean; language: Language; onChoose: (id: Language) => void; onClose: () => void; extraTesting?: boolean };
+export function LanguagePicker({ visible, language, onChoose, onClose, extraTesting = false }: Props) {
   const insets = useSafeAreaInsets(), { theme } = useReaderTheme();
   const rtl = isRTL(language), [query, setQuery] = useState('');
   useEffect(() => { if (visible) setQuery(''); }, [visible]);
   const nameOf = (item:{id:Language;name:string}) => bilingual(language,arabicLanguageNames[item.id],item.name);
   const choices = useMemo(() => {
     const canonical = searchLanguages(query), normalized = normalizeLanguageSearch(query.trim());
-    return searchLanguages('').filter(item => canonical.includes(item) || normalizeLanguageSearch(nameOf(item)).includes(normalized));
-  }, [query,language]);
+    return visibleLanguages(extraTesting).filter(item => canonical.includes(item) || normalizeLanguageSearch(nameOf(item)).includes(normalized));
+  }, [query,language,extraTesting]);
   const close = bilingual(language, 'إغلاق', 'Close');
   const title = bilingual(language, 'اختر اللغة', 'Choose language');
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <View style={[styles.overlay, { paddingTop: Math.max(12, insets.top), paddingBottom: Math.max(8, insets.bottom) }]}>
-      <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={close} onPress={onClose} />
+      <NativePressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={close} onPress={onClose} />
       <View accessibilityViewIsModal style={[styles.sheet, { backgroundColor: theme.surface }]}>
         <View style={[styles.header, rtl && styles.reverse]}>
           <Text accessibilityRole="header" style={[styles.title, { color: theme.ink }, rtl && styles.rtl]}>{title}</Text>
-          <Pressable style={styles.close} accessibilityRole="button" accessibilityLabel={close} onPress={onClose}><Ionicons name="close" size={23} color={theme.ink} /></Pressable>
+          <Pressable testID="language-picker-close" style={styles.close} accessibilityRole="button" accessibilityLabel={close} onPress={onClose}><Ionicons name="close" size={23} color={theme.ink} /></Pressable>
         </View>
         <TextInput underlineColorAndroid="transparent" value={query} onChangeText={setQuery} autoCorrect={false} autoCapitalize="none" accessibilityLabel={bilingual(language, 'ابحث عن لغة', 'Search languages')} placeholder={bilingual(language, 'ابحث عن لغة', 'Search languages')} placeholderTextColor={theme.muted} style={[styles.search, { color: theme.ink, borderColor: theme.border }, rtl && styles.rtl]} />
         <FlatList data={choices} keyExtractor={item => item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.list}
           ListEmptyComponent={<Text style={[styles.empty, { color: theme.muted }]}>{bilingual(language, 'لا توجد لغات مطابقة', 'No languages found')}</Text>}
-          renderItem={({ item }) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: language === item.id }} accessibilityLabel={`${item.nativeName}, ${nameOf(item)}`} onPress={() => { onChoose(item.id); onClose(); }} style={[styles.row, rtl && styles.reverse, language === item.id && { backgroundColor: theme.pale }]}>
+          renderItem={({ item }) => <Pressable testID={`language-${item.id}`} accessibilityRole="radio" accessibilityState={{ checked: language === item.id }} accessibilityLabel={`${item.nativeName}, ${nameOf(item)}`} onPress={() => { onChoose(item.id); onClose(); }} style={[styles.row, rtl && styles.reverse, language === item.id && { backgroundColor: theme.pale }]}>
             <View style={styles.names}><Text style={[styles.nativeName, { color: theme.ink, writingDirection: item.rtl ? 'rtl' : 'ltr' }]}>{item.nativeName}</Text>{nameOf(item) !== item.nativeName && <Text style={[styles.englishName, { color: theme.muted },rtl&&styles.rtl]}>{nameOf(item)}</Text>}</View>
             {language === item.id && <Ionicons name="checkmark" size={22} color={theme.ink} />}
           </Pressable>} />

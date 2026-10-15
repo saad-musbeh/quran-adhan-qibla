@@ -708,5 +708,9 @@
   "m707": "1 മുതൽ 30 വരെയുള്ള ഒരു ജൂസ് നൽകുക",
   "m708": "പോകൂ",
   "m709": "ലൈറ്റ് മോഡിലേക്ക് മാറുക",
-  "m710": "ഡാർക്ക് മോഡിലേക്ക് മാറുക"
+  "m710": "ഡാർക്ക് മോഡിലേക്ക് മാറുക",
+  "m711": "Extra testing settings",
+  "m712": "Show testing languages",
+  "m713": "Arabic and English appear by default. Enable this to test the other draft interface translations. Turning it off returns to Arabic if a testing language is selected.",
+  "m714": "Recordings have light noise reduction and matched volume for alerts. iOS plays a 29-second excerpt with an ending fade."
 }

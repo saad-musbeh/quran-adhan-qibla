@@ -1,9 +1,12 @@
+import { Pressable as NativePressable } from 'react-native';
+import { Pressable } from './Pressable';
+import { useQuranAudioTiming } from '../quran-audio-context';
 import { Text, TextInput, textScaleForSize, useTextScale } from '../text-size';
 import { ReaderNumberEntry } from './ReaderNumberEntry';
 import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, BackHandler, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, BackHandler, Modal, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { getSurah, getVerse, surahs, verses, type Verse } from '../domain/quran';
 import { normalizeQuranSearch, searchQuran } from '../domain/quran-search';
 import { mushafSpreadPages } from '../domain/mushaf-page-turns';
@@ -139,6 +142,12 @@ export function QuranScreen({ tafsirLibrary, book, onBookChange, onCloseBook, on
 }
 
 
+function AudioTime({language,testID}:{language:Language;testID:string}) {
+ const {styles}=useReaderStyles(baseStyles);
+ const {currentTime,duration}=useQuranAudioTiming();
+ return <Text testID={testID} style={styles.audioMeta}>{formatTime(currentTime,language)} / {formatTime(duration,language)}</Text>;
+}
+
 function ReaderAudioBar({language,audio,part,onOpen,onRepeat}:{language:Language;audio:QuranAudioController;part:readonly Verse[];onOpen:()=>void;onRepeat:()=>void}) {
  const {colors,styles}=useReaderStyles(baseStyles);
  const c=localizeCopy(language,labels), rtl=isRTL(language);
@@ -148,7 +157,7 @@ function ReaderAudioBar({language,audio,part,onOpen,onRepeat}:{language:Language
  return <View testID="reader-audio-bar" style={styles.readerAudioBar}>
   <View style={[styles.readerAudioMeta,rtl&&styles.reverse]}>
    <Text testID="reader-audio-reference" numberOfLines={1} style={[styles.audioMeta,styles.flex,rtl&&styles.rtl]}>{audio.error?localizePlaybackError(audio.error,c):audio.status==='loading'?bilingual(language,'جارٍ تحميل التلاوة…','Buffering recitation…'):shown?`${getSurah(shown.surah)?.arabicName} · ${localDigits(shown.number,language)}`:c.listening}</Text>
-   <Text testID="reader-audio-time" style={styles.audioMeta}>{formatTime(audio.currentTime,language)} / {formatTime(audio.duration,language)}</Text>
+   <AudioTime language={language} testID="reader-audio-time"/>
   </View>
   <View style={[styles.audioControls,rtl&&styles.reverse]}>
    <AudioButton compact testID="reader-audio-previous" label={c.prevVerse} icon={rtl?'play-skip-forward':'play-skip-back'} disabled={!current||(!audio.repeatRange&&current.surah===1&&current.verse===1)} onPress={()=>invoke(audio.previousVerse)}/>
@@ -214,7 +223,7 @@ function AudioDock({language,audio,part,visible,onClose}:{language:Language;audi
  useEffect(()=>{setChoosingReciter(visible)},[visible]);
  return <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
    <View accessibilityViewIsModal style={[styles.audioOverlay,{paddingTop:insets.top,paddingBottom:Math.max(12,insets.bottom)}]}>
-    <Pressable accessibilityRole="button" accessibilityLabel={c.close} style={StyleSheet.absoluteFill} onPress={onClose}/>
+    <NativePressable accessibilityRole="button" accessibilityLabel={c.close} style={StyleSheet.absoluteFill} onPress={onClose}/>
     <View style={styles.audioPanel}>
      <View style={[styles.modalHeader,rtl&&styles.reverse]}>
       <Text style={[styles.modalTitle,{flex:1}]}>{shown?`${getSurah(shown.surah)?.arabicName} · ${localDigits(shown.number,language)}`:c.listening}</Text>
@@ -236,7 +245,7 @@ function AudioDock({language,audio,part,visible,onClose}:{language:Language;audi
       <AudioButton testID="audio-stop" label={c.stop} icon="stop" disabled={!current} onPress={audio.stop}/>
      </View>
      <View style={[styles.audioMetaRow,rtl&&styles.reverse]}>
-      <Text testID="audio-time" style={[styles.audioMeta,styles.flex]}>{formatTime(audio.currentTime,language)} / {formatTime(audio.duration,language)}</Text>
+      <AudioTime language={language} testID="audio-time"/>
       <Pressable accessibilityRole="button" accessibilityLabel={`${c.speed}: ${localDigits(audio.playbackRate,language)}×`} style={styles.audioRetry} onPress={()=>{const rates=[0.75,1,1.25,1.5,2];audio.setPlaybackRate(rates[(rates.indexOf(audio.playbackRate)+1)%rates.length]);}}><Text style={styles.audioRetryText}>{localDigits(audio.playbackRate,language)}×</Text></Pressable>
      </View>
      {audio.status!=='idle'&&<Text testID="audio-status" accessibilityLiveRegion="polite" style={styles.audioMeta}>{audio.status==='loading'?bilingual(language,'جارٍ تحميل التلاوة…','Buffering recitation…'):audio.status==='playing'?bilingual(language,'جارٍ التشغيل','Playing'):audio.status==='paused'?bilingual(language,'متوقف مؤقتًا','Paused'):audio.status==='error'?bilingual(language,'تعذّر التشغيل','Playback failed'):bilingual(language,'اختر تشغيل للاستماع','Tap Play to listen')}</Text>}

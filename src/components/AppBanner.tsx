@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable } from './Pressable';
+import { StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, useTextScale } from '../text-size';
 import { bilingual, isRTL, translations, type Language } from '../i18n';

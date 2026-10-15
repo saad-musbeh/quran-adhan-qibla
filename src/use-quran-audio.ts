@@ -20,8 +20,6 @@ export type AudioRange = DomainAudioRange;
 export type QuranAudioController = {
   status: 'idle' | 'loading' | 'playing' | 'paused' | 'error';
   currentVerseKey: string | null;
-  currentTime: number;
-  duration: number;
   reciter: ReciterId;
   playbackRate: number;
   repeatRange: AudioRange | null;
@@ -97,7 +95,9 @@ async function cancelDownloadTask(task: FileSystem.DownloadResumable): Promise<v
   });
 }
 
-export function useQuranAudio(): QuranAudioController {
+export type QuranAudioTiming = { currentTime: number; duration: number };
+
+export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
   const playlist = useAudioPlaylist({ sources: [], updateInterval: 250 });
   const playerStatus = useAudioPlaylistStatus(playlist);
   const [reciter, setReciterState] = useState<ReciterId>(DEFAULT_RECITER_ID);
@@ -142,6 +142,8 @@ export function useQuranAudio(): QuranAudioController {
   const wantsPlayback = useRef(false);
   const recoverOnConnection = useRef(false);
   const resumeTime = useRef(0);
+  const timingRef = useRef(playerStatus);
+  timingRef.current = playerStatus;
   const currentTimeRef = useRef(0);
   currentTimeRef.current = playerStatus.currentTime;
   const stopRequest = useRef(() => {});
@@ -567,9 +569,9 @@ export function useQuranAudio(): QuranAudioController {
   }, [seekToPosition]);
 
   const seekBy = useCallback((seconds: number) => {
-    const duration = playerStatus.duration || 0;
-    void playlist.seekTo(Math.max(0, Math.min(duration || Number.MAX_SAFE_INTEGER, playerStatus.currentTime + seconds))).catch(() => undefined);
-  }, [playlist, playerStatus.currentTime, playerStatus.duration]);
+    const { duration, currentTime } = timingRef.current;
+    void playlist.seekTo(Math.max(0, Math.min(duration || Number.MAX_SAFE_INTEGER, currentTime + seconds))).catch(() => undefined);
+  }, [playlist]);
 
   const setReciter = useCallback((id: ReciterId) => {
     if (!reciterById.has(id)) return;

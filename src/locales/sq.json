@@ -708,5 +708,9 @@
   "m707": "Fut një xhuz nga 1 deri në 30",
   "m708": "Shkoni",
   "m709": "Kalo në modalitetin e dritës",
-  "m710": "Kalo në modalitetin e errët"
+  "m710": "Kalo në modalitetin e errët",
+  "m711": "Extra testing settings",
+  "m712": "Show testing languages",
+  "m713": "Arabic and English appear by default. Enable this to test the other draft interface translations. Turning it off returns to Arabic if a testing language is selected.",
+  "m714": "Recordings have light noise reduction and matched volume for alerts. iOS plays a 29-second excerpt with an ending fade."
 }
