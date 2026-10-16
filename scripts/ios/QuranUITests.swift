@@ -152,6 +152,8 @@ final class QuranUITests: XCTestCase {
     app.buttons["reader-library"].tap()
     app.terminate()
     app.launch()
+    XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 10))
+    app.buttons["menu-quran"].tap()
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 30))
     XCTAssertTrue(app.buttons["open-book-1"].label.contains("Simulator reading"))
     XCTAssertTrue(app.buttons["open-book-1"].label.hasSuffix("2"))
