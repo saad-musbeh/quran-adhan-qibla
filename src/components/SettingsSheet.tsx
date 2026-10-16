@@ -110,11 +110,11 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
 
 const baseStyles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0B211D' }, header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, minHeight: 58 },
-  title: { color: '#F4EFE4', fontSize: 21, fontWeight: '600' }, close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, closeText: { color: '#D6BA7A', fontSize: 32 },
+  title: { flex: 1, color: '#F4EFE4', fontSize: 21, fontWeight: '600' }, close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, closeText: { color: '#D6BA7A', fontSize: 32 },
   content: { width:'100%', maxWidth:760, alignSelf:'center', paddingHorizontal: 18, paddingBottom: 28, gap: 10 }, label: { color: '#D6BA7A', fontWeight: '700', fontSize: 15, marginTop: 12 },
   choice: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: '#DBAB68', borderRadius: 12, gap: 8 },
   colorChoice: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  choiceText: { color: '#F4EFE4', fontSize: 14, flexShrink: 1 }, mark: { color: '#D6BA7A', fontSize: 18 }, selected: { borderColor: '#D6BA7A', backgroundColor: '#193A32' },
+  choiceText: { flex: 1, minWidth: 0, color: '#F4EFE4', fontSize: 14, lineHeight: 22 }, mark: { flexShrink: 0, color: '#D6BA7A', fontSize: 18 }, selected: { borderColor: '#D6BA7A', backgroundColor: '#193A32' },
   note: { color: '#A8C1B8', fontSize: 13, lineHeight: 22 }, switchRow: { minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   source: {minHeight:44,justifyContent:'center'},
   rtl: { textAlign: 'right', writingDirection: 'rtl' }, reverse: { flexDirection: 'row-reverse' },

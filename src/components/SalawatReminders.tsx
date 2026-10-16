@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Modal, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { AppState, Modal, ScrollView, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useAudioPlayer } from 'expo-audio';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,7 +29,7 @@ function clockLabel(language: Language, value: string): string {
 /** Three visible rows, snapping to the central selection; taps and screen-reader actions work too. */
 function Wheel({ options, selected, onChange, label, testID, compact = false }: { options: { value: number; label: string }[]; selected: number; onChange: (value: number) => void; label: string; testID: string; compact?: boolean }) {
   const { styles } = useReaderStyles(baseStyles);
-  const scale = useTextScale(), height = Math.max(48, 40 * scale);
+  const scale = useTextScale(), { fontScale } = useWindowDimensions(), height = Math.max(48, Math.ceil(44 * scale * fontScale));
   const scroll = useRef<ScrollView>(null);
   const index = Math.max(0, options.findIndex(option => option.value === selected));
   useEffect(() => { scroll.current?.scrollTo({ y: index * height, animated: false }); }, [index, height]);

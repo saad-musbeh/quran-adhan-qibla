@@ -130,7 +130,7 @@ export function RepeatRangeSheet({ visible, language, audio, initialVerseKey, in
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
             <Text style={[styles.label, { color: ink }, rtl && styles.rtlText]}>{copy.chapter}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel={`${copy.choose}: ${chapter.arabicName}`} onPress={() => { Keyboard.dismiss(); setPickerVisible(true); }} style={[styles.surahButton, { backgroundColor: paleBlue }, rtl && styles.rtlRow]}>
-              <Text style={[styles.surahName, { color: ink }]} numberOfLines={1}>{chapter.arabicName}</Text>
+              <Text style={[styles.surahName, { color: ink }]}>{chapter.arabicName}</Text>
               <Text style={[styles.surahMeta, { color: muted }]}>{localizedNumber(surahNumber, language)} · {localizedNumber(chapter.verseCount, language)}</Text>
               <Ionicons name="chevron-down" size={18} color={ink} />
             </Pressable>
@@ -207,7 +207,7 @@ const baseStyles = StyleSheet.create({
   pickerTitle: { fontSize: 20, fontWeight: '700', textAlign: 'center', padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#D2DDE3' },
   surahList: { padding: 10 },
   surahOption: { minHeight: 44, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 6 },
-  optionNumber: { width: 30, fontSize: 13, textAlign: 'center' },
+  optionNumber: { minWidth: 36, flexShrink: 0, fontSize: 13, textAlign: 'center' },
   optionName: { flex: 1, fontSize: 17, textAlign: 'right', writingDirection: 'rtl' },
   rtlRow: { flexDirection: 'row-reverse' },
   rtlText: { textAlign: 'right', writingDirection: 'rtl' },

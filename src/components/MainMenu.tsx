@@ -39,6 +39,6 @@ const baseStyles=StyleSheet.create({
   grid:{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:16},reverse:{flexDirection:'row-reverse'},
   card:{minHeight:190,padding:12,borderRadius:22,borderWidth:1,borderColor:'#DBAB68',backgroundColor:'#15342E'},
   cardFrame:{flex:1,minHeight:164,padding:18,gap:12,alignItems:'center',justifyContent:'center',borderRadius:14,borderWidth:1,borderColor:'#DBAB68'},
-  cardTitle:{fontSize:24,fontWeight:'700',color:'#FAF7EF',textAlign:'center'},
+  cardTitle:{width:'100%',alignSelf:'stretch',flexShrink:0,lineHeight:36,fontSize:24,fontWeight:'700',color:'#FAF7EF',textAlign:'center'},
   actions:{flexDirection:'row',flexWrap:'wrap',gap:12,justifyContent:'center'},action:{minHeight:48,paddingHorizontal:18,paddingVertical:10,gap:8,flexDirection:'row',alignItems:'center',borderRadius:14,borderWidth:1,borderColor:'#DBAB68'},actionText:{fontSize:15,color:'#FAF7EF'},rtl:{writingDirection:'rtl'},
 });

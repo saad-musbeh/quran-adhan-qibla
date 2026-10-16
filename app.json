@@ -109,7 +109,8 @@
         }
       ],
       "./plugins/withPrayerExactAlarm.cjs",
-      "./plugins/withAndroidReleaseSize.cjs"
+      "./plugins/withAndroidReleaseSize.cjs",
+      "./plugins/withAndroidTextLayout.cjs"
     ],
     "backgroundColor": "#14293C"
   }
