@@ -1,5 +1,6 @@
+import { Pressable } from './Pressable';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, type TextInput as NativeTextInput } from 'react-native';
+import { StyleSheet, View, type TextInput as NativeTextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, TextInput } from '../text-size';
 import { bilingual, isRTL, localeFor, type Language } from '../i18n';

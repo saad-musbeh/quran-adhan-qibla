@@ -1,10 +1,12 @@
+import { Pressable } from './Pressable';
 import { Text } from '../text-size';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { bilingual, isRTL, translations, type Language } from '../i18n';
 import type { Tab } from '../domain/navigation';
 import { useReaderStyles } from '../quran-theme-context';
+import { adhkarTitle } from '../adhkar-i18n';
 
 export function MainMenu({language,onChoose,onLocation,onSettings}: {
   language:Language;onChoose:(tab:Tab)=>void;onLocation:()=>void;onSettings:()=>void;
@@ -18,6 +20,7 @@ export function MainMenu({language,onChoose,onLocation,onSettings}: {
     {id:'quran',title:t.quran,icon:'book-outline'},
     {id:'adhan',title:t.adhan,icon:'time-outline'},
     {id:'qibla',title:t.qibla,icon:'compass-outline'},
+    {id:'adhkar',title:adhkarTitle(language),icon:'leaf-outline'},
   ];
   return <ScrollView testID="main-menu" onLayout={event=>setWidth(event.nativeEvent.layout.width)} contentContainerStyle={styles.content}>
     <Text accessibilityRole="header" style={[styles.title,rtl&&styles.rtl]}>{bilingual(language,'القائمة الرئيسية','Main menu')}</Text>

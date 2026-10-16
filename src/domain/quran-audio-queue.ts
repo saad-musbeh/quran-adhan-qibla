@@ -2,9 +2,10 @@ import { getSurah, getVerse } from './quran.ts';
 import type { AudioRange } from './quran-audio.ts';
 
 export type QuranQueuePosition = { surah: number; verse: number };
+export type SurahEndMode = 'stop' | 'next' | 'repeat';
 
-/** Initial gapless queue: the rest of this surah and, when available, the next surah. */
-export function initialQuranQueue(start: QuranQueuePosition, range: AudioRange | null): QuranQueuePosition[] {
+/** Keep the whole requested sequence native, including full-surah repeats. */
+export function initialQuranQueue(start: QuranQueuePosition, range: AudioRange | null, endMode: SurahEndMode = 'stop'): QuranQueuePosition[] {
   if (range) {
     const chapter = getSurah(range.surah);
     if (!chapter || range.surah !== start.surah || start.verse < range.start || start.verse > range.end
@@ -14,8 +15,9 @@ export function initialQuranQueue(start: QuranQueuePosition, range: AudioRange |
 
   const chapter = getSurah(start.surah);
   if (!chapter || !getVerse(start.surah, start.verse)) return [];
-  const positions = Array.from({ length: chapter.verseCount - start.verse + 1 }, (_, index) => ({ surah: start.surah, verse: start.verse + index }));
-  const nextChapter = getSurah(start.surah + 1);
+  const first = endMode === 'repeat' ? 1 : start.verse;
+  const positions = Array.from({ length: chapter.verseCount - first + 1 }, (_, index) => ({ surah: start.surah, verse: first + index }));
+  const nextChapter = endMode === 'next' ? getSurah(start.surah + 1) : undefined;
   if (nextChapter) positions.push(...Array.from({ length: nextChapter.verseCount }, (_, index) => ({ surah: nextChapter.number, verse: index + 1 })));
   return positions;
 }

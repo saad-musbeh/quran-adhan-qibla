@@ -20,7 +20,7 @@ for (const voice of ADHAN_VOICES) {
       offset += 8 + size + (size % 2);
     }
     assert.ok(byteRate > 0 && dataBytes > 0);
-    assert.equal(dataBytes / byteRate, 29);
+    if(voice.id!=='short')assert.equal(dataBytes / byteRate, 29);
     assert.ok(dataBytes / byteRate < 30);
   });
   test(`${voice.id}: both notification sounds exist and are registered for native bundling`, () => {

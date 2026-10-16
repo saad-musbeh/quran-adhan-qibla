@@ -60,3 +60,16 @@ export function searchLanguages(query: string) {
   const normalized = query.trim().normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase();
   return LANGUAGES.filter(item => `${item.name} ${item.nativeName} ${item.id}`.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase().includes(normalized));
 }
+
+/** Draft UI translations are available only through Extra testing settings. */
+export function visibleLanguages(extraTesting = false) {
+  return LANGUAGES.filter(item => extraTesting || item.id === 'ar' || item.id === 'en');
+}
+
+export function restoreLanguagePreferences(language: unknown, extraTesting: unknown) {
+  const testingLanguages = extraTesting === true;
+  return {
+    testingLanguages,
+    language: isLanguage(language) && (testingLanguages || language === 'ar' || language === 'en') ? language : 'ar' as Language,
+  };
+}

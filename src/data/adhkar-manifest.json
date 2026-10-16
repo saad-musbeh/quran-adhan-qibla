@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/asellam/HisnElMuslim",
+  "commit": "872764ca013116c905f7fc9c3dc972c27cd37d4a",
+  "sourceSha256": "b30a448ef40184b0422c40bd3c372bf2b25bfb5b0539fd3699e6b4fba9459d80",
+  "outputSha256": "0e2cddf69fa35c5e22be370baa8df83ecbb7d1d060313850f2ccefe759a8ff18",
+  "license": "MIT",
+  "counts": {
+    "morning": 24,
+    "evening": 22,
+    "after-prayer": 8
+  }
+}

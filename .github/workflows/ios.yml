@@ -119,8 +119,25 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent \
             target/ios-build/Build/Products/Release-iphonesimulator/QuranAdhanQibla.app \
             target/quran-adhan-qibla-ios-simulator.zip
+      # Preserve the installable simulator app even when a later UI test fails.
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ios-simulator
+          path: target/quran-adhan-qibla-ios-simulator.zip
+          retention-days: 14
       - name: Add native UI tests to the generated project
         run: ruby scripts/prepare-ios-ui-tests.rb
+      - name: Check testing languages and Quran repeat controls
+        run: |
+          set -o pipefail
+          xcrun simctl bootstatus "$QURAN_SIMULATOR" -b
+          xcodebuild test -workspace ios/QuranAdhanQibla.xcworkspace \
+            -scheme QuranAdhanQibla -configuration Release \
+            -destination "platform=iOS Simulator,id=$QURAN_SIMULATOR" \
+            -only-testing:QuranUITests/QuranUITests/testPolishLanguageMenuAndRepeatControls \
+            -only-testing:QuranUITests/QuranUITests/testAdhkarCollectionsAndReminders \
+            -derivedDataPath target/ios-build -resultBundlePath target/ios-polish-ui.xcresult \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee target/ios-polish-ui.log | xcbeautify
       - name: Emulate iPad portrait and landscape
         run: |
           set -o pipefail
@@ -180,16 +197,13 @@ jobs:
           name: ios-ui-checks
           path: |
             target/ios-ui.log
+            target/ios-polish-ui.log
+            target/ios-polish-ui.xcresult
             target/ipad-ui.log
             target/ipad-ui.xcresult
             target/ios-ui.xcresult
             target/ios-screenshots
           if-no-files-found: ignore
-          retention-days: 14
-      - uses: actions/upload-artifact@v6
-        with:
-          name: ios-simulator
-          path: target/quran-adhan-qibla-ios-simulator.zip
           retention-days: 14
       - uses: actions/upload-artifact@v6
         if: always()

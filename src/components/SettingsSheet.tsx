@@ -1,7 +1,8 @@
+import { Pressable } from './Pressable';
 import { TextSizeSetting } from './TextSizeSetting';
 import { Text } from '../text-size';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { methods, type PrayerSettings } from '../domain/prayers';
 import { translations, isRTL, localizeCopy, bilingual, type Language } from '../i18n';
@@ -22,19 +23,21 @@ type Props = {
   language: Language; visible: boolean;
   onClose: () => void; prayer: PrayerSettings; onPrayerChange: (value: PrayerSettings) => void;
   timezone: string; compassMode: 'live' | 'north'; onCompassModeChange: (mode: 'live' | 'north') => void;
-  quran: ReactNode; notifications: ReactNode;
+  quran: ReactNode; notifications: ReactNode; devotional?: ReactNode; testing?: ReactNode;
   textSize: number; onTextSizeChange: (size:number)=>void;
+  testingLanguages: boolean; onTestingLanguagesChange: (enabled: boolean) => void;
   mainMenuOnPhones: boolean; onMainMenuChange: (enabled: boolean) => void;
 };
 
-export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChange, timezone, compassMode, onCompassModeChange, quran, notifications, textSize, onTextSizeChange, mainMenuOnPhones, onMainMenuChange }: Props) {
+export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChange, timezone, compassMode, onCompassModeChange, quran, notifications, devotional, testing, textSize, onTextSizeChange, mainMenuOnPhones, onMainMenuChange, testingLanguages, onTestingLanguagesChange }: Props) {
   const { styles } = useReaderStyles(baseStyles);
   const { theme, themeId, setThemeId, mode, setMode } = useReaderTheme();
+  const [testingVisible,setTestingVisible]=useState(false);
   const [creditsVisible,setCreditsVisible]=useState(false);
   const [privacyVisible,setPrivacyVisible]=useState(false);
   const [themePickerVisible, setThemePickerVisible] = useState(false);
   const [methodChoicesVisible, setMethodChoicesVisible] = useState(false);
-  useEffect(() => { if (!visible) { setThemePickerVisible(false); setMethodChoicesVisible(false);setCreditsVisible(false);setPrivacyVisible(false); } }, [visible]);
+  useEffect(() => { if (!visible) { setThemePickerVisible(false); setMethodChoicesVisible(false);setCreditsVisible(false);setPrivacyVisible(false);setTestingVisible(false); } }, [visible]);
   const t = translations[language]; const c = localizeCopy(language, copy); const rtl = isRTL(language);
   const insets = useSafeAreaInsets();
   const textStyle = rtl ? styles.rtl : undefined;
@@ -64,6 +67,7 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
         <Text accessibilityRole="header" style={[styles.label,textStyle]}>{t.quran}</Text>
         {quran}
         {notifications}
+        {devotional}
         <Text accessibilityRole="header" style={[styles.label,textStyle]}>{bilingual(language,'مواقيت الصلاة','Prayer times')}</Text>
         <Pressable testID="prayer-method-picker" accessibilityRole="button" accessibilityState={{expanded:methodChoicesVisible}} accessibilityLabel={`${t.method}: ${t[selectedMethod.label]}`} onPress={()=>setMethodChoicesVisible(value=>!value)} style={[styles.choice,rtl&&styles.reverse]}>
           <View style={styles.colorChoice}><Text style={[styles.choiceText,textStyle]}>{t.method} · {t[selectedMethod.label]}</Text></View><Ionicons name={methodChoicesVisible?'chevron-up':'chevron-down'} size={20} color={theme.accent}/>
@@ -83,6 +87,18 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
         {choice(c.live,compassMode==='live',()=>onCompassModeChange('live'))}
         {choice(c.north,compassMode==='north',()=>onCompassModeChange('north'))}
         <Text style={[styles.note,textStyle]}>{compassMode==='live'?c.liveNote:c.northNote}</Text>
+        <Pressable testID="settings-extra-testing" accessibilityRole="button" accessibilityState={{expanded:testingVisible}} onPress={()=>setTestingVisible(value=>!value)} style={[styles.choice,rtl&&styles.reverse]}>
+          <Text style={[styles.choiceText,textStyle]}>{bilingual(language,'إعدادات الاختبار الإضافية','Extra testing settings')}</Text>
+          <Ionicons name={testingVisible?'chevron-up':'chevron-down'} size={20} color={theme.accent}/>
+        </Pressable>
+        {testingVisible&&<View style={{gap:8}}>
+          {testing}
+          <View style={[styles.switchRow,rtl&&styles.reverse]}>
+            <Text style={[styles.choiceText,{flex:1},textStyle]}>{bilingual(language,'إظهار اللغات التجريبية','Show testing languages')}</Text>
+            <Switch testID="settings-testing-languages" accessibilityLabel={bilingual(language,'إظهار اللغات التجريبية','Show testing languages')} value={testingLanguages} onValueChange={onTestingLanguagesChange} trackColor={{false:theme.appBorder,true:theme.accent}} thumbColor={theme.lightPaper}/>
+          </View>
+          <Text style={[styles.note,textStyle]}>{bilingual(language,'تظهر العربية والإنجليزية افتراضيًا. فعّل هذا الخيار لاختبار مسودات ترجمة الواجهة الأخرى. إيقافه يعيد اللغة إلى العربية إذا كانت لغة تجريبية محددة.','Arabic and English appear by default. Enable this to test the other draft interface translations. Turning it off returns to Arabic if a testing language is selected.')}</Text>
+        </View>}
         <Pressable testID="settings-privacy" accessibilityRole="button" style={[styles.choice,rtl&&styles.reverse]} onPress={()=>setPrivacyVisible(true)}><Text style={[styles.choiceText,textStyle]}>{bilingual(language,'الخصوصية','Privacy')}</Text><Ionicons name="shield-checkmark-outline" size={22} color={theme.accent}/></Pressable>
         <Pressable testID="settings-credits" accessibilityRole="button" style={[styles.choice,rtl&&styles.reverse]} onPress={()=>setCreditsVisible(true)}><Text style={[styles.choiceText,textStyle]}>{bilingual(language,'المصادر وحقوق النشر','Credits')}</Text><Ionicons name="information-circle-outline" size={22} color={theme.accent}/></Pressable>
       </ScrollView>

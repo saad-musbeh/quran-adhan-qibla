@@ -1,5 +1,6 @@
+import { Pressable } from './Pressable';
 import { useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text } from '../text-size';
 import { prayerLocationLabel } from '../domain/cities';

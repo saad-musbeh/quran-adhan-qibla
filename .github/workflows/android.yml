@@ -1,0 +1,62 @@
+name: Android native playback
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  playback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools emulator'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci --include=dev
+      - name: Install native toolchains
+        run: |
+          rustup target add aarch64-linux-android x86_64-linux-android
+          cargo install cargo-ndk --locked
+          sdkmanager 'ndk;27.1.12297006' 'cmake;3.22.1' 'platforms;android-36' 'build-tools;36.0.0'
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
+      - run: npm run rust:android
+      - run: npx expo prebuild --platform android --no-install
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Exercise native queue boundaries
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: cd android && ./gradlew :islamic-core:connectedDebugAndroidTest --max-workers=2
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: android-playback-results
+          path: |
+            modules/islamic-core/android/build/reports/androidTests/
+            modules/islamic-core/android/build/outputs/androidTest-results/
+          if-no-files-found: ignore

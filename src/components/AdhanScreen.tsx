@@ -1,7 +1,8 @@
+import { Pressable } from './Pressable';
 import { Text } from '../text-size';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React, {useMemo, useState} from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import {LocationControl} from './LocationControl';
 import {highLatitudeCopy} from './HighLatitudeSettings';
 import type {PrayerSettings} from '../domain/prayers';

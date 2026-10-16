@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { LANGUAGES, isLanguage, isRTL, localeFor, searchLanguages } from './languages.ts';
+import { LANGUAGES, visibleLanguages, restoreLanguagePreferences, isLanguage, isRTL, localeFor, searchLanguages } from './languages.ts';
 import { neighborForSwipe } from './navigation.ts';
 import { parseLocalizedInteger } from './localized-number.ts';
 import { catalogs, message } from '../localization.ts';
@@ -56,4 +56,15 @@ test('catalogs preserve all messages and substitution variables', () => {
 test('page and verse inputs accept native keyboard digits without accepting invalid ranges', () => {
   for (const value of ['123', '١٢٣', '۱۲۳', '१२३', '১২৩', '੧੨੩', '௧௨௩', '൧൨൩', '１２３']) assert.equal(parseLocalizedInteger(value), 123);
   for (const value of ['', '-1', '1.5', '1e3', '12xyz', '9007199254740992']) assert.equal(parseLocalizedInteger(value), null);
+});
+
+test('only Arabic and English are exposed until testing languages are explicitly enabled', () => {
+  assert.deepEqual(visibleLanguages().map(item => item.id), ['ar','en']);
+  assert.equal(visibleLanguages(true).length, 40);
+  for (const item of LANGUAGES) {
+    assert.deepEqual(restoreLanguagePreferences(item.id, true), { language:item.id, testingLanguages:true });
+    assert.deepEqual(restoreLanguagePreferences(item.id, false), { language:['ar','en'].includes(item.id)?item.id:'ar', testingLanguages:false });
+  }
+  for (const value of [undefined,null,'true',1]) assert.deepEqual(restoreLanguagePreferences('fr',value), {language:'ar',testingLanguages:false});
+  assert.deepEqual(restoreLanguagePreferences('invalid',true), {language:'ar',testingLanguages:true});
 });

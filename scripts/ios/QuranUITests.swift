@@ -17,6 +17,34 @@ final class QuranUITests: XCTestCase {
     add(attachment)
   }
 
+  private func settingsScroll() -> XCUIElement {
+    let scroll = app.descendants(matching: .any)["overall-settings"]
+    XCTAssertTrue(scroll.waitForExistence(timeout: 10))
+    return scroll
+  }
+
+  func testAdhkarCollectionsAndReminders() {
+    app.descendants(matching: .any)["tab-adhkar"].tap()
+    for id in ["morning", "evening", "after-prayer"] {
+      let book = app.buttons["adhkar-\(id)"]
+      XCTAssertTrue(book.waitForExistence(timeout: 10))
+      book.tap()
+      let source = app.buttons["dhikr-source-\(id)-1"]
+      XCTAssertTrue(source.waitForExistence(timeout: 10))
+      source.tap()
+      XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "حصن المسلم")).firstMatch.waitForExistence(timeout: 5))
+      app.buttons["dhikr-source-close"].tap()
+      app.buttons["adhkar-back"].tap()
+    }
+    screenshot("Adhkar three fixed collections")
+    app.buttons["adhkar-reminders"].tap()
+    XCTAssertTrue(app.switches["salawat-enabled"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.switches["reminder-morning-enabled"].exists)
+    XCTAssertTrue(app.switches["reminder-evening-enabled"].exists)
+    app.buttons["reminders-close"].tap()
+    app.descendants(matching: .any)["tab-quran"].tap()
+  }
+
   private func revealReader() {
     XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 30))
     for _ in 0..<4 {
@@ -124,6 +152,8 @@ final class QuranUITests: XCTestCase {
     app.buttons["reader-library"].tap()
     app.terminate()
     app.launch()
+    XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 10))
+    app.buttons["menu-quran"].tap()
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 30))
     XCTAssertTrue(app.buttons["open-book-1"].label.contains("Simulator reading"))
     XCTAssertTrue(app.buttons["open-book-1"].label.hasSuffix("2"))
@@ -179,7 +209,7 @@ final class QuranUITests: XCTestCase {
     XCTAssertFalse(app.descendants(matching: .any)["settings-adhan"].exists)
     let toggle = app.switches["prayer-alert-toggle"]
     XCTAssertTrue(toggle.waitForExistence(timeout: 10))
-    for _ in 0..<6 { if toggle.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    for _ in 0..<6 { if toggle.isHittable { break }; settingsScroll().swipeUp() }
     if toggle.value as? String != "1" { toggle.tap() }
     let allow = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Allow"]
     if allow.waitForExistence(timeout: 5) { allow.tap() }
@@ -191,17 +221,17 @@ final class QuranUITests: XCTestCase {
     XCTAssertLessThanOrEqual(value, 40)
     screenshot("iOS scheduled prayer alerts")
     let testAlert = app.buttons["prayer-test-alert"]
-    for _ in 0..<6 { if testAlert.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    for _ in 0..<6 { if testAlert.isHittable { break }; settingsScroll().swipeUp() }
     testAlert.tap()
     XCTAssertTrue(app.staticTexts["prayer-test-sent"].waitForExistence(timeout: 10))
     Thread.sleep(forTimeInterval: 6)
     screenshot("Prayer test notification")
-    for _ in 0..<6 { if toggle.isHittable { break }; app.scrollViews["overall-settings"].swipeDown() }
+    for _ in 0..<6 { if toggle.isHittable { break }; settingsScroll().swipeDown() }
     toggle.tap()
     let cancelled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: count)
     XCTAssertEqual(XCTWaiter.wait(for: [cancelled], timeout: 20), .completed)
     let downloads = app.buttons["manage-downloads"]
-    for _ in 0..<8 { if downloads.isHittable { break }; app.scrollViews["overall-settings"].swipeDown() }
+    for _ in 0..<8 { if downloads.isHittable { break }; settingsScroll().swipeDown() }
     downloads.tap()
     XCTAssertTrue(app.buttons["downloads-close"].waitForExistence(timeout: 10))
     XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].waitForExistence(timeout: 15))
@@ -221,6 +251,47 @@ final class QuranUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].label.contains("7/7"))
     app.buttons["downloads-close"].tap()
     app.buttons["settings-close"].tap()
+  }
+
+  func testPolishLanguageMenuAndRepeatControls() {
+    app.buttons["open-languages"].tap()
+    XCTAssertTrue(app.descendants(matching: .any)["language-ar"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.descendants(matching: .any)["language-en"].exists)
+    let search = app.textFields.firstMatch
+    search.tap()
+    search.typeText("French")
+    XCTAssertFalse(app.descendants(matching: .any)["language-fr"].exists)
+    app.buttons["language-picker-close"].tap()
+    app.buttons["open-settings"].tap()
+    let extra = app.buttons["settings-extra-testing"]
+    for _ in 0..<14 { if extra.isHittable { break }; settingsScroll().swipeUp() }
+    XCTAssertTrue(extra.isHittable)
+    extra.tap()
+    let toggle = app.switches["settings-testing-languages"]
+    for _ in 0..<3 { if toggle.isHittable { break }; settingsScroll().swipeUp() }
+    XCTAssertTrue(toggle.isHittable)
+    toggle.tap()
+    app.buttons["settings-close"].tap()
+    app.buttons["open-languages"].tap()
+    let testingSearch = app.textFields.firstMatch
+    testingSearch.tap()
+    testingSearch.typeText("French")
+    XCTAssertTrue(app.descendants(matching: .any)["language-fr"].waitForExistence(timeout: 5))
+    app.buttons["language-picker-close"].tap()
+    app.buttons["open-settings"].tap()
+    for _ in 0..<14 { if extra.isHittable { break }; settingsScroll().swipeUp() }
+    extra.tap()
+    for _ in 0..<3 { if toggle.isHittable { break }; settingsScroll().swipeUp() }
+    toggle.tap()
+    app.buttons["settings-close"].tap()
+    app.buttons["open-book-1"].tap()
+    revealReader()
+    app.buttons["reader-audio-repeat"].tap()
+    let start = app.buttons["repeat-start"]
+    XCTAssertTrue(start.waitForExistence(timeout: 5))
+    XCTAssertTrue(start.label.contains("بدء التكرار") || start.label.contains("Start repeating"))
+    screenshot("Repeat control contrast")
+    app.buttons["repeat-close"].tap()
   }
 
   func testRepeatedTabTransitions() {

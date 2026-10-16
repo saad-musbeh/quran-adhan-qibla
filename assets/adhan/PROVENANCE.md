@@ -1,3 +1,51 @@
+# 0.6.0 short Adhan and reminder sounds
+
+**Short Adhan** is the fresh default. The four existing full voices and their saved IDs remain available. Preferred Nayef Saleh Faydah / Farooq Hadrawi audition recordings are pending verified redistribution permission and are not bundled. The user approved licensed temporary sources for this release.
+
+- Opening: the released 0.5.2 `adhan_aaqib.ogg`, SHA-256 `a222dab72cec6fce0483ec445a1d6c4c3a450bfd46cdbfc72d19c257b2759e4d`, seconds **0.4–11.1**. Source: [The Adhan — Aaqib Azeez](https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3), recorded/uploaded by **Atcovi**, CC BY-SA 4.0. The complete opening takbirs are retained, with margins outside the detected speech boundaries.
+- Fajr addition: the released 0.5.2 `adhan_fajr_malmo.ogg`, SHA-256 `a3224cbf6707b0b2fe51d4f70e22d113c4693d3812f1b1b6dc27985193d477f9`, seconds **188.1–196.2**. Source: [Eid al-Fitr Fajr azan at Malmö Mosque](https://commons.wikimedia.org/wiki/File:Eid_al-Fitr_Fajr_azan_at_Malm%C3%B6_Mosque_-_19_August_2012.webm), **Islamic Center Malmö / Besim Azemi**, CC BY 3.0. The source identifies this as a Fajr recording.
+
+The regular alert is **10.7 seconds**. The Fajr alert appends the complete recorded “الصلاة خير من النوم” phrase after 0.2 seconds of separation, for **19 seconds** total. These temporary excerpts join two credited voices for Fajr. The adaptations are distributed under **CC BY-SA 4.0**, with both source attributions retained. Neither licensor nor performer endorses this app.
+
+Preparation applies mono mixing, high/low-pass filtering, noise reduction, short fades outside speech, and matched −18 LUFS targets. Words are sourced recordings; pitch and playback speed are unchanged. A local ASR check of the assembled Fajr alert recovered “الله أكبر الله أكبر الصلاة خير من النوم”; this is a crop sanity check, not a claim of human or physical-phone listening verification.
+
+`reminder_salawat` is **computer-generated speech**, made offline using eSpeak NG's Arabic voice at 125 words/minute, saying “صَلِّ عَلَى رَسُولِ اللَّهِ”. It is not credited to a human speaker. `reminder_chime` is a generated two-note tone. The project dedicates its reminder speech output and chime to **CC0 1.0**. eSpeak NG is a build-time tool and is not linked or bundled as app code.
+
+`devotional-audio-manifest.json` records exact output hashes, durations, source hashes, cut intervals and the speech engine version. Android receives OGG files; iOS receives mono 22,050 Hz 16-bit PCM WAV files below 30 seconds. Reproduce with `python3 scripts/prepare-devotional-audio.py` (FFmpeg with Vorbis and eSpeak NG required). The script downloads hash-checked 0.5.2 source assets unless `--takbir-source` and `--fajr-source` are supplied. Output OGG container serials can change between runs; decoded content is the same.
+
+# Retained full-voice sources — 0.5.3
+
+
+The app exposes exactly **Makkah** (the 0.5.3 default), **Al-Madinah**, **Andrewler**, and **Original**. Aaqib, Shalqar and Malmö Fajr were removed; saved selections migrate to Makkah without changing each prayer’s enabled/muted setting. Existing Original/Andrewler/Makkah selections remain selected.
+
+The current native sound list is in `app.json`; each voice packages one `*_clean.ogg` on Android and one `*_clean_short.wav` on iOS. Original OGG inputs retained here are source fixtures, not additional packaged sounds. The exact source and output SHA-256 hashes, processing filters and measured audio statistics are in [clean-audio-manifest.json](clean-audio-manifest.json).
+
+## Al-Madinah source
+
+- Recording: “33937 ejaz215 call-to-prayer-from-the-prophet-s-mo.ogg”, credited to **ejaz215**; Commons describes it as the call to prayer from the Prophet’s Mosque. No independently verified muezzin name is claimed.
+- [Commons description / CC BY 3.0](https://commons.wikimedia.org/wiki/File:33937_ejaz215_call-to-prayer-from-the-prophet-s-mo.ogg), checked 15 October 2026.
+- [Original Freesound source](https://freesound.org/people/ejaz215/sounds/33937/) (original site unavailable during verification; Commons retains the source attribution and licence).
+- [Exact original download](https://upload.wikimedia.org/wikipedia/commons/7/7c/33937_ejaz215_call-to-prayer-from-the-prophet-s-mo.ogg), 2,974,689 bytes, 186.552698 seconds.
+- Commons SHA-1 matched the download: `4aa432b9e44804e7d72af4429bd743aa5fa9e3a4`.
+- Source SHA-256: `4d0fabe0e0ef52186646a256220f74a972ba698ac269165fed5d52de3202d656`.
+- The cleaned full recording and excerpt retain [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), with these processing changes attributed to this project. No performer or licensor endorsement is implied.
+
+## Cleaning and notification preparation
+
+All four voices are downmixed to mono **before** measurement, high-pass filtered at 80 Hz and low-pass filtered at 8.5 kHz, with mild FFmpeg `afftdn` noise reduction (`nr=6:nf=-45:tn=1`). Two-pass loudness normalization targets −18 LUFS and a −2 dBTP ceiling. Android retains the complete source timeline, words, pitch and speed, encoded as 48 kHz Vorbis. iOS separately normalizes the first 29 seconds, with a one-second ending fade, as mono 22,050 Hz 16-bit PCM. This is sound cleanup of sourced recordings, not a newly recorded or synthesized voice. Residual ambience can remain.
+
+Reproduce from the retained original OGG inputs and the verified Madinah download:
+
+```sh
+python3 scripts/prepare-adhan-audio.py --madinah-source /path/to/madinah-source.ogg
+```
+
+The script checks the Madinah input SHA-1 and writes a fresh manifest with output hashes. Vorbis container serial numbers may vary between encodes. Runtime Credits includes all four source/author/licence links and explains the cleanup/excerpt adaptation. Andrewler’s cleaned adaptations remain **CC BY-SA 4.0**, Makkah and Madinah retain **CC BY 3.0**, and Original remains **CC0**. Notification volume, Silent Mode, Focus and sound duration remain under system control. Technical decoding/measurement and source attribution were checked; physical-phone listening remains part of iOS testing.
+
+# Historical input provenance
+
+The following records describe the original 0.5.2 sound library and conversion inputs. Retired options and old excerpts listed below are not included in the 0.5.3 native sound configuration; retrieve those assets from `v0.5.2` if reproducing the older release.
+
 # Adhan recording provenance
 
 `adhan.ogg` is the unmodified “Beautiful adhan” recording by Adam-synagda.

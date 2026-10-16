@@ -1,0 +1,83 @@
+{
+  "sources": [
+    {
+      "file": "v0.5.2/adhan_aaqib.ogg",
+      "sha256": "a222dab72cec6fce0483ec445a1d6c4c3a450bfd46cdbfc72d19c257b2759e4d",
+      "rangeSeconds": [
+        0.4,
+        11.1
+      ],
+      "credit": "Atcovi / Aaqib Azeez",
+      "license": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3"
+    },
+    {
+      "file": "v0.5.2/adhan_fajr_malmo.ogg",
+      "sha256": "a3224cbf6707b0b2fe51d4f70e22d113c4693d3812f1b1b6dc27985193d477f9",
+      "rangeSeconds": [
+        188.1,
+        196.2
+      ],
+      "credit": "Islamic Center Malmö / Besim Azemi",
+      "license": "CC BY 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Eid_al-Fitr_Fajr_azan_at_Malm%C3%B6_Mosque_-_19_August_2012.webm"
+    }
+  ],
+  "speech": {
+    "engine": "eSpeak NG text-to-speech: 1.52.0  Data at: /usr/share/espeak-ng-data",
+    "language": "ar",
+    "text": "صَلِّ عَلَى رَسُولِ اللَّهِ"
+  },
+  "adaptationLicense": "CC BY-SA 4.0 for Short Adhan and Fajr; synthesized reminder and chime dedicated to CC0 1.0 by this project",
+  "processing": "Excerpt, mono, high/low-pass, noise reduction, boundary fades, matched loudness; Fajr joins two sourced voices with 0.2 seconds between excerpts. No pitch or speed changes.",
+  "files": [
+    {
+      "file": "adhan_brief.ogg",
+      "sha256": "3d2555e386c49e33c30b2c0adb0e80c94e62faa9e44c2b5bf62c868d240b1f48",
+      "bytes": 84214,
+      "duration": 10.7
+    },
+    {
+      "file": "adhan_brief.wav",
+      "sha256": "9b44e458d55a8cf00836fba629b5b7418e2fc8b33863fbe079d7674ae336b2b8",
+      "bytes": 471948,
+      "duration": 10.7
+    },
+    {
+      "file": "adhan_brief_fajr.ogg",
+      "sha256": "ba0013db2f1339b57ae56ed32e660f3f57bf30aded4140c77c9eb5e3ea29a64f",
+      "bytes": 151770,
+      "duration": 19.0
+    },
+    {
+      "file": "adhan_brief_fajr.wav",
+      "sha256": "60aa3837706534ac0fdb768153816942c04ed4230cbff43e655f036b95aa93b8",
+      "bytes": 837978,
+      "duration": 19.0
+    },
+    {
+      "file": "reminder_salawat.ogg",
+      "sha256": "6e4e54f776068b4c25c0d3ded5389187790b44ebf67da8df1ff8a12fbcabd857",
+      "bytes": 26642,
+      "duration": 2.919604
+    },
+    {
+      "file": "reminder_salawat.wav",
+      "sha256": "1a826571cf8b75ab40f6e05df00467931fdaa6ad1bb803ded1d27b5db1f29386",
+      "bytes": 128832,
+      "duration": 2.919592
+    },
+    {
+      "file": "reminder_chime.ogg",
+      "sha256": "38327aacf0b71e613514a595f089e6be13d50b97a37e0d2314f273d5b4c99475",
+      "bytes": 5730,
+      "duration": 0.68
+    },
+    {
+      "file": "reminder_chime.wav",
+      "sha256": "cc5a9e845747c3f73696784e6620abc601305f355419e75d666aadb81cd2c0fb",
+      "bytes": 30066,
+      "duration": 0.68
+    }
+  ]
+}
