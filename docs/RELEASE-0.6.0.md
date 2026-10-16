@@ -21,7 +21,7 @@ See [adhkar sources and behavior](ADHKAR.md), [audio provenance](../assets/adhan
 
 Actual reading/settings components were checked through React Native Web with native services mocked: 16 phone/tablet × Arabic/English × light/dark × default/enlarged-text combinations, each with all three collections. Counter limits, single-entry paging, source references, reminder time fields and testing schedules were exercised. This does not verify native phone notification delivery or audio output.
 
-The Linux host's Android emulators crashed during startup with exit 139 in three graphics/acceleration configurations. The Android CI workflow exercises real native queue boundaries on an emulator using generated tone files, independently of the UI. Physical OnePlus/other Android listening, notification delivery under battery restrictions, hardware sensors and physical iPhone behavior still require tester follow-up. The historical iOS book-name/full-download checks are not claimed fixed by this release.
+The Linux host's Android emulators crashed during startup with exit 139 in three graphics/acceleration configurations. The Android CI workflow exercises real native queue boundaries on an emulator using generated tone files and Saad Al-Ghamdi ayahs from private downloads and streams, independently of the UI. Physical OnePlus/other Android listening, notification delivery under battery restrictions, hardware sensors and physical iPhone behavior still require tester follow-up. The historical iOS book-name/full-download checks are not claimed fixed by this release.
 
 ## Installation
 

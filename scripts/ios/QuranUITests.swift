@@ -17,6 +17,12 @@ final class QuranUITests: XCTestCase {
     add(attachment)
   }
 
+  private func settingsScroll() -> XCUIElement {
+    let scroll = app.descendants(matching: .any)["overall-settings"]
+    XCTAssertTrue(scroll.waitForExistence(timeout: 10))
+    return scroll
+  }
+
   func testAdhkarCollectionsAndReminders() {
     app.descendants(matching: .any)["tab-adhkar"].tap()
     for id in ["morning", "evening", "after-prayer"] {
@@ -201,7 +207,7 @@ final class QuranUITests: XCTestCase {
     XCTAssertFalse(app.descendants(matching: .any)["settings-adhan"].exists)
     let toggle = app.switches["prayer-alert-toggle"]
     XCTAssertTrue(toggle.waitForExistence(timeout: 10))
-    for _ in 0..<6 { if toggle.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    for _ in 0..<6 { if toggle.isHittable { break }; settingsScroll().swipeUp() }
     if toggle.value as? String != "1" { toggle.tap() }
     let allow = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Allow"]
     if allow.waitForExistence(timeout: 5) { allow.tap() }
@@ -213,17 +219,17 @@ final class QuranUITests: XCTestCase {
     XCTAssertLessThanOrEqual(value, 40)
     screenshot("iOS scheduled prayer alerts")
     let testAlert = app.buttons["prayer-test-alert"]
-    for _ in 0..<6 { if testAlert.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    for _ in 0..<6 { if testAlert.isHittable { break }; settingsScroll().swipeUp() }
     testAlert.tap()
     XCTAssertTrue(app.staticTexts["prayer-test-sent"].waitForExistence(timeout: 10))
     Thread.sleep(forTimeInterval: 6)
     screenshot("Prayer test notification")
-    for _ in 0..<6 { if toggle.isHittable { break }; app.scrollViews["overall-settings"].swipeDown() }
+    for _ in 0..<6 { if toggle.isHittable { break }; settingsScroll().swipeDown() }
     toggle.tap()
     let cancelled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: count)
     XCTAssertEqual(XCTWaiter.wait(for: [cancelled], timeout: 20), .completed)
     let downloads = app.buttons["manage-downloads"]
-    for _ in 0..<8 { if downloads.isHittable { break }; app.scrollViews["overall-settings"].swipeDown() }
+    for _ in 0..<8 { if downloads.isHittable { break }; settingsScroll().swipeDown() }
     downloads.tap()
     XCTAssertTrue(app.buttons["downloads-close"].waitForExistence(timeout: 10))
     XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].waitForExistence(timeout: 15))
@@ -256,11 +262,11 @@ final class QuranUITests: XCTestCase {
     app.buttons["language-picker-close"].tap()
     app.buttons["open-settings"].tap()
     let extra = app.buttons["settings-extra-testing"]
-    for _ in 0..<14 { if extra.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    for _ in 0..<14 { if extra.isHittable { break }; settingsScroll().swipeUp() }
     XCTAssertTrue(extra.isHittable)
     extra.tap()
     let toggle = app.switches["settings-testing-languages"]
-    for _ in 0..<3 { if toggle.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    for _ in 0..<3 { if toggle.isHittable { break }; settingsScroll().swipeUp() }
     XCTAssertTrue(toggle.isHittable)
     toggle.tap()
     app.buttons["settings-close"].tap()
@@ -271,9 +277,9 @@ final class QuranUITests: XCTestCase {
     XCTAssertTrue(app.descendants(matching: .any)["language-fr"].waitForExistence(timeout: 5))
     app.buttons["language-picker-close"].tap()
     app.buttons["open-settings"].tap()
-    for _ in 0..<14 { if extra.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    for _ in 0..<14 { if extra.isHittable { break }; settingsScroll().swipeUp() }
     extra.tap()
-    for _ in 0..<3 { if toggle.isHittable { break }; app.scrollViews["overall-settings"].swipeUp() }
+    for _ in 0..<3 { if toggle.isHittable { break }; settingsScroll().swipeUp() }
     toggle.tap()
     app.buttons["settings-close"].tap()
     app.buttons["open-book-1"].tap()
