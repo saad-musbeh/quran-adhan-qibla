@@ -1,3 +1,4 @@
+import { prayerNotificationLimit } from './src/domain/devotional-reminders';
 import { PressFeedbackProvider } from './src/components/Pressable';
 import { Text, TextSizeContext, textScaleForSize } from './src/text-size';
 import * as SystemUI from 'expo-system-ui';
@@ -85,17 +86,18 @@ function Main() {
     });
     return()=>subscription.remove();
   },[menuEnabled,homeVisible,readingBook,showSettings,showLocation,showLanguages,showReminders,tab,adhkarReading]);
-  const devotional = useDevotionalReminders({ready:preferencesReady&&locationState.ready,preferences:preferences.devotional,language,location,prayer:settings,onOpen:kind=>{
+  const notifications = usePrayerNotifications({
+    ready: preferencesReady && locationState.ready,
+    enabled: preferences.prayerNotifications,
+    notificationLimit: prayerNotificationLimit(preferences.devotional),
+    location, settings, language, prayerSounds: preferences.prayerSounds,
+    labels: { title: t.brand, channelName: notificationLabels.title, body: name => t[name], testTitle: notificationLabels.test, testBody: t.brand },
+  });
+  const devotional = useDevotionalReminders({onReconciled:notifications.reconcile,ready:preferencesReady&&locationState.ready,preferences:preferences.devotional,language,location,prayer:settings,onOpen:kind=>{
     chooseSection('adhkar');
     if(kind==='salawat')setShowReminders(true);
     else setAdhkarRequest(value=>({id:value.id+1,collection:kind}));
   }});
-  const notifications = usePrayerNotifications({
-    ready: preferencesReady && locationState.ready,
-    enabled: preferences.prayerNotifications,
-    location, settings, language, prayerSounds: preferences.prayerSounds,
-    labels: { title: t.brand, channelName: notificationLabels.title, body: name => t[name], testTitle: notificationLabels.test, testBody: t.brand },
-  });
   // Calculations always use Gregorian date components, including in Arabic.
   const [year, month, day] = localCalendarDate(now);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;

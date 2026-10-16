@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { enqueueNotificationReconcile } from './notification-queue';
 import { AppState, Linking, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { isPrayerTimesAvailable, prayerTimes } from '../modules/islamic-core';
@@ -6,16 +7,17 @@ import { bilingual, type Language } from './i18n';
 import { collectionTitle } from './adhkar-i18n';
 import { allowsPrayerNotifications, prayerSoundMuted } from './domain/notification-permission';
 import { buildPrayerNotificationSchedule } from './domain/prayer-notifications';
-import { devotionalSchedule, DEVOTIONAL_NAMESPACE, DEVOTIONAL_SOUNDS, isDevotionalNotification, salawatMinutes, type DevotionalPreferences, type ReminderKind } from './domain/devotional-reminders';
+import { devotionalSchedule, DEVOTIONAL_NAMESPACE, DEVOTIONAL_SOUNDS, isDevotionalNotification, salawatMinutes, salawatPhrase, type DevotionalPreferences, type ReminderKind } from './domain/devotional-reminders';
 import type { Coordinates } from './domain/location';
 import type { PrayerSettings } from './domain/prayers';
 
-type Inputs = { ready: boolean; preferences: DevotionalPreferences; language: Language; location: Coordinates | null; prayer: PrayerSettings; onOpen: (kind: ReminderKind) => void };
+type Inputs = { ready: boolean; preferences: DevotionalPreferences; language: Language; location: Coordinates | null; prayer: PrayerSettings; onReconciled?: () => void; onOpen: (kind: ReminderKind) => void };
 export type DevotionalStatus = 'disabled' | 'ready' | 'permission-required' | 'muted' | 'needs-location' | 'unavailable' | 'invalid-window' | 'error';
 
 const soundFor = (kind: ReminderKind, settings: DevotionalPreferences): string | null => {
   const style = kind !== 'salawat' ? 'tone' : settings.salawat.style;
-  return style==='silent' ? null : DEVOTIONAL_SOUNDS[style][Platform.OS==='ios'?'ios':'android'];
+  const sounds = style === 'spoken' ? salawatPhrase(settings.salawat.phrase) : DEVOTIONAL_SOUNDS.tone;
+  return style==='silent' ? null : sounds[Platform.OS==='ios'?'ios':'android'];
 };
 const channelFor = (sound: string | null) => `devotional-v1-${sound?.replace(/[^a-zA-Z0-9]/g,'_') ?? 'silent'}`;
 
@@ -23,15 +25,15 @@ export function useDevotionalReminders(input: Inputs) {
   const inputs = useRef(input); inputs.current = input;
   const [status,setStatus] = useState<DevotionalStatus>('disabled');
   const [scheduledCount,setScheduledCount] = useState(0);
-  const revision = useRef(0), mounted = useRef(true), queue = useRef(Promise.resolve());
+  const revision = useRef(0), mounted = useRef(true);
   const reconcile = useCallback(() => {
     if (!inputs.current.ready || !mounted.current) return;
     const generation = ++revision.current;
-    queue.current = queue.current.catch(()=>{}).then(async()=>{
+    enqueueNotificationReconcile(async()=>{
       if (generation!==revision.current || !mounted.current) return;
       const value=inputs.current, prefs=value.preferences;
       const current=()=>generation===revision.current && mounted.current;
-      const finish=(next:DevotionalStatus,count=0)=>{if(current()){setStatus(next);setScheduledCount(count);}};
+      const finish=(next:DevotionalStatus,count=0)=>{if(current()){setStatus(next);setScheduledCount(count);inputs.current.onReconciled?.();}};
       if(Platform.OS!=='ios'&&Platform.OS!=='android'){finish('unavailable');return;}
       const added:string[]=[];
       try {
@@ -71,7 +73,7 @@ export function useDevotionalReminders(input: Inputs) {
           const channelId=channelFor(sound);
           const title=item.kind==='salawat'?bilingual(value.language,'الصلاة على النبي','Salawat'):collectionTitle(value.language,item.kind);
           const id=await Notifications.scheduleNotificationAsync({
-            content:{title,body:item.kind==='salawat'?bilingual(value.language,'صلِّ على رسول الله','Send blessings upon the Prophet'):title,sound:sound??false,data:{namespace:DEVOTIONAL_NAMESPACE,kind:item.kind}},
+            content:{title,body:item.kind==='salawat'?salawatPhrase(prefs.salawat.phrase).text:title,sound:sound??false,data:{namespace:DEVOTIONAL_NAMESPACE,kind:item.kind}},
             trigger:'minute'in item?{type:Notifications.SchedulableTriggerInputTypes.DAILY,hour:Math.floor(item.minute/60),minute:item.minute%60,...(Platform.OS==='android'?{channelId}:{})}:{type:Notifications.SchedulableTriggerInputTypes.DATE,date:item.at,...(Platform.OS==='android'?{channelId}:{})},
           });
           added.push(id);
@@ -119,7 +121,7 @@ export function useDevotionalReminders(input: Inputs) {
     if(Platform.OS==='android')await Notifications.setNotificationChannelAsync(channelId,{name:bilingual(value.language,'التذكيرات','Reminders'),importance:Notifications.AndroidImportance.DEFAULT,sound,vibrationPattern:[0]});
     const pending=await Notifications.getAllScheduledNotificationsAsync();
     for(const item of pending.filter(item=>item.content.data?.namespace===`${DEVOTIONAL_NAMESPACE}.test`))await Notifications.cancelScheduledNotificationAsync(item.identifier);
-    await Notifications.scheduleNotificationAsync({content:{title:bilingual(value.language,'الصلاة على النبي','Salawat'),body:bilingual(value.language,'صلِّ على رسول الله','Send blessings upon the Prophet'),sound:sound??false,data:{namespace:`${DEVOTIONAL_NAMESPACE}.test`}},trigger:{type:Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,seconds:5,...(Platform.OS==='android'?{channelId}:{})}});
+    await Notifications.scheduleNotificationAsync({content:{title:bilingual(value.language,'الصلاة على النبي','Salawat'),body:salawatPhrase(value.preferences.salawat.phrase).text,sound:sound??false,data:{namespace:`${DEVOTIONAL_NAMESPACE}.test`}},trigger:{type:Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,seconds:5,...(Platform.OS==='android'?{channelId}:{})}});
     return true;
   },[]);
   return {status,scheduledCount,reconcile,requestPermission,test,openSettings:()=>Linking.openSettings()};

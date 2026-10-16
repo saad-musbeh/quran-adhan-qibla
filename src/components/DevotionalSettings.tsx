@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { SalawatReminders } from './SalawatReminders';
 import { Pressable } from './Pressable';
 import { Text, TextInput } from '../text-size';
 import { bilingual, isRTL, type Language } from '../i18n';
@@ -31,7 +32,7 @@ export function DevotionalSettings({visible,onClose,language,preferences:value,o
     if(!enabled)return;
     setBusy(true);try{await reminders.requestPermission();}catch{setFeedback('failed');}finally{setBusy(false);}
   }
-  const toggle=(label:string,enabled:boolean,action:(next:boolean)=>void,id:string)=><View style={[styles.row,rtl&&styles.reverse]}><Text style={[styles.label,styles.flex,align]}>{label}</Text><Switch testID={id} accessibilityLabel={label} disabled={busy||Platform.OS==='web'} value={enabled} onValueChange={action} trackColor={{false:colors.appBorder,true:colors.accent}} thumbColor={colors.lightPaper}/></View>;
+  const toggle=(label:string,enabled:boolean,action:(next:boolean)=>void,id:string)=><View style={[styles.row,rtl&&styles.reverse]}><Text style={[styles.label,styles.flex,align]}>{label}</Text><Switch testID={id} accessibilityLabel={label} disabled={busy} value={enabled} onValueChange={action} trackColor={{false:colors.appBorder,true:colors.accent}} thumbColor={colors.lightPaper}/></View>;
   const choice=(label:string,selected:boolean,action:()=>void,id:string)=><Pressable key={id} testID={id} accessibilityRole="radio" accessibilityState={{checked:selected}} onPress={action} style={[styles.choice,rtl&&styles.reverse]}><Ionicons name={selected?'radio-button-on':'radio-button-off'} size={22} color={colors.accent}/><Text style={[styles.label,align]}>{label}</Text></Pressable>;
   const modeLabel=(mode:ReminderMode)=>mode==='times'?bilingual(language,'أوقات أختارها','Chosen times'):mode==='interval'?bilingual(language,'كل فترة','Repeat interval'):bilingual(language,'مع مواقيت الصلاة','At prayer times');
   const styleLabel=(style:ReminderStyle)=>style==='spoken'?bilingual(language,'تذكير صوتي','Spoken reminder'):style==='tone'?bilingual(language,'نغمة ونص','Tone and text'):bilingual(language,'نص صامت','Silent text');
@@ -40,6 +41,8 @@ export function DevotionalSettings({visible,onClose,language,preferences:value,o
     <View style={[styles.header,rtl&&styles.reverse]}><Text accessibilityRole="header" style={[styles.title,align]}>{bilingual(language,'التذكيرات','Reminders')}</Text><Pressable testID="reminders-close" accessibilityRole="button" accessibilityLabel={bilingual(language,'إغلاق','Close')} style={styles.icon} onPress={onClose}><Ionicons name="close" size={28} color={colors.accent}/></Pressable></View>
     <ScrollView testID="reminders-settings" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {toggle(salawat,value.salawat.enabled,next=>{void enable('salawat',next)},'salawat-enabled')}
+      <SalawatReminders language={language} value={value.salawat} visible={visible} onChange={salawat=>save({...value,salawat})}/>
+      {toggle(bilingual(language,'تفعيل التنبيه الصوتي','Enable reminder sound'),value.salawat.style!=='silent',sound=>save({...value,salawat:{...value.salawat,style:sound?'spoken':'silent'}}),'salawat-sound-enabled')}
       {value.salawat.enabled&&<View style={styles.section}>
         {value.testing.styles&&(['spoken','silent','tone'] as const).map(style=>choice(styleLabel(style),value.salawat.style===style,()=>save({...value,salawat:{...value.salawat,style}}),`salawat-style-${style}`))}
         {value.testing.schedules&&(['times','interval','prayers'] as const).map(mode=>choice(modeLabel(mode),value.salawat.mode===mode,()=>save({...value,salawat:{...value.salawat,mode}}),`salawat-mode-${mode}`))}
@@ -49,11 +52,6 @@ export function DevotionalSettings({visible,onClose,language,preferences:value,o
             {value.salawat.times.length>1&&<Pressable testID={`salawat-remove-${index}`} accessibilityRole="button" accessibilityLabel={bilingual(language,'حذف الوقت','Remove time')} style={styles.icon} onPress={()=>save({...value,salawat:{...value.salawat,times:value.salawat.times.filter((_,i)=>i!==index)}})}><Ionicons name="trash-outline" size={22} color={colors.accent}/></Pressable>}
           </View>)}
           {value.salawat.times.length<6&&<Pressable testID="salawat-add-time" accessibilityRole="button" style={styles.button} onPress={()=>{const used=new Set(value.salawat.times);let minute=9*60;while(used.has(formatClock(minute))&&minute<24*60-1)minute++;save({...value,salawat:{...value.salawat,times:[...value.salawat.times,formatClock(minute)]}})}}><Text style={styles.buttonText}>{bilingual(language,'إضافة وقت','Add time')}</Text></Pressable>}
-        </>}
-        {value.salawat.mode==='interval'&&<>
-          <Text style={[styles.label,align]}>{bilingual(language,'من','From')}</Text><ClockField testID="salawat-window-start" language={language} label={bilingual(language,'من','From')} value={value.salawat.start} onChange={start=>save({...value,salawat:{...value.salawat,start}})}/>
-          <Text style={[styles.label,align]}>{bilingual(language,'إلى','To')}</Text><ClockField testID="salawat-window-end" language={language} label={bilingual(language,'إلى','To')} value={value.salawat.end} onChange={end=>save({...value,salawat:{...value.salawat,end}})}/>
-          {[60,120,180].map(minutes=>choice(`${minutes} ${bilingual(language,'دقيقة','minutes')}`,value.salawat.intervalMinutes===minutes,()=>save({...value,salawat:{...value.salawat,intervalMinutes:minutes}}),`salawat-interval-${minutes}`))}
         </>}
         {value.salawat.mode==='prayers'&&<Text style={[styles.note,align]}>{bilingual(language,'افتح التطبيق يوميًا لتحديث هذه التذكيرات التجريبية.','Open the app daily to refresh these testing reminders.')}</Text>}
       </View>}
@@ -65,8 +63,9 @@ export function DevotionalSettings({visible,onClose,language,preferences:value,o
       {status==='muted'&&<Text accessibilityRole="alert" style={[styles.note,align]}>{bilingual(language,'صوت الإشعارات مغلق في إعدادات الهاتف.','Notification sound is off in phone settings.')}</Text>}
       {(status==='muted'||status==='permission-required')&&<Pressable accessibilityRole="button" style={styles.button} onPress={()=>{void reminders.openSettings().catch(()=>setFeedback('failed'))}}><Text style={styles.buttonText}>{bilingual(language,'إعدادات الهاتف','Phone settings')}</Text></Pressable>}
       {status==='needs-location'&&<Text accessibilityRole="alert" style={[styles.note,align]}>{bilingual(language,'اختر موقعًا من صفحة الأذان.','Choose a location on the Adhan page.')}</Text>}
-      {status==='invalid-window'&&<Text accessibilityRole="alert" style={[styles.error,align]}>{bilingual(language,'تحقق من وقت البداية والنهاية، واختر فترة أطول.','Check the start and end times, and choose a longer interval.')}</Text>}
+      {status==='invalid-window'&&<Text accessibilityRole="alert" style={[styles.error,align]}>{bilingual(language,'اجعل وقت النهاية بعد البداية، أو قصّر المدة بين البداية والنهاية أو اختر فترة تكرار أطول.','Set the end after the start, shorten the daily window, or choose a longer repeat interval.')}</Text>}
       {(status==='error'||status==='unavailable')&&<Text accessibilityRole="alert" style={[styles.error,align]}>{bilingual(language,'التذكيرات غير متاحة. حاول مجددًا.','Reminders are unavailable. Try again.')}</Text>}
+      {Platform.OS==='ios'&&value.salawat.enabled&&value.salawat.mode==='interval'&&<Text style={[styles.note,align]}>{bilingual(language,'مع التذكيرات المتكررة، افتح التطبيق يوميًا لتحديث تنبيهات الأذان القادمة.','With frequent reminders, open the app daily to refresh upcoming Adhan alerts.')}</Text>}
       <Pressable testID="salawat-test" accessibilityRole="button" disabled={busy||Platform.OS==='web'} style={styles.button} onPress={()=>{void(async()=>{setBusy(true);setFeedback(null);try{const allowed=await reminders.requestPermission();setFeedback(allowed&&await reminders.test()?'sent':'failed')}catch{setFeedback('failed')}finally{setBusy(false)}})()}}><Text style={styles.buttonText}>{bilingual(language,'تجربة التذكير','Test reminder')}</Text></Pressable>
       {feedback&&<Text accessibilityRole="alert" style={[feedback==='failed'?styles.error:styles.note,align]}>{feedback==='sent'?bilingual(language,'سيصلك التذكير بعد ٥ ثوانٍ.','The reminder will arrive in 5 seconds.'):bilingual(language,'تعذر إرسال التذكير.','Could not send the reminder.')}</Text>}
     </ScrollView>

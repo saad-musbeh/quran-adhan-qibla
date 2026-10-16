@@ -47,14 +47,13 @@ export function CreditsSheet({language,visible,onClose}:{language:Language;visib
       <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'التلاوات والأذان','Recitations and Adhan')}</Text>
       {link('حصن المسلم · سعيد بن علي بن وهف القحطاني · Abdellah SELLAM',HISN_SOURCE)}
       <Text style={styles.notice}>{HISN_LICENSE}</Text>
-      {link('eSpeak NG · Arabic spoken reminder','https://github.com/espeak-ng/espeak-ng')}
       {link(bilingual(language,'تلاوات القرآن · EveryAyah.com','Quran recitations · EveryAyah.com'),'https://everyayah.com/')}
       {ADHAN_VOICES.map(voice=><View key={voice.id} style={styles.book}>
         {link(`${language==='ar'?voice.nameAr:voice.name} · ${voice.author}`,voice.source)}
         {link(voice.license,voice.license==='CC0 1.0'?'https://creativecommons.org/publicdomain/zero/1.0/':voice.license.includes('CC BY 3.0')?'https://creativecommons.org/licenses/by/3.0/':'https://creativecommons.org/licenses/by-sa/4.0/')}
         {voice.id==='short'&&link('Short Adhan · Atcovi / Aaqib Azeez · CC BY-SA 4.0','https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3')}
       </View>)}
-      <Text style={[styles.body,align]}>{bilingual(language,'نُقّيت التسجيلات وسُوّي مستوى صوتها. الأذان القصير مقتطفات مرخصة؛ يجمع الفجر صوتين موثقين. تذكير الصلاة على النبي مولّد محليًا باستخدام eSpeak NG.','Recordings are cleaned and volume-matched. Short Adhan uses licensed excerpts; Fajr joins two credited voices. Salawat reminder speech is generated locally with eSpeak NG.')}</Text>
+      <Text style={[styles.body,align]}>{bilingual(language,'نُقّيت التسجيلات وسُوّي مستوى صوتها. الأذان القصير مقتطفات مرخصة؛ يجمع الفجر صوتين موثقين. أصوات الصلاة على النبي مقتطفات صوتية من الفيديو المرجعي الذي زُوّد به المشروع.','Recordings are cleaned and volume-matched. Short Adhan uses licensed excerpts; Fajr joins two credited voices. Salawat sounds are recorded speech excerpts from the reference video supplied to this project.')}</Text>
       <Text accessibilityRole="header" style={[styles.heading,align]}>{bilingual(language,'المدن والخريطة','Cities and map')}</Text>
       {link(bilingual(language,'أسماء الأماكن وإحداثياتها مستمدة من GeoNames · CC BY 4.0','Place names and coordinates adapted from GeoNames · CC BY 4.0'),'https://www.geonames.org')}
       {link('Creative Commons Attribution 4.0','https://creativecommons.org/licenses/by/4.0/')}
