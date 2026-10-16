@@ -55,7 +55,7 @@ export function AdhkarScreen({ language, active, testing, onReminders, request, 
     </View>
     <ScrollView ref={scroll} testID="adhkar-content" contentContainerStyle={styles.content}>
       {!collection ? <View style={[styles.books, rtl && styles.reverse]}>{ADHKAR_COLLECTIONS.map(id => <Pressable key={id} testID={`adhkar-${id}`} accessibilityRole="button" accessibilityLabel={collectionTitle(language,id)} onPress={() => open(id)} style={[styles.book, { width: width >= 720 ? '30%' : '100%' }]}>
-        <Ionicons name="book-outline" size={36} color={colors.accent} /><Text style={styles.bookTitle}>{collectionTitle(language,id)}</Text>
+        <Ionicons name="book-outline" size={36} color={colors.accent} /><Text testID={`adhkar-title-${id}`} textBreakStrategy="simple" style={[styles.bookTitle,{writingDirection:rtl?'rtl':'ltr'}]}>{collectionTitle(language,id)}</Text>
       </Pressable>)}</View> : <>
         {(single ? entries.slice(index,index+1) : entries).map((entry,offset) => renderEntry(entry,single ? index : offset))}
         {testing.counters && collectionComplete(entries,counts) && <Text testID="adhkar-complete" accessibilityRole="alert" style={[styles.complete,align]}>{bilingual(language,'اكتمل','Complete')}</Text>}
@@ -83,7 +83,7 @@ export function AdhkarScreen({ language, active, testing, onReminders, request, 
 const baseStyles = StyleSheet.create({
   root:{flex:1,backgroundColor:'#0B211D'},header:{minHeight:56,paddingHorizontal:12,flexDirection:'row',alignItems:'center',gap:4},row:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},reverse:{flexDirection:'row-reverse'},
   title:{flex:1,fontSize:21,fontWeight:'600',color:'#FAF7EF'},icon:{minWidth:44,minHeight:48,alignItems:'center',justifyContent:'center'},content:{width:'100%',maxWidth:900,alignSelf:'center',padding:18,gap:20,paddingBottom:28},
-  books:{flexDirection:'row',flexWrap:'wrap',gap:16,justifyContent:'center'},book:{minHeight:150,padding:22,gap:18,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#DBAB68',borderRadius:16,backgroundColor:'#15342E'},bookTitle:{fontSize:23,color:'#FAF7EF',textAlign:'center'},
+  books:{flexDirection:'row',flexWrap:'wrap',gap:16,justifyContent:'center'},book:{minHeight:150,padding:22,gap:18,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#DBAB68',borderRadius:16,backgroundColor:'#15342E'},bookTitle:{alignSelf:'stretch',width:'100%',flexShrink:0,fontSize:23,lineHeight:36,includeFontPadding:true,color:'#FAF7EF',textAlign:'center'},
   entry:{paddingBottom:20,gap:12,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:'#35544B'},position:{fontSize:14,color:'#A8C1B8'},arabic:{fontSize:25,lineHeight:51,textAlign:'right',writingDirection:'rtl',color:'#FAF7EF'},count:{minHeight:48,alignSelf:'center',minWidth:116,padding:12,borderWidth:1,borderColor:'#DBAB68',borderRadius:12,alignItems:'center'},countText:{fontSize:18,color:'#FAF7EF'},
   pager:{padding:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},action:{minHeight:48,paddingHorizontal:16,paddingVertical:12,borderWidth:1,borderColor:'#DBAB68',borderRadius:12,justifyContent:'center'},actionText:{fontSize:15,color:'#FAF7EF',textAlign:'center'},disabled:{opacity:.4},complete:{fontSize:20,color:'#D6BA7A',textAlign:'center'},sourceTitle:{fontSize:23,lineHeight:40,color:'#FAF7EF'},reference:{fontSize:18,lineHeight:32,color:'#A8C1B8'},rtl:{textAlign:'right',writingDirection:'rtl'},
 });
