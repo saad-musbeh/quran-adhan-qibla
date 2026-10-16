@@ -1,9 +1,9 @@
 import { isRTL, type Language } from './languages.ts';
 export type { Language } from './languages.ts';
 
-export type Tab = 'quran' | 'adhan' | 'qibla';
+export type Tab = 'quran' | 'adhan' | 'qibla' | 'adhkar';
 
-export const TABS: readonly Tab[] = ['quran', 'adhan', 'qibla'];
+export const TABS: readonly Tab[] = ['quran', 'adhan', 'qibla', 'adhkar'];
 
 /** Deliberate horizontal drags only; short, vertical, diagonal, or multi-touch gestures stay with children. */
 export function isDeliberateTabSwipe(dx: number, dy: number, activeTouches: number): boolean {

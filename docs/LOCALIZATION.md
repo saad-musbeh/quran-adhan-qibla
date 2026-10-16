@@ -21,3 +21,7 @@ Saraiki (`skr`, Arabic script), Oromo (`om`, Latin), Northern Kurdish/Kurmanji (
 The Oromo, Kurmanji, Uyghur and Wolof catalogues use the existing Google Translate/ICU maintenance workflow, with AI-assisted corrections for untranslated short labels. Saraiki is an AI-authored draft because that translation provider does not support it. Its country/language proper names share the existing regional Arabic-script spellings from the Urdu catalogue; its interface sentences are maintained separately. The maintenance script skips Saraiki rather than substituting another language; the audit still checks its coverage and placeholders. All five need native-speaker review.
 
 Current ICU runtimes may lack Saraiki date/number data. In that case formatting uses the regional Urdu locale with an explicitly Gregorian calendar; interface copy remains Saraiki. Quran verses, tafsir content and reciter names are unchanged.
+
+## 0.6.0 additions
+
+New adhkar/reminder/player controls are complete in Arabic and English. The existing translations in the 38 opt-in testing locales are retained; new labels use explicit English fallbacks pending translation/review. The draft translation endpoint returned HTTP 429 during this release. Quran text and the Arabic Hisn collections are not passed to translation services.

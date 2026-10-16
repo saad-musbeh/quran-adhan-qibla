@@ -70,3 +70,14 @@ Quran verse translations are permanently out of scope and will not be added.
 - [x] Use the Quran/direction launcher icon on iOS.
 - [x] Persist selected location/preferences, show data attribution in Credits, and document actual local storage, permissions and optional network services in Settings → Privacy.
 - [ ] Test battery/background behavior, device builds, and store distribution.
+
+## Adhkar and reminders — 0.6.0
+
+- [x] Add a fourth main tab with three fixed, offline Arabic حصن المسلم collections and references on demand.
+- [x] Add optional الصلاة على النبي reminders at user-chosen times, and separate morning/evening reminders.
+- [x] Put counters, single-entry reading, alternate notification styles, intervals and prayer-linked schedules in testing settings.
+- [x] Add a licensed temporary Short Adhan default with a Fajr-specific excerpt, preserving existing full voices and saved choices.
+- [x] Add Stop / Next surah / Repeat surah choices in the Quran reader and Android next-file preloading.
+- [ ] Obtain verified redistribution permission for the selected Nayef/Farooq recordings.
+- [ ] Verify 0.6.0 Android playback improvements and reminder audio on physical phones, including OnePlus.
+- [ ] Review new labels in the 38 opt-in testing interface languages.

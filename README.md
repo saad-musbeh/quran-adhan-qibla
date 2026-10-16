@@ -6,6 +6,9 @@ This app includes an offline Arabic Quran reader with verse audio, Arabic/Englis
 
 ## What is ready
 
+- **0.6.0:** a fourth **أذكار وأدعية / Adhkar & dua** tab with 54 offline Arabic entries from حصن المسلم, in three fixed collections. Scrolling is the default; source references open on demand. Optional الصلاة على النبي reminders use chosen times, and morning/evening reminders open their collections. Counters, single-entry reading, other notification styles and scheduling experiments are under Extra testing settings. See [sources and behavior](docs/ADHKAR.md).
+- Quran playback stops at the current surah's end by default. The reader's player also offers Next surah and Repeat surah. Android enables native next-file preloading; recorded pauses remain. Physical-phone listening still needs follow-up.
+
 - Arabic by default, with Arabic and English in the language menu. Settings → Extra testing settings → Show testing languages reveals the other 38 native-name choices; layouts follow the selected language. The 38 menu/settings translations include the newer home, downloads, Credits and tafsir controls; they are machine-assisted drafts awaiting native-speaker review (see [localization](docs/LOCALIZATION.md)); Quran text and surah names remain Arabic.
 - Quran library tabs stay visible; Adhan/Qibla tabs hide after inactivity. In Quran reading, the top language/appearance/settings banner and bottom audio controls stay visible. Tap the page to reveal reading tools; swipe the page to turn Mushaf pages, then return to the library to switch app sections.
 - New installs open the Home page on phones and tablets. Phones with the Home option disabled open Adhan; startup never opens the Quran reader. Landscape layouts use responsive book grids, a two-page tablet Mushaf with shared page turns and zoom, and scrolling prayer/Qibla views when needed. Location choices and settings open separately.
@@ -24,7 +27,7 @@ This app includes an offline Arabic Quran reader with verse audio, Arabic/Englis
 - iOS C ABI/XCFramework and Android JNI bridge source and build scripts.
 - MIT license, contribution guide, roadmap, and CI checks.
 
-Quran playback is separate from Adhan. In the **Adhan alerts** section of the unified settings page, enable **Play Adhan at prayer times**, allow notifications, and on Android grant **Alarms and reminders** access for exact scheduling. Each salah has its own voice and Adhan switch; switching sound off keeps a silent reminder. Four cleaned, volume-matched recordings are bundled: Makkah (default), Al-Madinah, Andrewler and Original. The master switch turns all alerts off. The test button schedules the chosen prayer’s alert in five seconds. Remaining prayers today and the following seven dates are scheduled locally; open the app at least weekly to refresh them. Android controls notification volume, Do Not Disturb and sound duration. iOS uses a 29-second excerpt and follows notification sound, Silent Mode and Focus settings. See [prayer notification behavior](docs/PRAYER-NOTIFICATIONS.md) and [recording provenance](assets/adhan/PROVENANCE.md). The Qibla bearing is clockwise from **true north**. Live mode rotates the scene relative to a reliable phone heading; fixed mode keeps north at the top.
+Quran playback is separate from Adhan. In the **Adhan alerts** section of the unified settings page, enable **Play Adhan at prayer times**, allow notifications, and on Android grant **Alarms and reminders** access for exact scheduling. Each salah has its own voice and Adhan switch; switching sound off keeps a silent reminder. Short Adhan is the fresh default, with its Fajr phrase selected automatically. Makkah, Al-Madinah, Andrewler and Original full recordings remain available, and saved choices are retained. The licensed temporary short voice is credited in Settings → Credits; the preferred new voices remain pending permission. The master switch turns all alerts off. The test button schedules the chosen prayer’s alert in five seconds. Remaining prayers today and the following seven dates are scheduled locally; open the app at least weekly to refresh them. Android controls notification volume, Do Not Disturb and sound duration. iOS uses a 29-second excerpt and follows notification sound, Silent Mode and Focus settings. See [prayer notification behavior](docs/PRAYER-NOTIFICATIONS.md) and [recording provenance](assets/adhan/PROVENANCE.md). The Qibla bearing is clockwise from **true north**. Live mode rotates the scene relative to a reliable phone heading; fixed mode keeps north at the top.
 
 ## Location and prayer times
 
@@ -93,7 +96,7 @@ See [Android APK size and validation](docs/ANDROID-SIZE.md) for measured before/
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use the `v0.5.3` release source or `codex/release-0.5.3` for the current source (0.5.3 / build 22). The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use the `v0.6.0` release source or `codex/release-0.6.0` for the current source (0.6.0 / build 23). The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios

@@ -20,6 +20,8 @@ test('swipes advance through tabs in the visible LTR and reversed RTL orders, cl
 
   assert.equal(neighborForSwipe('quran', 80, 4, 'ar'), 'adhan');
   assert.equal(neighborForSwipe('adhan', 80, 4, 'ar'), 'qibla');
-  assert.equal(neighborForSwipe('qibla', 80, 4, 'ar'), null);
+  assert.equal(neighborForSwipe('qibla', 80, 4, 'ar'), 'adhkar');
   assert.equal(neighborForSwipe('quran', -80, 4, 'ar'), null);
 });
+
+test('the adhkar tab is reachable and clamps at the fourth-tab edge',()=>{assert.equal(neighborForSwipe('qibla',-80,0,'en'),'adhkar');assert.equal(neighborForSwipe('adhkar',-80,0,'en'),null);assert.equal(neighborForSwipe('adhkar',80,0,'ar'),null);assert.equal(neighborForSwipe('adhkar',-80,0,'ar'),'qibla');});

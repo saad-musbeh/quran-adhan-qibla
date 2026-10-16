@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { ADHAN_VOICES } from './adhan-voices.ts';
+import { adhanSoundFiles } from './adhan-voices.ts';
+import { DEVOTIONAL_SOUNDS } from './devotional-reminders.ts';
 
-test('the native sound configuration packages exactly the four selectable recordings', () => {
+test('native notification sounds match their manifests, include Fajr, and obey iOS format limits', () => {
   const config = JSON.parse(readFileSync(new URL('../../app.json', import.meta.url), 'utf8'));
   const sounds = config.expo.plugins.find((plugin: unknown) => Array.isArray(plugin) && plugin[0] === './plugins/withPlatformNotificationSounds.cjs')[1].sounds;
-  const expected = ADHAN_VOICES.flatMap(voice => [voice.androidSound, voice.iosSound]).sort();
+  const expected = [...adhanSoundFiles(),...Object.values(DEVOTIONAL_SOUNDS).flatMap(sound=>[sound.android,sound.ios])].sort();
   assert.deepEqual(sounds.map((path: string) => path.split('/').at(-1)).sort(), expected);
   const manifest = JSON.parse(readFileSync(new URL('../../assets/adhan/clean-audio-manifest.json', import.meta.url), 'utf8'));
-  const files = manifest.recordings.flatMap((recording: { files: { file: string; sha256: string }[] }) => recording.files);
+  const devotional=JSON.parse(readFileSync(new URL('../../assets/adhan/devotional-audio-manifest.json', import.meta.url),'utf8'));
+  const files = [...manifest.recordings.flatMap((recording: { files: { file: string; sha256: string }[] }) => recording.files),...devotional.files];
   assert.deepEqual(files.map((file: { file: string }) => file.file).sort(), expected);
   for (const file of files) {
     const bytes = readFileSync(new URL(`../../assets/adhan/${file.file}`, import.meta.url));
@@ -31,6 +33,7 @@ test('the native sound configuration packages exactly the four selectable record
       if (kind === 'data') dataSize = size;
       offset += 8 + size + size % 2;
     }
-    assert.equal(dataSize / byteRate, 29, `${file.file}: custom iOS sound must remain below 30 seconds`);
+    assert.ok(dataSize / byteRate > 0 && dataSize / byteRate < 30, `${file.file}: custom iOS sound must remain below 30 seconds`);
+    if(file.file.includes('_clean_short'))assert.equal(dataSize/byteRate,29);
   }
 });

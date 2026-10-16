@@ -5,6 +5,7 @@ import { restoreLanguagePreferences, type Language } from './domain/languages';
 import { normalizePrayerSettings, type PrayerSettings } from './domain/prayers';
 import { normalizePrayerSounds, type PrayerSoundSettings } from './domain/adhan-voices';
 import { normalizeMainMenuOnPhones } from './domain/app-startup';
+import { normalizeDevotionalPreferences, type DevotionalPreferences } from './domain/devotional-reminders';
 
 type Preferences = {
   language: Language; prayer: PrayerSettings; compassMode: 'live' | 'north'; prayerNotifications: boolean;
@@ -12,12 +13,14 @@ type Preferences = {
   mainMenuOnPhones: boolean;
   testingLanguages: boolean;
   prayerSounds: PrayerSoundSettings;
+  devotional: DevotionalPreferences;
 };
 const initial: Preferences = {
   language: 'ar', testingLanguages: false, prayer: normalizePrayerSettings(null),
   compassMode: 'live', prayerNotifications: false, reader: { fontSize: DEFAULT_TEXT_SIZE, nightMode: false },
   mainMenuOnPhones: true,
   prayerSounds: normalizePrayerSounds(undefined),
+  devotional: normalizeDevotionalPreferences(undefined),
 };
 const key = 'app-preferences-v1';
 
@@ -35,6 +38,7 @@ export function usePreferences() {
         prayerNotifications: value.prayerNotifications === true,
         mainMenuOnPhones: normalizeMainMenuOnPhones(value.mainMenuOnPhones),
         prayerSounds: normalizePrayerSounds(value.prayerSounds),
+        devotional: normalizeDevotionalPreferences(value.devotional),
         prayer: normalizePrayerSettings(value.prayer),
         reader: {
           fontSize: typeof value.reader?.fontSize === 'number' && Number.isFinite(value.reader.fontSize)

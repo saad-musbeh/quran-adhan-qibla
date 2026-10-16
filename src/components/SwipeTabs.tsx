@@ -19,8 +19,8 @@ type Props = {
 };
 
 const labels: { en: Record<Tab, string> & { show: string }; ar: Record<Tab, string> & { show: string } } = {
-  en: { quran: 'Quran', adhan: 'Adhan', qibla: 'Qibla', show: 'Show navigation tabs' },
-  ar: { quran: 'القرآن', adhan: 'الأذان', qibla: 'القبلة', show: 'إظهار تبويبات التنقل' },
+  en: { quran: 'Quran', adhan: 'Adhan', qibla: 'Qibla', adhkar: 'Adhkar & dua', show: 'Show navigation tabs' },
+  ar: { quran: 'القرآن', adhan: 'الأذان', qibla: 'القبلة', adhkar: 'أذكار وأدعية', show: 'إظهار تبويبات التنقل' },
 };
 
 const HIDE_DELAY_MS = 4_000;
@@ -138,7 +138,7 @@ export function SwipeTabs({ hideNavigation = false, language, tab, onChange, chi
   };
 
   const copy = localizeCopy(language, labels);
-  const showDock = (tab === 'quran' && !reading) || (reading ? chromeVisible : dockVisible);
+  const showDock = ((tab === 'quran' || tab === 'adhkar') && !reading) || (reading ? chromeVisible : dockVisible);
   const chooseTab = (next: Tab) => {
     revealAndRestartTimer();
     if (next !== current.current.tab) current.current.onChange(next);
@@ -186,7 +186,7 @@ const baseStyles = StyleSheet.create({
     bottom: 6,
     alignSelf: 'center',
     width: '90%',
-    maxWidth: 360,
+    maxWidth: 520,
     minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,7 +202,7 @@ const baseStyles = StyleSheet.create({
     elevation: 8,
   },
   dockRtl: { flexDirection: 'row-reverse' },
-  tab: { flex: 1, minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, borderRadius: 15 },
+  tab: { flex: 1, minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderRadius: 15 },
   tabLabel: { color: '#A8C1B8', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   handleButton: {
     zIndex: 2,

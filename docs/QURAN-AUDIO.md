@@ -1,8 +1,12 @@
+# Quran audio
+
+In 0.6.0, playback stops at the current surah's end by default. Choose Next surah or Repeat surah in the reader's player to change that saved behavior. A selected ayah range takes precedence. Android's native Media3 player now prepares up to ten seconds of the next media source ahead of a transition; this applies to downloaded and streamed files. Source recordings and natural pauses are unchanged. Physical-device listening remains necessary to verify the reported gap across Android models.
+
 # Quran recitation audio
 
 Playback is implemented in `src/use-quran-audio.ts` with Expo Audio. Audio files are not bundled with the app. Each ayah is streamed from the corresponding official EveryAyah directory and is downloaded to the app-private document directory only when a user explicitly requests an offline surah copy. The files are not exported, shared, or included in app releases.
 
-The twenty selectable Hafs reciters and their source directories are defined in `src/data/reciters.ts`, with Saad Al-Ghamdi as the initial default. The source URLs use EveryAyah’s six-digit ayah filename scheme (three-digit surah + three-digit ayah), followed by `.mp3`; for example `001001.mp3`. Voice metadata comes from [EveryAyah’s catalogue](https://everyayah.com/data/recitations.js), with recordings hosted at [everyayah.com/data](https://everyayah.com/data/).
+The twenty selectable Hafs reciters and their source directories are defined in `src/data/reciters.ts`, with Al-Husary as the initial default. The source URLs use EveryAyah’s six-digit ayah filename scheme (three-digit surah + three-digit ayah), followed by `.mp3`; for example `001001.mp3`. Voice metadata comes from [EveryAyah’s catalogue](https://everyayah.com/data/recitations.js), with recordings hosted at [everyayah.com/data](https://everyayah.com/data/).
 
 EveryAyah's directory and index pages identify the reciter and bitrate but do not state a reuse license for the individual recordings. Therefore this app does not claim a redistribution license, bundle the recordings, mirror them, or publish them as app assets. It streams from the source and saves user-requested copies only in that user's private app storage for offline playback. Availability, bitrate, network access, and the source's terms may change; playback and downloads can fail if a source file is missing or the host is unavailable. Users should consult EveryAyah and the rights holder for any redistribution or public reuse.
 
@@ -25,7 +29,7 @@ The EveryAyah `recitations.js` catalogue and the first (`001001.mp3`) and last (
 
 ## 0.4.0 voices and recovery
 
-Ten more distinct Hafs voices bring the catalogue to twenty. Saad Al-Ghamdi is the initial default; valid saved reciter choices are retained. The other additions are Fares Abbad, Yasser Ad-Dossary, Nasser Al-Qatami, Muhsin Al-Qasim, Salah Al-Budair, Hani Ar-Rifai, Muhammad Jibreel, Ali Jaber and Abu Bakr Ash-Shatri. Settings and the player support searching by Arabic or English name.
+Ten more distinct Hafs voices bring the catalogue to twenty. Al-Husary is the initial default; valid saved reciter choices are retained. The other additions are Fares Abbad, Yasser Ad-Dossary, Nasser Al-Qatami, Muhsin Al-Qasim, Salah Al-Budair, Hani Ar-Rifai, Muhammad Jibreel, Ali Jaber and Abu Bakr Ash-Shatri. Settings and the player support searching by Arabic or English name.
 
 The primary EveryAyah catalogue, each new directory's coverage of all 6,236 canonical filenames, and first/last ayah HTTP responses were checked on 12 October 2026. The checked metadata is in `assets/quran/reciter-verification-2026-10-12.json`. This verifies source listing/endpoint availability, not the decoding or contents of every recording. No MP3 is bundled or published. Simulator test downloads are placed only in that simulator's private document directory and excluded from CI artifacts.
 

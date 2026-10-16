@@ -17,6 +17,28 @@ final class QuranUITests: XCTestCase {
     add(attachment)
   }
 
+  func testAdhkarCollectionsAndReminders() {
+    app.descendants(matching: .any)["tab-adhkar"].tap()
+    for id in ["morning", "evening", "after-prayer"] {
+      let book = app.buttons["adhkar-\(id)"]
+      XCTAssertTrue(book.waitForExistence(timeout: 10))
+      book.tap()
+      let source = app.buttons["dhikr-source-\(id)-1"]
+      XCTAssertTrue(source.waitForExistence(timeout: 10))
+      source.tap()
+      XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "حصن المسلم")).firstMatch.waitForExistence(timeout: 5))
+      app.buttons["dhikr-source-close"].tap()
+      app.buttons["adhkar-back"].tap()
+    }
+    screenshot("Adhkar three fixed collections")
+    app.buttons["adhkar-reminders"].tap()
+    XCTAssertTrue(app.switches["salawat-enabled"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.switches["reminder-morning-enabled"].exists)
+    XCTAssertTrue(app.switches["reminder-evening-enabled"].exists)
+    app.buttons["reminders-close"].tap()
+    app.descendants(matching: .any)["tab-quran"].tap()
+  }
+
   private func revealReader() {
     XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 30))
     for _ in 0..<4 {

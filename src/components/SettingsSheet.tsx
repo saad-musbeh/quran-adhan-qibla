@@ -23,13 +23,13 @@ type Props = {
   language: Language; visible: boolean;
   onClose: () => void; prayer: PrayerSettings; onPrayerChange: (value: PrayerSettings) => void;
   timezone: string; compassMode: 'live' | 'north'; onCompassModeChange: (mode: 'live' | 'north') => void;
-  quran: ReactNode; notifications: ReactNode;
+  quran: ReactNode; notifications: ReactNode; devotional?: ReactNode; testing?: ReactNode;
   textSize: number; onTextSizeChange: (size:number)=>void;
   testingLanguages: boolean; onTestingLanguagesChange: (enabled: boolean) => void;
   mainMenuOnPhones: boolean; onMainMenuChange: (enabled: boolean) => void;
 };
 
-export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChange, timezone, compassMode, onCompassModeChange, quran, notifications, textSize, onTextSizeChange, mainMenuOnPhones, onMainMenuChange, testingLanguages, onTestingLanguagesChange }: Props) {
+export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChange, timezone, compassMode, onCompassModeChange, quran, notifications, devotional, testing, textSize, onTextSizeChange, mainMenuOnPhones, onMainMenuChange, testingLanguages, onTestingLanguagesChange }: Props) {
   const { styles } = useReaderStyles(baseStyles);
   const { theme, themeId, setThemeId, mode, setMode } = useReaderTheme();
   const [testingVisible,setTestingVisible]=useState(false);
@@ -67,6 +67,7 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
         <Text accessibilityRole="header" style={[styles.label,textStyle]}>{t.quran}</Text>
         {quran}
         {notifications}
+        {devotional}
         <Text accessibilityRole="header" style={[styles.label,textStyle]}>{bilingual(language,'مواقيت الصلاة','Prayer times')}</Text>
         <Pressable testID="prayer-method-picker" accessibilityRole="button" accessibilityState={{expanded:methodChoicesVisible}} accessibilityLabel={`${t.method}: ${t[selectedMethod.label]}`} onPress={()=>setMethodChoicesVisible(value=>!value)} style={[styles.choice,rtl&&styles.reverse]}>
           <View style={styles.colorChoice}><Text style={[styles.choiceText,textStyle]}>{t.method} · {t[selectedMethod.label]}</Text></View><Ionicons name={methodChoicesVisible?'chevron-up':'chevron-down'} size={20} color={theme.accent}/>
@@ -91,6 +92,7 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
           <Ionicons name={testingVisible?'chevron-up':'chevron-down'} size={20} color={theme.accent}/>
         </Pressable>
         {testingVisible&&<View style={{gap:8}}>
+          {testing}
           <View style={[styles.switchRow,rtl&&styles.reverse]}>
             <Text style={[styles.choiceText,{flex:1},textStyle]}>{bilingual(language,'إظهار اللغات التجريبية','Show testing languages')}</Text>
             <Switch testID="settings-testing-languages" accessibilityLabel={bilingual(language,'إظهار اللغات التجريبية','Show testing languages')} value={testingLanguages} onValueChange={onTestingLanguagesChange} trackColor={{false:theme.appBorder,true:theme.accent}} thumbColor={theme.lightPaper}/>

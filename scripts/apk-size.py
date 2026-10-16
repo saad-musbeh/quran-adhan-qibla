@@ -53,7 +53,7 @@ with zipfile.ZipFile(args.apk) as apk:
 size = args.apk.stat().st_size
 report = {'apk': str(args.apk), 'bytes': size, 'MiB': round(size / 1024**2, 2),
           'architectures': sorted(abis), 'packagedBytes': dict(groups),
-          'verifiedOfflinePages': len(manifest['bundledZstdSha256']), 'verifiedAdhanRecordings': len(android_sounds)}
+          'verifiedOfflinePages': len(manifest['bundledZstdSha256']), 'verifiedNotificationSounds': len(android_sounds)}
 if args.baseline:
     baseline = args.baseline.stat().st_size
     report.update(baselineBytes=baseline, savedBytes=baseline-size, reductionPercent=round((baseline-size) / baseline * 100, 1))

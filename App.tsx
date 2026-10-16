@@ -7,6 +7,12 @@ import { useQuranTheme } from './src/use-quran-theme';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AppState, BackHandler, StyleSheet, useWindowDimensions } from 'react-native';
+import { Pressable } from './src/components/Pressable';
+import { bilingual, isRTL } from './src/i18n';
+import { AdhkarScreen } from './src/components/AdhkarScreen';
+import { DevotionalSettings, DevotionalTestingSettings } from './src/components/DevotionalSettings';
+import { useDevotionalReminders } from './src/use-devotional-reminders';
+import type { AdhkarCollection } from './src/domain/adhkar';
 import { MainMenu } from './src/components/MainMenu';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isPrayerTimesAvailable, isQiblaAvailable, prayerTimes, qiblaBearing } from './modules/islamic-core';
@@ -48,6 +54,9 @@ function Main() {
   const quranTheme = useQuranTheme();
   useEffect(() => { void SystemUI.setBackgroundColorAsync(quranTheme.theme.appBackground).catch(() => undefined); }, [quranTheme.theme.appBackground]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showReminders,setShowReminders] = useState(false);
+  const [adhkarReading,setAdhkarReading] = useState(false);
+  const [adhkarRequest,setAdhkarRequest] = useState<{id:number;collection:AdhkarCollection|null}>({id:0,collection:null});
   const [tab, setTab] = useState<Tab>('adhan');
   const [readingBook,setReadingBook]=useState(false);
   const [homeRequest,setHomeRequest]=useState(0);
@@ -64,18 +73,23 @@ function Main() {
   const [showLocation, setShowLocation] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const locationState = useLocation((!homeVisible&&tab !== 'quran') || showLocation || preferences.prayerNotifications);
+  const locationState = useLocation((!homeVisible&&(tab === 'adhan'||tab === 'qibla')) || showLocation || preferences.prayerNotifications || (preferences.devotional.salawat.enabled&&preferences.devotional.salawat.mode==='prayers'));
   const { location } = locationState;
   const t = translations[language];
   const notificationLabels = notificationCopy(language);
   const chooseSection=(next:Tab)=>{setHomeVisible(false);setTab(next);setReadingChromeVisible(false);setNow(new Date());};
   useEffect(()=>{
     const subscription=BackHandler.addEventListener('hardwareBackPress',()=>{
-      if (!menuEnabled||homeVisible||readingBook||showSettings||showLocation||showLanguages) return false;
+      if (!menuEnabled||homeVisible||readingBook||showSettings||showLocation||showLanguages||showReminders||(tab==='adhkar'&&adhkarReading)) return false;
       setHomeVisible(true);return true;
     });
     return()=>subscription.remove();
-  },[menuEnabled,homeVisible,readingBook,showSettings,showLocation,showLanguages]);
+  },[menuEnabled,homeVisible,readingBook,showSettings,showLocation,showLanguages,showReminders,tab,adhkarReading]);
+  const devotional = useDevotionalReminders({ready:preferencesReady&&locationState.ready,preferences:preferences.devotional,language,location,prayer:settings,onOpen:kind=>{
+    chooseSection('adhkar');
+    if(kind==='salawat')setShowReminders(true);
+    else setAdhkarRequest(value=>({id:value.id+1,collection:kind}));
+  }});
   const notifications = usePrayerNotifications({
     ready: preferencesReady && locationState.ready,
     enabled: preferences.prayerNotifications,
@@ -147,6 +161,9 @@ function Main() {
           onReadingChromeChange={setReadingChromeVisible}
           onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
       </ScreenLayer>
+      <ScreenLayer testID="screen-adhkar" active={!homeVisible&&tab==='adhkar'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
+        <AdhkarScreen language={language} active={!homeVisible&&tab==='adhkar'&&!showSettings&&!showReminders} testing={preferences.devotional.testing} request={adhkarRequest} onReadingChange={setAdhkarReading} onReminders={()=>setShowReminders(true)}/>
+      </ScreenLayer>
       <ScreenLayer testID="screen-home" active={homeVisible} background={quranTheme.theme.appBackground} top={headerHeight}><MainMenu language={language} onChoose={chooseSection} onLocation={()=>setShowLocation(true)} onSettings={()=>setShowSettings(true)}/></ScreenLayer>
 
     </SwipeTabs>
@@ -162,9 +179,12 @@ function Main() {
         prayerSounds={preferences.prayerSounds} onPrayerSoundsChange={prayerSounds=>setPreferences(value=>({...value,prayerSounds}))}
         onChange={prayerNotifications => setPreferences(value => ({ ...value, prayerNotifications }))}
         onChooseLocation={() => { setShowSettings(false); setShowLocation(true); }} />}
+      devotional={<Pressable testID="settings-reminders" accessibilityRole="button" onPress={()=>{setShowSettings(false);setShowReminders(true)}} style={{minHeight:48,justifyContent:'center'}}><Text style={{color:quranTheme.theme.appText,fontSize:16,textAlign:isRTL(language)?'right':'left'}}>{bilingual(language,'التذكيرات','Reminders')}</Text></Pressable>}
+      testing={<DevotionalTestingSettings language={language} preferences={preferences.devotional} onChange={devotional=>setPreferences(value=>({...value,devotional}))}/>}
       quran={<ConnectedQuranSettings library={tafsirLibrary} language={language} />} />
     <LanguagePicker extraTesting={preferences.testingLanguages} language={language} visible={showLanguages} onChoose={language => setPreferences(value => ({ ...value, language }))} onClose={() => setShowLanguages(false)} />
     <LocationSheet language={language} visible={showLocation} state={locationState} onClose={() => setShowLocation(false)} />
+    <DevotionalSettings visible={showReminders} onClose={()=>setShowReminders(false)} language={language} preferences={preferences.devotional} onChange={devotional=>setPreferences(value=>({...value,devotional}))} reminders={devotional}/>
   </SafeAreaView></QuranThemeContext.Provider></TextSizeContext.Provider>;
 }
 

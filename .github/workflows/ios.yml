@@ -135,6 +135,7 @@ jobs:
             -scheme QuranAdhanQibla -configuration Release \
             -destination "platform=iOS Simulator,id=$QURAN_SIMULATOR" \
             -only-testing:QuranUITests/QuranUITests/testPolishLanguageMenuAndRepeatControls \
+            -only-testing:QuranUITests/QuranUITests/testAdhkarCollectionsAndReminders \
             -derivedDataPath target/ios-build -resultBundlePath target/ios-polish-ui.xcresult \
             CODE_SIGNING_ALLOWED=NO 2>&1 | tee target/ios-polish-ui.log | xcbeautify
       - name: Emulate iPad portrait and landscape

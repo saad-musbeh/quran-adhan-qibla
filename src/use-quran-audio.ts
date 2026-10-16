@@ -9,7 +9,7 @@ import {
   audioCacheKey, isValidAudioDownloadResponse, nextVersePosition, previousPositionInRange, verseKey,
   type AudioRange as DomainAudioRange,
 } from './domain/quran-audio';
-import { findQuranQueuePosition, initialQuranQueue, nextQuranQueueChapter, type QuranQueuePosition } from './domain/quran-audio-queue';
+import { findQuranQueuePosition, initialQuranQueue, nextQuranQueueChapter, type QuranQueuePosition, type SurahEndMode } from './domain/quran-audio-queue';
 import { summarizeAudioDownload, type AudioDownload } from './domain/audio-downloads';
 import { quranAudioControls } from './quran-audio-controls';
 
@@ -23,6 +23,8 @@ export type QuranAudioController = {
   reciter: ReciterId;
   playbackRate: number;
   repeatRange: AudioRange | null;
+  surahEnd: SurahEndMode;
+  setSurahEnd(mode: SurahEndMode): void;
   error: string | null;
   downloadError: string | null;
   downloadedSurahs: number[];
@@ -103,6 +105,9 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
   const [reciter, setReciterState] = useState<ReciterId>(DEFAULT_RECITER_ID);
   const [playbackRate, setPlaybackRateState] = useState(1);
   const [repeatRange, setRepeatRangeState] = useState<AudioRange | null>(null);
+  const [surahEnd,setSurahEndState] = useState<SurahEndMode>('stop');
+  const surahEndRef = useRef<SurahEndMode>('stop');
+  const endedRef = useRef(false);
   const [current, setCurrent] = useState<{ surah: number; verse: number } | null>(null);
   const [status, setStatus] = useState<QuranAudioController['status']>('idle');
   const statusRef = useRef<QuranAudioController['status']>('idle');
@@ -152,6 +157,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
   statusRef.current = status;
   reciterRef.current = reciter;
   repeatRef.current = repeatRange;
+  surahEndRef.current = surahEnd;
   rateRef.current = playbackRate;
 
   const refreshOnline = useCallback(async (allowRecovery = false) => {
@@ -209,7 +215,8 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
     void AsyncStorage.multiGet([PREFERENCES_KEY, DOWNLOADS_KEY]).then(([preferences, downloads]) => {
       try {
         if (preferences[1]) {
-          const stored = JSON.parse(preferences[1]) as { reciter?: ReciterId; playbackRate?: number; repeatRange?: AudioRange | null };
+          const stored = JSON.parse(preferences[1]) as { reciter?: ReciterId; playbackRate?: number; repeatRange?: AudioRange | null; surahEnd?: SurahEndMode };
+          if(stored.surahEnd==='next'||stored.surahEnd==='repeat')setSurahEndState(stored.surahEnd);
           if (stored.reciter && reciterById.has(stored.reciter)) setReciterState(stored.reciter);
           if (stored.playbackRate && [0.75, 1, 1.25, 1.5, 2].includes(stored.playbackRate)) setPlaybackRateState(stored.playbackRate);
           if (stored.repeatRange === null) setRepeatRangeState(null);
@@ -232,8 +239,8 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
 
   useEffect(() => {
     if (!preferencesLoaded) return;
-    void AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify({ reciter, playbackRate, repeatRange })).catch(() => undefined);
-  }, [preferencesLoaded, reciter, playbackRate, repeatRange]);
+    void AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify({ reciter, playbackRate, repeatRange, surahEnd })).catch(() => undefined);
+  }, [preferencesLoaded, reciter, playbackRate, repeatRange, surahEnd]);
 
   useEffect(() => {
     if (!preferencesLoaded) return;
@@ -273,6 +280,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
     if (!getVerse(position.surah, position.verse)) return;
     const generation = ++generationRef.current;
     wantsPlayback.current = autoplay;
+    endedRef.current = false;
     resumeTime.current = resumeAt;
     recoverOnConnection.current = false;
     const activeReciter = reciterRef.current;
@@ -295,7 +303,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
       const requestedLocalAvailable = Boolean(requestedInfo?.exists && typeof requestedInfo.size === 'number' && Number.isFinite(requestedInfo.size) && requestedInfo.size > 0);
       if (!requestedLocalAvailable && !onlineRef.current) throw new Error('Audio is unavailable offline. Download this surah while connected to the internet.');
 
-      const positions = initialQuranQueue(position, repeatRef.current);
+      const positions = initialQuranQueue(position, repeatRef.current, surahEndRef.current);
       const sources = await resolveSources(positions, activeReciter, generation);
       if (!sources || generation !== generationRef.current || !mountedRef.current) return;
       if (requestedInfo?.exists && !requestedLocalAvailable) await FileSystem.deleteAsync(requestedLocal, { idempotent: true }).catch(() => undefined);
@@ -303,7 +311,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
       queuePositionsRef.current = positions;
       queueTitlesRef.current = positions.map(titleFor);
       for (const source of sources) playlist.add({ uri: source });
-      playlist.loop = repeatRef.current ? 'all' : 'none';
+      playlist.loop = repeatRef.current || surahEndRef.current==='repeat' ? 'all' : 'none';
       quranAudioControls.attach(playlist, queueTitlesRef.current, activeReciter);
       attachedPlaylistRef.current = quranAudioControls.available;
       const startIndex = findQuranQueuePosition(positions, position);
@@ -368,11 +376,13 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
       return;
     }
     if (!currentRef.current || queueLoadingRef.current) return;
-    const reachedQueueEnd = repeatRef.current === null && playerStatus.currentIndex >= playerStatus.trackCount - 1
+    const reachedQueueEnd = repeatRef.current === null && surahEndRef.current!=='repeat' && playerStatus.currentIndex >= playerStatus.trackCount - 1
       && (playerStatus.didJustFinish || (!playerStatus.playing && playerStatus.isLoaded
         && playerStatus.duration > 0 && playerStatus.currentTime >= playerStatus.duration - 0.1));
     if (playerStatus.trackCount > 0 && reachedQueueEnd) {
       playlist.pause();
+      wantsPlayback.current = false;
+      endedRef.current = true;
       setStatus('idle');
       return;
     }
@@ -382,7 +392,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
   }, [playerStatus, playlist]);
 
   const refillQueue = useCallback(async () => {
-    if (repeatRef.current || queueLoadingRef.current || statusRef.current === 'paused' || statusRef.current === 'idle' || statusRef.current === 'error') return;
+    if (surahEndRef.current!=='next' || repeatRef.current || queueLoadingRef.current || statusRef.current === 'paused' || statusRef.current === 'idle' || statusRef.current === 'error') return;
     const positions = queuePositionsRef.current;
     const index = playerStatus.currentIndex;
     if (positions.length - index > 10 || !positions.length) return;
@@ -415,6 +425,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
     const subscription = quranAudioControls.addRemoteCommandListener((command, nativeHandled) => {
       if (command === 'play') {
         wantsPlayback.current = true;
+        if(endedRef.current&&currentRef.current){void playRequest.current({surah:currentRef.current.surah,verse:1});return;}
         if (statusRef.current === 'error' && currentRef.current) { void playRequest.current(currentRef.current,true,resumeTime.current); return; }
         if (nativeHandled) setStatus('playing');
         else if (queuePositionsRef.current.length) playlist.play();
@@ -485,6 +496,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
 
   const stop = useCallback(() => {
     wantsPlayback.current = false;
+    endedRef.current = false;
     recoverOnConnection.current = false;
     resumeTime.current = 0;
     generationRef.current += 1;
@@ -510,6 +522,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
       pause();
       return;
     }
+    if(endedRef.current&&currentRef.current){await playPosition({surah:currentRef.current.surah,verse:1});return;}
     if (currentRef.current && queuePositionsRef.current.length && playerStatus.isLoaded) {
       wantsPlayback.current = true;
       setError(null);
@@ -521,6 +534,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
 
   const seekToPosition = useCallback(async (position: QuranQueuePosition) => {
     wantsPlayback.current = true;
+    endedRef.current = false;
     recoverOnConnection.current = false;
     const index = findQuranQueuePosition(queuePositionsRef.current, position);
     if (index >= 0 && queuePositionsRef.current.length > index) {
@@ -538,6 +552,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
 
   const replayVerse = useCallback(async () => {
     wantsPlayback.current = true;
+    endedRef.current = false;
     recoverOnConnection.current = false;
     const position = currentRef.current;
     if (!position) return;
@@ -587,6 +602,12 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
     playlist.playbackRate = rate;
     quranAudioControls.updatePlaybackRate(rate);
   }, [playlist]);
+
+  const setSurahEnd = useCallback((mode:SurahEndMode)=>{
+    if(!['stop','next','repeat'].includes(mode))return;
+    setSurahEndState(mode);surahEndRef.current=mode;
+    if(currentRef.current&&!repeatRef.current)void playPosition(currentRef.current,statusRef.current==='playing'||statusRef.current==='loading',currentTimeRef.current);
+  },[playPosition]);
 
   const setRepeatRange = useCallback((range: AudioRange | null) => {
     if (range && !validAudioRange(range)) return;
@@ -789,6 +810,8 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
     reciter,
     playbackRate,
     repeatRange,
+    surahEnd,
+    setSurahEnd,
     error,
     downloadError,
     downloadedSurahs,

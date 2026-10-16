@@ -1,6 +1,22 @@
-# Current Adhan choices — 0.5.3
+# 0.6.0 short Adhan and reminder sounds
 
-The app exposes exactly **Makkah** (default), **Al-Madinah**, **Andrewler**, and **Original**. Aaqib, Shalqar and Malmö Fajr were removed; saved selections migrate to Makkah without changing each prayer’s enabled/muted setting. Existing Original/Andrewler/Makkah selections remain selected.
+**Short Adhan** is the fresh default. The four existing full voices and their saved IDs remain available. Preferred Nayef Saleh Faydah / Farooq Hadrawi audition recordings are pending verified redistribution permission and are not bundled. The user approved licensed temporary sources for this release.
+
+- Opening: the released 0.5.2 `adhan_aaqib.ogg`, SHA-256 `a222dab72cec6fce0483ec445a1d6c4c3a450bfd46cdbfc72d19c257b2759e4d`, seconds **0.4–11.1**. Source: [The Adhan — Aaqib Azeez](https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3), recorded/uploaded by **Atcovi**, CC BY-SA 4.0. The complete opening takbirs are retained, with margins outside the detected speech boundaries.
+- Fajr addition: the released 0.5.2 `adhan_fajr_malmo.ogg`, SHA-256 `a3224cbf6707b0b2fe51d4f70e22d113c4693d3812f1b1b6dc27985193d477f9`, seconds **188.1–196.2**. Source: [Eid al-Fitr Fajr azan at Malmö Mosque](https://commons.wikimedia.org/wiki/File:Eid_al-Fitr_Fajr_azan_at_Malm%C3%B6_Mosque_-_19_August_2012.webm), **Islamic Center Malmö / Besim Azemi**, CC BY 3.0. The source identifies this as a Fajr recording.
+
+The regular alert is **10.7 seconds**. The Fajr alert appends the complete recorded “الصلاة خير من النوم” phrase after 0.2 seconds of separation, for **19 seconds** total. These temporary excerpts join two credited voices for Fajr. The adaptations are distributed under **CC BY-SA 4.0**, with both source attributions retained. Neither licensor nor performer endorses this app.
+
+Preparation applies mono mixing, high/low-pass filtering, noise reduction, short fades outside speech, and matched −18 LUFS targets. Words are sourced recordings; pitch and playback speed are unchanged. A local ASR check of the assembled Fajr alert recovered “الله أكبر الله أكبر الصلاة خير من النوم”; this is a crop sanity check, not a claim of human or physical-phone listening verification.
+
+`reminder_salawat` is **computer-generated speech**, made offline using eSpeak NG's Arabic voice at 125 words/minute, saying “صَلِّ عَلَى رَسُولِ اللَّهِ”. It is not credited to a human speaker. `reminder_chime` is a generated two-note tone. The project dedicates its reminder speech output and chime to **CC0 1.0**. eSpeak NG is a build-time tool and is not linked or bundled as app code.
+
+`devotional-audio-manifest.json` records exact output hashes, durations, source hashes, cut intervals and the speech engine version. Android receives OGG files; iOS receives mono 22,050 Hz 16-bit PCM WAV files below 30 seconds. Reproduce with `python3 scripts/prepare-devotional-audio.py` (FFmpeg with Vorbis and eSpeak NG required). The script downloads hash-checked 0.5.2 source assets unless `--takbir-source` and `--fajr-source` are supplied. Output OGG container serials can change between runs; decoded content is the same.
+
+# Retained full-voice sources — 0.5.3
+
+
+The app exposes exactly **Makkah** (the 0.5.3 default), **Al-Madinah**, **Andrewler**, and **Original**. Aaqib, Shalqar and Malmö Fajr were removed; saved selections migrate to Makkah without changing each prayer’s enabled/muted setting. Existing Original/Andrewler/Makkah selections remain selected.
 
 The current native sound list is in `app.json`; each voice packages one `*_clean.ogg` on Android and one `*_clean_short.wav` on iOS. Original OGG inputs retained here are source fixtures, not additional packaged sounds. The exact source and output SHA-256 hashes, processing filters and measured audio statistics are in [clean-audio-manifest.json](clean-audio-manifest.json).
 

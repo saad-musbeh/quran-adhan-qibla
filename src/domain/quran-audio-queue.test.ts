@@ -5,8 +5,8 @@ import { createRequire } from 'node:module';
 (globalThis as typeof globalThis & { require: NodeRequire }).require = createRequire(import.meta.url);
 const { initialQuranQueue, nextQuranQueueChapter, findQuranQueuePosition } = await import('./quran-audio-queue.ts');
 
-test('initial normal queue includes the current surah remainder and one full next surah', () => {
-  const queue = initialQuranQueue({ surah: 1, verse: 6 }, null);
+test('continuous mode queues the current surah remainder and one full next surah', () => {
+  const queue = initialQuranQueue({ surah: 1, verse: 6 }, null, 'next');
   assert.deepEqual(queue.slice(0, 2), [{ surah: 1, verse: 6 }, { surah: 1, verse: 7 }]);
   assert.equal(queue.length, 288);
   assert.deepEqual(queue.at(-1), { surah: 2, verse: 286 });
@@ -22,4 +22,11 @@ test('a range queues only its selected verses, while a normal queue can append t
   ]);
   assert.deepEqual(nextQuranQueueChapter([{ surah: 2, verse: 286 }]).slice(0, 2), [{ surah: 3, verse: 1 }, { surah: 3, verse: 2 }]);
   assert.deepEqual(nextQuranQueueChapter([{ surah: 114, verse: 6 }]), []);
+});
+
+ test('default playback stops at the current surah; repeat includes its beginning', () => {
+  assert.deepEqual(initialQuranQueue({surah:1,verse:6},null),[{surah:1,verse:6},{surah:1,verse:7}]);
+  const repeating=initialQuranQueue({surah:1,verse:6},null,'repeat');
+  assert.equal(repeating.length,7);assert.deepEqual(repeating[0],{surah:1,verse:1});
+  assert.deepEqual(repeating.at(-1),{surah:1,verse:7});
 });

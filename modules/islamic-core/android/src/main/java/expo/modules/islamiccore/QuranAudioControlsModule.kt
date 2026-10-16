@@ -2,6 +2,8 @@ package expo.modules.islamiccore
 
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.Player
 import androidx.media3.common.PlaybackException
@@ -14,6 +16,14 @@ class QuranAudioControlsModule : Module() {
   private val mainHandler = Handler(Looper.getMainLooper())
   private var observedPlayer: Player? = null
   private val errorListener = object : Player.Listener {
+    override fun onPlaybackStateChanged(playbackState: Int) {
+      Log.d("QuranPlayback", "state=$playbackState index=${observedPlayer?.currentMediaItemIndex}")
+    }
+
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+      Log.d("QuranPlayback", "transition=$reason index=${observedPlayer?.currentMediaItemIndex}")
+    }
+
     override fun onPlayerError(error: PlaybackException) {
       sendEvent("playbackError", mapOf(
         "message" to (error.message ?: "Audio playback failed."),
@@ -41,6 +51,10 @@ class QuranAudioControlsModule : Module() {
       runOnMain {
         observedPlayer?.removeListener(errorListener)
         observedPlayer = playlist.ref
+        // Expo leaves playlist preloading disabled. Preparing the next ayah's
+        // media source ahead of the boundary avoids per-file preparation stalls.
+        // Media3 owns the buffer for local files and streams; no recitation is edited.
+        configureQuranPlayback(playlist.ref)
         playlist.ref.addListener(errorListener)
         val context = appContext.reactContext
           ?: throw IllegalStateException("React context is unavailable.")
