@@ -9,9 +9,11 @@ The regular alert is **10.7 seconds**. The Fajr alert appends the complete recor
 
 Preparation applies mono mixing, high/low-pass filtering, noise reduction, short fades outside speech, and matched −18 LUFS targets. Words are sourced recordings; pitch and playback speed are unchanged. A local ASR check of the assembled Fajr alert recovered “الله أكبر الله أكبر الصلاة خير من النوم”; this is a crop sanity check, not a claim of human or physical-phone listening verification.
 
-`reminder_salawat` is **computer-generated speech**, made offline using eSpeak NG's Arabic voice at 125 words/minute, saying “صَلِّ عَلَى رَسُولِ اللَّهِ”. It is not credited to a human speaker. `reminder_chime` is a generated two-note tone. The project dedicates its reminder speech output and chime to **CC0 1.0**. eSpeak NG is a build-time tool and is not linked or bundled as app code.
+`reminder_salawat_rasul` and its four phrase variants now use **recorded speech from the user-provided `134122.mp4` reference** (16 October 2026). They replace the former synthetic eSpeak voice. The reference provides four Arabic phrases and “Peace be upon him”. `salawat-phrases-manifest.json` records the original video's SHA-256, complete excerpt ranges, output hashes and durations. Processing retains the recorded voice, speed and pitch: mono at the source 44,100 Hz sample rate, 65 Hz high-pass, short boundary fades and −18 LUFS / −2 dBTP loudness matching. The input is a compressed screen recording, so this does not recover studio quality.
 
-`devotional-audio-manifest.json` records exact output hashes, durations, source hashes, cut intervals and the speech engine version. Android receives OGG files; iOS receives mono 22,050 Hz 16-bit PCM WAV files below 30 seconds. Reproduce with `python3 scripts/prepare-devotional-audio.py` (FFmpeg with Vorbis and eSpeak NG required). The script downloads hash-checked 0.5.2 source assets unless `--takbir-source` and `--fajr-source` are supplied. Output OGG container serials can change between runs; decoded content is the same.
+The user supplied these recordings for this change; **no public redistribution licence was supplied**. They are not claimed as CC0 or covered by the code's MIT licence. Keep this provenance distinct from the licensed Adhan recordings and generated chime.
+
+`reminder_chime` remains a project-generated two-note tone dedicated to **CC0 1.0**. `devotional-audio-manifest.json` records the short Adhan/chime output hashes, durations and source ranges. Android receives OGG files; iOS receives mono 16-bit PCM WAV files below 30 seconds. Reproduce Adhan/chime with `python3 scripts/prepare-devotional-audio.py` (FFmpeg with Vorbis required). Reproduce the recorded phrases with `python3 scripts/prepare-salawat-phrases.py --reference /path/to/134122.mp4`. The reference video is not included in the repository. OGG container serials can change between runs.
 
 # Retained full-voice sources — 0.5.3
 
@@ -34,13 +36,17 @@ The current native sound list is in `app.json`; each voice packages one `*_clean
 
 All four voices are downmixed to mono **before** measurement, high-pass filtered at 80 Hz and low-pass filtered at 8.5 kHz, with mild FFmpeg `afftdn` noise reduction (`nr=6:nf=-45:tn=1`). Two-pass loudness normalization targets −18 LUFS and a −2 dBTP ceiling. Android retains the complete source timeline, words, pitch and speed, encoded as 48 kHz Vorbis. iOS separately normalizes the first 29 seconds, with a one-second ending fade, as mono 22,050 Hz 16-bit PCM. This is sound cleanup of sourced recordings, not a newly recorded or synthesized voice. Residual ambience can remain.
 
-Reproduce from the retained original OGG inputs and the verified Madinah download:
+Reproduce from the three retained original OGG inputs and a fresh download of the Madinah source:
 
 ```sh
 python3 scripts/prepare-adhan-audio.py --madinah-source /path/to/madinah-source.ogg
 ```
 
-The script checks the Madinah input SHA-1 and writes a fresh manifest with output hashes. Vorbis container serial numbers may vary between encodes. Runtime Credits includes all four source/author/licence links and explains the cleanup/excerpt adaptation. Andrewler’s cleaned adaptations remain **CC BY-SA 4.0**, Makkah and Madinah retain **CC BY 3.0**, and Original remains **CC0**. Notification volume, Silent Mode, Focus and sound duration remain under system control. Technical decoding/measurement and source attribution were checked; physical-phone listening remains part of iOS testing.
+The script checks the Madinah input SHA-1 and writes a fresh manifest with output hashes. Vorbis container serial numbers may vary between encodes.
+
+Retention differs for that Madinah input: `adhan.ogg` (Original), `adhan_andrewler.ogg` and `adhan_makkah.ogg` are tracked in this directory as retained source fixtures, but `madinah-source.ogg` is **not** retained in the repository. Re-download it from the Commons link above and confirm the recorded SHA-1 (`4aa432b9e44804e7d72af4429bd743aa5fa9e3a4`) and SHA-256 before reproducing; only `adhan_madinah_clean.ogg` and `adhan_madinah_clean_short.wav` are kept as outputs.
+
+Runtime Credits includes all four source/author/licence links and explains the cleanup/excerpt adaptation. Andrewler’s cleaned adaptations remain **CC BY-SA 4.0**, Makkah and Madinah retain **CC BY 3.0**, and Original remains **CC0**. Notification volume, Silent Mode, Focus and sound duration remain under system control. Technical decoding/measurement and source attribution were checked; physical-phone listening remains part of iOS testing.
 
 # Historical input provenance
 
@@ -141,7 +147,9 @@ checksums for Andrewler, Shalqar, Makkah, and Malmö match the downloaded origin
   SHA-256: `899a3325aafb03e09381b3e40149e88d06b00b40ce2b1eeb09d63e594c9c1742`.
   SHA-1: `bc75d5cee271efb67f03d3f35474a9362fce103f`.
 
-### Bundled output verification
+### Historical conversion output verification
+
+The table below records the 13 October 2026 conversion outputs, not the sounds currently bundled: Aaqib, Shalqar and Malmö Fajr were retired in 0.5.3 and their files are no longer kept in this directory, while `adhan_makkah.ogg` and `adhan_andrewler.ogg` survive only as source fixtures. The packaged sounds are the cleaned `*_clean` files listed earlier.
 
 All added output files decode successfully. PCM excerpts measure exactly 29 seconds.
 `max_volume` is the decoded sample peak measured with FFmpeg `volumedetect`; all

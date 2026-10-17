@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import { test } from 'node:test';
-import { MushafPageTurns } from './mushaf-page-turns.ts';
+globalThis.require = createRequire(import.meta.url);
+const { MushafPageTurns, mushafPageTurnTarget } = await import('./mushaf-page-turns.ts');
 
 test('rapid page turns survive delayed intermediate React commits', () => {
   const turns = new MushafPageTurns(58);
@@ -34,8 +36,11 @@ test('duplicate, out-of-order and out-of-bounds page-turn messages are rejected'
   assert.equal(turns.accept(1,1,1), null);
   assert.equal(turns.accept(2,1,1), null);
   const last = new MushafPageTurns(604);
-  assert.equal(last.accept(604,1,1), null);
-  assert.equal(last.accept(604,-1,1), 603);
+  assert.equal(last.accept(604,1,1), 605);
+  assert.equal(last.accept(605,1,2), 606);
+  assert.equal(last.accept(606,1,3), null);
+  assert.equal(last.accept(606,-1,3), 605);
+  assert.equal(last.accept(605,-1,4), 604);
 });
 
 test('alternating gestures share one spread sequence despite delayed React commits', () => {
@@ -66,12 +71,27 @@ test('first and last spreads reject outward turns without consuming a sequence',
   assert.equal(first.sequence, 2);
 
   const last = new MushafPageTurns(603, 2);
-  assert.equal(last.accept(603, 1, 1), null);
-  assert.equal(last.accept(603, -1, 1), 601);
-  assert.equal(last.accept(601, 1, 2), 603);
-  assert.equal(last.accept(603, 1, 3), null);
-  assert.equal(last.page, 603);
-  assert.equal(last.sequence, 2);
+  assert.equal(last.accept(603, 1, 1), 605);
+  assert.equal(last.accept(605, 1, 2), 606);
+  assert.equal(last.accept(606, -1, 3), 605);
+  assert.equal(last.accept(605, -1, 4), 603);
+  assert.equal(last.accept(603, -1, 5), 601);
+  assert.equal(last.page, 601);
+  assert.equal(last.sequence, 5);
+});
+
+test('landscape appendix starts keep single-sheet turns and return to the canonical last spread', () => {
+  const fromFirstSheet = new MushafPageTurns(605,2);
+  assert.equal(fromFirstSheet.accept(605,1,1),606);
+  assert.equal(fromFirstSheet.accept(606,-1,2),605);
+  assert.equal(fromFirstSheet.accept(605,-1,3),603);
+
+  const restoredSecondSheet = new MushafPageTurns(606,2);
+  assert.equal(restoredSecondSheet.accept(606,1,1),null);
+  assert.equal(restoredSecondSheet.accept(606,-1,1),605);
+  assert.equal(restoredSecondSheet.accept(605,-1,2),603);
+  assert.equal(mushafPageTurnTarget(605,-1,true),603);
+  assert.equal(mushafPageTurnTarget(606,1,true),607);
 });
 
 test('spread navigation rejects messages from the previous book position', () => {

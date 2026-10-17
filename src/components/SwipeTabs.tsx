@@ -10,6 +10,7 @@ export type { Tab } from '../domain/navigation';
 
 type Props = {
   hideNavigation?: boolean;
+  onDockHeightChange?: (height: number) => void;
   language: Language;
   tab: Tab;
   onChange: (tab: Tab) => void;
@@ -25,7 +26,7 @@ const labels: { en: Record<Tab, string> & { show: string }; ar: Record<Tab, stri
 
 const HIDE_DELAY_MS = 4_000;
 
-export function SwipeTabs({ hideNavigation = false, language, tab, onChange, children, reading = false, chromeVisible = false }: Props) {
+export function SwipeTabs({ hideNavigation = false, language, tab, onChange, children, reading = false, chromeVisible = false, onDockHeightChange }: Props) {
   const { styles, colors } = useReaderStyles(baseStyles);
   const [dockVisible, setDockVisible] = useState(true);
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
@@ -152,7 +153,7 @@ export function SwipeTabs({ hideNavigation = false, language, tab, onChange, chi
     onTouchCancel={reading ? undefined : onTouchCancel}
   >
     <View style={styles.content}>{children}</View>
-    {hideNavigation ? null : showDock ? <View accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, colors.mode === 'light' && { shadowOpacity: 0.08, elevation: 2 }, isRTL(language) && styles.dockRtl]}>
+    {hideNavigation ? null : showDock ? <View onLayout={event=>onDockHeightChange?.(Math.ceil(event.nativeEvent.layout.height)+12)} accessibilityRole="tablist" {...(reading ? responder.panHandlers : {})} style={[styles.dock, colors.mode === 'light' && { shadowOpacity: 0.08, elevation: 2 }, isRTL(language) && styles.dockRtl]}>
       {TABS.map(item => <Pressable
         key={item}
         testID={`tab-${item}`}
@@ -202,8 +203,8 @@ const baseStyles = StyleSheet.create({
     elevation: 8,
   },
   dockRtl: { flexDirection: 'row-reverse' },
-  tab: { flex: 1, minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderRadius: 15 },
-  tabLabel: { color: '#A8C1B8', fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  tab: { flex: 1, minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, paddingVertical: 5, borderRadius: 15 },
+  tabLabel: { width: '100%', alignSelf: 'stretch', flexShrink: 0, lineHeight: 21, color: '#A8C1B8', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   handleButton: {
     zIndex: 2,
     position: 'absolute',

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildPrayerNotificationSchedule, isPrayerNotificationOwned, PRAYER_NOTIFICATION_NAMESPACE } from './prayer-notifications.ts';
+import { buildPrayerNotificationSchedule, isPrayerNotificationOwned, isPrayerTestNotification, PRAYER_NOTIFICATION_NAMESPACE, IOS_PENDING_NOTIFICATION_LIMIT } from './prayer-notifications.ts';
 
 function timesForDate([year, month, day]: [number, number, number]): Date[] {
   // UTC instants derived from local noon date fields keep the tests independent of a fixed TZ.
@@ -37,4 +37,17 @@ test('ownership filtering only matches this prayer namespace', () => {
   assert.equal(isPrayerNotificationOwned({ content: { data: { namespace: PRAYER_NOTIFICATION_NAMESPACE } } }), true);
   assert.equal(isPrayerNotificationOwned({ content: { data: { namespace: 'other.app' } } }), false);
   assert.equal(isPrayerNotificationOwned({ content: { data: null } }), false);
+});
+
+test('five-second test alerts are excluded from recurring reconciliation', () => {
+  assert.equal(isPrayerTestNotification({ content: { data: { namespace: PRAYER_NOTIFICATION_NAMESPACE, test: true } } }), true);
+  assert.equal(isPrayerTestNotification({ content: { data: { namespace: PRAYER_NOTIFICATION_NAMESPACE, test: false } } }), false);
+  assert.equal(isPrayerTestNotification({ content: { data: { namespace: PRAYER_NOTIFICATION_NAMESPACE } } }), false);
+  assert.equal(isPrayerTestNotification({ content: { data: { namespace: 'someone.else', test: true } } }), false);
+  assert.equal(isPrayerTestNotification({ content: { } }), false);
+});
+
+test('the shared iOS pending budget stays below the OS 64-notification ceiling', () => {
+  assert.equal(IOS_PENDING_NOTIFICATION_LIMIT, 62);
+  assert.ok(IOS_PENDING_NOTIFICATION_LIMIT < 64);
 });

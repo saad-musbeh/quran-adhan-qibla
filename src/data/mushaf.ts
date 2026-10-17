@@ -9,6 +9,11 @@ export type MushafPageRecord = {
 // The path is also resolvable from the Node test harness's global Metro shim.
 export const MUSHAF_PAGES = require('../data/mushaf-pages.json') as MushafPageRecord[];
 export const MUSHAF_PAGE_COUNT = 604;
+/** Virtual reader page after the last Mushaf page: the closing khatm dua. */
+export const KHATM_DUA_PAGE = MUSHAF_PAGE_COUNT + 1;
+/** The supplied khatm dua spans two appendix sheets after the 604 Quran pages. */
+export const KHATM_DUA_LAST_PAGE = KHATM_DUA_PAGE + 1;
+export const LAST_READER_PAGE = KHATM_DUA_LAST_PAGE;
 export const MUSHAF_VERSE_COUNT = 6236;
 
 export function getMushafPage(page: number): MushafPageRecord | undefined {

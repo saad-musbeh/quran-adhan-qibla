@@ -9,6 +9,7 @@ import { decodeMushafPage } from '../domain/mushaf-compression';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { Verse } from '../domain/quran';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
+import { KHATM_DUA_PAGE, LAST_READER_PAGE, MUSHAF_PAGE_COUNT } from '../data/mushaf';
 import { printedPageVerses, chapterNames, juzArabic } from '../domain/quran-reader';
 import { mushafLabels, buildMushafDocument } from './mushaf-document';
 import { MushafPageTurns } from '../domain/mushaf-page-turns';
@@ -49,7 +50,7 @@ export function preloadMushafResources(module:number):Promise<{svg:string;font:s
 }
 function pageDescriptor(page: number) {
   const verses = printedPageVerses(page);
-  return {page, asset:MUSHAF_PAGE_ASSETS[page], verses, surahNames:chapterNames(verses), juzName:juzArabic(verses[0]?.juz??1)};
+  return {page, asset:MUSHAF_PAGE_ASSETS[page], verses, surahNames:chapterNames(verses), juzName:page>KHATM_DUA_PAGE-1?'':juzArabic(verses[0]?.juz??1)};
 }
 
 export function MushafPageView(props: Props) {
@@ -63,7 +64,7 @@ export function MushafPageView(props: Props) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const state = () => ({ textScale:latestTextScale.current, language:latest.current.language, ui:mushafLabels(latest.current.language), dark:latest.current.dark, theme:latest.current.theme, activeKey:latest.current.activeKey, bookmarkedKeys:latest.current.bookmarkedKeys??[],loopPickMode:latest.current.loopPickMode??null,loopStartKey:latest.current.loopStartKey??null,loopEndKey:latest.current.loopEndKey??null });
+  const state = () => ({ textScale:latestTextScale.current, language:latest.current.language, khatmTitle:bilingual(latest.current.language,'دعاء ختم القرآن','Khatm dua'), ui:mushafLabels(latest.current.language), dark:latest.current.dark, theme:latest.current.theme, activeKey:latest.current.activeKey, bookmarkedKeys:latest.current.bookmarkedKeys??[],loopPickMode:latest.current.loopPickMode??null,loopStartKey:latest.current.loopStartKey??null,loopEndKey:latest.current.loopEndKey??null });
   useEffect(() => {
     let alive = true;
     const initial = latest.current;
@@ -71,7 +72,7 @@ export function MushafPageView(props: Props) {
     setError(false); setReady(false); setHtml(null); cached.current.clear();
     void (async () => {
       const {svg,font} = await preloadMushafResources(initial.asset);
-      const companion = initial.pageStep === 2 ? {...pageDescriptor(initial.page + 1), svg:await preloadMushafPage(MUSHAF_PAGE_ASSETS[initial.page + 1])} : undefined;
+      const companion = initial.pageStep === 2 && initial.page < MUSHAF_PAGE_COUNT ? {...pageDescriptor(initial.page + 1), svg:await preloadMushafPage(MUSHAF_PAGE_ASSETS[initial.page + 1])} : undefined;
       if (alive) setHtml(buildMushafDocument({...initial,companion,textScale:latestTextScale.current}, svg, font));
     })().catch(() => { if (alive) setError(true); });
     return () => { alive=false; };
@@ -84,15 +85,17 @@ export function MushafPageView(props: Props) {
     if (!ready) return;
     let alive = true;
     const page = props.page;
+    const scheduled = new Set(cached.current);
     const activate = () => {
       const sequence=turns.current.request(page);
       if(sequence!==null)web.current?.injectJavaScript(`window.activatePage(${page},${JSON.stringify(state())},true,${sequence});true;`);
     };
     const prepare = async (n: number) => {
-      if (cached.current.has(n)) return;
+      if (scheduled.has(n)) return;
+      scheduled.add(n);
       const info = n===page ? {...pageDescriptor(n),asset:props.asset,verses:props.verses,surahNames:props.surahNames,juzName:props.juzName} : pageDescriptor(n);
       const svg = await preloadMushafPage(info.asset);
-      const companion = props.pageStep === 2 ? {...pageDescriptor(n + 1), svg:await preloadMushafPage(MUSHAF_PAGE_ASSETS[n + 1])} : undefined;
+      const companion = props.pageStep === 2 && n < MUSHAF_PAGE_COUNT ? {...pageDescriptor(n + 1), svg:await preloadMushafPage(MUSHAF_PAGE_ASSETS[n + 1])} : undefined;
       if (!alive) return;
       web.current?.injectJavaScript(`window.cachePage(${JSON.stringify({...info,svg,companion})});true;`);
     };
@@ -102,11 +105,14 @@ export function MushafPageView(props: Props) {
         if (!alive) return;
         activate();
       } catch { if (alive) setError(true); return; }
+      if (page === KHATM_DUA_PAGE) await Promise.allSettled([prepare(603),prepare(606)]);
+      if (page === LAST_READER_PAGE) await Promise.allSettled([prepare(605),prepare(603)]);
       const step=props.pageStep??1;
-      for (const offset of [-step,step,-2*step,2*step]) {
+      const offsets = page >= KHATM_DUA_PAGE ? (page === LAST_READER_PAGE ? [-1,1,-2,2,-3] : [-1,1,-2,2]) : [-step,step,-2*step,2*step];
+      for (const offset of offsets) {
         const n=page+offset;
         if (!alive) break;
-        if (n<1||n>604) continue;
+        if (n<1||n>LAST_READER_PAGE) continue;
         try { await prepare(n); } catch { /* Neighbor failures never hide the current page. */ }
         // Let the current page paint and accept input between SVG preparations.
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -120,7 +126,7 @@ export function MushafPageView(props: Props) {
     try {
       const data = JSON.parse(event.nativeEvent.data) as { type?:string; key?:string; delta?:number; page?:number; pages?:unknown; turn?:number };
       if (data.type==='ready') { setReady(true); return; }
-      if (data.type==='cache' && Array.isArray(data.pages) && data.pages.length<=5 && data.pages.every(n=>Number.isInteger(n)&&n>=1&&n<=604)) {
+      if (data.type==='cache' && Array.isArray(data.pages) && data.pages.length<=5 && data.pages.every(n=>Number.isInteger(n)&&n>=1&&n<=LAST_READER_PAGE)) {
         cached.current=new Set(data.pages as number[]); return;
       }
       const current=latest.current;

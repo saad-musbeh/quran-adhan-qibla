@@ -5,15 +5,15 @@ import { Text, useTextScale } from '../text-size';
 import { bilingual, isRTL, translations, type Language } from '../i18n';
 import { useReaderTheme } from '../quran-theme-context';
 
-export function AppBanner({language, top, showHome, onHome, onLanguages, onSettings}: {
+export function AppBanner({language, top, showHome, onHome, onLanguages, onSettings, onHeightChange}: {
   language: Language; top: number; showHome: boolean;
-  onHome: () => void; onLanguages: () => void; onSettings: () => void;
+  onHome: () => void; onHeightChange?: (height: number) => void; onLanguages: () => void; onSettings: () => void;
 }) {
   const { theme, mode, setMode } = useReaderTheme(), textScale = useTextScale(), rtl = isRTL(language);
   const t = translations[language];
-  return <View testID="app-banner" style={[styles.header, {top, height: Math.max(48, 48 * textScale), backgroundColor: theme.appBackground,
+  return <View testID="app-banner" onLayout={event=>onHeightChange?.(Math.ceil(event.nativeEvent.layout.height))} style={[styles.header, {top, minHeight: Math.max(48, 48 * textScale), backgroundColor: theme.appBackground,
     elevation: mode === 'light' ? 2 : 12, borderBottomColor: theme.appBorder}, rtl && styles.reverse]}>
-    <Text numberOfLines={2} style={[styles.brand, {color: theme.appText}]}>{t.brand}</Text>
+    <Text style={[styles.brand, {color: theme.appText}]}>{t.brand}</Text>
     <View style={[styles.tools, rtl && styles.reverse]}>
       {showHome && <Pressable testID="open-main-menu" accessibilityRole="button" accessibilityLabel={bilingual(language, 'القائمة الرئيسية', 'Main menu')} style={styles.button} onPress={onHome}>
         <Ionicons name="home-outline" color={theme.accent} size={23} />
@@ -34,6 +34,6 @@ export function AppBanner({language, top, showHome, onHome, onLanguages, onSetti
 }
 const styles = StyleSheet.create({
   header: {position: 'absolute', left: 0, right: 0, zIndex: 5, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 2, gap: 6, borderBottomWidth: StyleSheet.hairlineWidth},
-  brand: {fontSize: 14, fontWeight: '600', flexShrink: 1}, tools: {flexDirection: 'row', gap: 2},
+  brand: {flex: 1, minWidth: 0, fontSize: 14, fontWeight: '600', flexShrink: 1}, tools: {flexDirection: 'row', gap: 2},
   button: {width: 44, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 22}, reverse: {flexDirection: 'row-reverse'},
 });

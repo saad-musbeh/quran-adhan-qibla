@@ -1,12 +1,23 @@
-import type { NotifiablePrayer } from './prayer-notifications.ts';
+import { IOS_PENDING_NOTIFICATION_LIMIT, type NotifiablePrayer } from './prayer-notifications.ts';
 
 export const DEVOTIONAL_NAMESPACE = 'quran-adhan-qibla.devotional.v1';
-export const DEVOTIONAL_SOUNDS = { spoken: { android: 'reminder_salawat.ogg', ios: 'reminder_salawat.wav' }, tone: { android: 'reminder_chime.ogg', ios: 'reminder_chime.wav' } } as const;
+export const DEVOTIONAL_SOUNDS = { spoken: { android: 'reminder_salawat_rasul.ogg', ios: 'reminder_salawat_rasul.wav' }, tone: { android: 'reminder_chime.ogg', ios: 'reminder_chime.wav' } } as const;
+export const SALAWAT_PHRASES = [
+  { id: 'rasul', text: 'صلِّ على رسول الله', android: 'reminder_salawat_rasul.ogg', ios: 'reminder_salawat_rasul.wav' },
+  { id: 'sallallahu', text: 'صلى الله عليه وسلم', android: 'reminder_salawat_sallallahu.ogg', ios: 'reminder_salawat_sallallahu.wav' },
+  { id: 'prophet', text: 'صلِّ على النبي', android: 'reminder_salawat_prophet.ogg', ios: 'reminder_salawat_prophet.wav' },
+  { id: 'muhammad', text: 'اللهم صلِّ على محمد', android: 'reminder_salawat_muhammad.ogg', ios: 'reminder_salawat_muhammad.wav' },
+  { id: 'english', text: 'Peace be upon him', android: 'reminder_salawat_english.ogg', ios: 'reminder_salawat_english.wav' },
+] as const;
+export type SalawatPhrase = typeof SALAWAT_PHRASES[number]['id'];
+export const SALAWAT_INTERVALS = [20, 30, 60, 120, 180] as const;
+export const MAX_SALAWAT_SLOTS = 48;
+export const salawatPhrase = (id: SalawatPhrase) => SALAWAT_PHRASES.find(phrase => phrase.id === id) ?? SALAWAT_PHRASES[0];
 export type ReminderKind = 'salawat' | 'morning' | 'evening';
 export type ReminderStyle = 'spoken' | 'silent' | 'tone';
 export type ReminderMode = 'times' | 'interval' | 'prayers';
 export type DevotionalPreferences = {
-  salawat: { enabled: boolean; times: string[]; style: ReminderStyle; mode: ReminderMode; intervalMinutes: number; start: string; end: string };
+  salawat: { enabled: boolean; times: string[]; style: ReminderStyle; phrase: SalawatPhrase; mode: ReminderMode; intervalMinutes: number; start: string; end: string };
   morning: { enabled: boolean; time: string };
   evening: { enabled: boolean; time: string };
   testing: { counters: boolean; single: boolean; styles: boolean; schedules: boolean };
@@ -33,25 +44,26 @@ export function normalizeDevotionalPreferences(value: unknown): DevotionalPrefer
   const styles = testing.styles === true, schedules = testing.schedules === true;
   return {
     salawat: { enabled: salawat.enabled === true, times: times.length ? times : ['09:00'],
-      style: styles && (salawat.style === 'silent' || salawat.style === 'tone') ? salawat.style : 'spoken',
-      mode: schedules && (salawat.mode === 'interval' || salawat.mode === 'prayers') ? salawat.mode : 'times',
-      intervalMinutes: [60,120,180].includes(Number(salawat.intervalMinutes)) ? Number(salawat.intervalMinutes) : 120,
-      start: clock(salawat.start, '09:00'), end: clock(salawat.end, '21:00') },
+      style: salawat.style === 'silent' || (styles && salawat.style === 'tone') ? salawat.style : 'spoken',
+      phrase: SALAWAT_PHRASES.some(phrase => phrase.id === salawat.phrase) ? salawat.phrase as SalawatPhrase : 'rasul',
+      mode: salawat.mode === 'times' || salawat.mode === 'interval' || (schedules && salawat.mode === 'prayers') ? salawat.mode : 'interval',
+      intervalMinutes: SALAWAT_INTERVALS.some(minutes => minutes === Number(salawat.intervalMinutes)) ? Number(salawat.intervalMinutes) : 30,
+      start: clock(salawat.start, '08:00'), end: clock(salawat.end, '20:00') },
     morning: { enabled: morning.enabled === true, time: clock(morning.time, '07:00') },
     evening: { enabled: evening.enabled === true, time: clock(evening.time, '18:00') },
     testing: { counters: testing.counters === true, single: testing.single === true, styles, schedules },
   };
 }
 
-/** At most sixteen daily slots leaves room for prayer alerts and test notifications on iOS. */
+/** Daily slots are bounded so iOS can also retain upcoming prayers and two test alerts. */
 export function salawatMinutes(value: DevotionalPreferences['salawat']): number[] {
   if (value.mode === 'prayers') return [];
   if (value.mode === 'times') return [...new Set(value.times.map(parseClock).filter((time): time is number => time !== null))].sort((a,b)=>a-b).slice(0,6);
   const start = parseClock(value.start), end = parseClock(value.end);
-  if (start === null || end === null || start > end || ![60,120,180].includes(value.intervalMinutes)) return [];
+  if (start === null || end === null || start > end || !SALAWAT_INTERVALS.some(minutes => minutes === value.intervalMinutes)) return [];
   const minutes: number[] = [];
   for (let time = start; time <= end; time += value.intervalMinutes) minutes.push(time);
-  return minutes.length <= 16 ? minutes : [];
+  return minutes.length <= MAX_SALAWAT_SLOTS ? minutes : [];
 }
 
 export type DevotionalAlert = { kind: ReminderKind; minute: number } | { kind: 'salawat'; at: Date; prayer: NotifiablePrayer };
@@ -67,4 +79,11 @@ export function devotionalSchedule(settings: DevotionalPreferences, prayers: rea
 
 export function isDevotionalNotification(value: { content?: { data?: Record<string, unknown> } }): boolean {
   return value.content?.data?.namespace === DEVOTIONAL_NAMESPACE || value.content?.data?.namespace === `${DEVOTIONAL_NAMESPACE}.test`;
+}
+
+/** Reserve two independent test alerts inside iOS's pending notification budget. */
+export function prayerNotificationLimit(settings: DevotionalPreferences): number {
+  const reserved = settings.salawat.enabled && settings.salawat.mode === 'prayers'
+    ? 18 : devotionalSchedule(settings).length;
+  return Math.min(40, IOS_PENDING_NOTIFICATION_LIMIT - reserved);
 }

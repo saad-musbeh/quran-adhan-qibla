@@ -23,12 +23,7 @@
       "url": "https://commons.wikimedia.org/wiki/File:Eid_al-Fitr_Fajr_azan_at_Malm%C3%B6_Mosque_-_19_August_2012.webm"
     }
   ],
-  "speech": {
-    "engine": "eSpeak NG text-to-speech: 1.52.0  Data at: /usr/share/espeak-ng-data",
-    "language": "ar",
-    "text": "صَلِّ عَلَى رَسُولِ اللَّهِ"
-  },
-  "adaptationLicense": "CC BY-SA 4.0 for Short Adhan and Fajr; synthesized reminder and chime dedicated to CC0 1.0 by this project",
+  "adaptationLicense": "CC BY-SA 4.0 for Short Adhan and Fajr; generated chime dedicated to CC0 1.0. Recorded Salawat clips are documented separately in salawat-phrases-manifest.json.",
   "processing": "Excerpt, mono, high/low-pass, noise reduction, boundary fades, matched loudness; Fajr joins two sourced voices with 0.2 seconds between excerpts. No pitch or speed changes.",
   "files": [
     {
@@ -54,18 +49,6 @@
       "sha256": "60aa3837706534ac0fdb768153816942c04ed4230cbff43e655f036b95aa93b8",
       "bytes": 837978,
       "duration": 19.0
-    },
-    {
-      "file": "reminder_salawat.ogg",
-      "sha256": "6e4e54f776068b4c25c0d3ded5389187790b44ebf67da8df1ff8a12fbcabd857",
-      "bytes": 26642,
-      "duration": 2.919604
-    },
-    {
-      "file": "reminder_salawat.wav",
-      "sha256": "1a826571cf8b75ab40f6e05df00467931fdaa6ad1bb803ded1d27b5db1f29386",
-      "bytes": 128832,
-      "duration": 2.919592
     },
     {
       "file": "reminder_chime.ogg",

@@ -1,6 +1,7 @@
 package expo.modules.islamiccore
 
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Looper
@@ -48,6 +49,24 @@ class QuranAudioService : MediaSessionService() {
     super.onDestroy()
   }
 
+  override fun onTaskRemoved(rootIntent: Intent?) {
+    // Swiping the app task away is a user-visible stop: without this override
+    // the foreground media notification would outlive the task with no JS host
+    // left to call detach(). Tear down like detach(), then drop foreground state.
+    synchronized(lock) {
+      releaseSession()
+      activePlayer = null
+      activeTitles = emptyList()
+      activeQueueUris = emptyList()
+      activeArtist = ""
+      remoteCommandHandler = null
+      if (service === this) service = null
+    }
+    stopForeground(Service.STOP_FOREGROUND_REMOVE)
+    stopSelf()
+    super.onTaskRemoved(rootIntent)
+  }
+
   private fun createSession(player: Player, titles: List<String>, artist: String) {
     check(Looper.myLooper() == Looper.getMainLooper())
     releaseSession()
@@ -87,6 +106,7 @@ class QuranAudioService : MediaSessionService() {
     private var service: QuranAudioService? = null
     private var activePlayer: Player? = null
     private var activeTitles: List<String> = emptyList()
+    private var activeQueueUris: List<String> = emptyList()
     private var activeArtist: String = ""
     private var remoteCommandHandler: ((String) -> Unit)? = null
 
@@ -95,6 +115,7 @@ class QuranAudioService : MediaSessionService() {
       synchronized(lock) {
         activePlayer = player
         activeTitles = titles.toList()
+        activeQueueUris = queueUrisOf(player)
         activeArtist = artist
         remoteCommandHandler = onRemoteCommand
         val runningService = service
@@ -110,18 +131,27 @@ class QuranAudioService : MediaSessionService() {
       check(Looper.myLooper() == Looper.getMainLooper())
       activeTitles = titles.toList()
       activeArtist = artist
+      // Titles are published positionally; remember the queue URIs they were
+      // built against so current-item metadata can be matched by identity.
+      activeQueueUris = activePlayer?.let(::queueUrisOf).orEmpty()
       service?.metadataPlayer?.setTitles(activeTitles, activeArtist)
     }
 
     fun updateCurrentMetadata(title: String, artist: String) {
       check(Looper.myLooper() == Looper.getMainLooper())
-      val currentIndex = activePlayer?.currentMediaItemIndex ?: return
-      val updatedTitles = activeTitles.toMutableList()
-      if (currentIndex >= 0) {
-        while (updatedTitles.size <= currentIndex) updatedTitles.add("")
-        updatedTitles[currentIndex] = title
-      }
-      updateTitles(updatedTitles, artist, currentIndex)
+      val player = activePlayer ?: return
+      val currentUri = player.currentMediaItem?.localConfiguration?.uri?.toString()
+      // The native queue can be rebuilt (new URIs) after JS last published
+      // titles. Match the current item by URI, as iOS keys titles by URL, and
+      // drop the update when the title table no longer describes the live
+      // queue instead of writing at a stale index or padding empty entries.
+      val updatedTitles = QuranTitleIndex.updatingAtCurrentUri(
+        activeTitles,
+        activeQueueUris,
+        currentUri,
+        title,
+      ) ?: return
+      updateTitles(updatedTitles, artist, activeQueueUris.indexOf(currentUri))
     }
 
     fun updatePlaybackRate(rate: Float) {
@@ -135,6 +165,7 @@ class QuranAudioService : MediaSessionService() {
       synchronized(lock) {
         activePlayer = null
         activeTitles = emptyList()
+        activeQueueUris = emptyList()
         activeArtist = ""
         remoteCommandHandler = null
         service?.let { current ->
@@ -143,6 +174,37 @@ class QuranAudioService : MediaSessionService() {
         }
       }
     }
+
+    private fun queueUrisOf(player: Player): List<String> =
+      (0 until player.mediaItemCount).map { index ->
+        player.getMediaItemAt(index).localConfiguration?.uri?.toString() ?: ""
+      }
+  }
+}
+
+/**
+ * Index-safe title bookkeeping for the native media queue. iOS keys titles by
+ * media URL (see QuranAudioControlsModule.swift); Android keeps a positional
+ * title list but only writes an update when the recorded queue URIs still
+ * describe the live queue, so a rebuild cannot land a title at a wrong index.
+ */
+internal object QuranTitleIndex {
+  /**
+   * Returns [titles] with [title] applied at the index currently occupied by
+   * [currentUri] in [queueUris], or null when the update must be ignored:
+   * no current item, a missing URI, or a titles/queue size mismatch after a
+   * queue rebuild.
+   */
+  fun updatingAtCurrentUri(
+    titles: List<String>,
+    queueUris: List<String>,
+    currentUri: String?,
+    title: String,
+  ): List<String>? {
+    if (currentUri == null || queueUris.size != titles.size) return null
+    val index = queueUris.indexOf(currentUri)
+    if (index < 0) return null
+    return titles.toMutableList().also { it[index] = title }
   }
 }
 

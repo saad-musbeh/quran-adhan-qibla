@@ -2,7 +2,7 @@
   "expo": {
     "name": "Quran Adhan Qibla",
     "slug": "quran-adhan-qibla",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "scheme": "quranadhanqibla",
     "platforms": [
       "ios",
@@ -15,11 +15,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "org.saadmusbeh.quranadhanqibla",
       "icon": "./assets/branding/android-icon-v1.png",
-      "buildNumber": "23"
+      "buildNumber": "24"
     },
     "android": {
       "package": "org.saadmusbeh.quranadhanqibla",
-      "versionCode": 23,
+      "versionCode": 24,
       "adaptiveIcon": {
         "backgroundColor": "#1A3D2E",
         "foregroundImage": "./assets/branding/android-icon-v1.png"
@@ -90,10 +90,18 @@
             "./assets/adhan/adhan_brief.wav",
             "./assets/adhan/adhan_brief_fajr.ogg",
             "./assets/adhan/adhan_brief_fajr.wav",
-            "./assets/adhan/reminder_salawat.ogg",
-            "./assets/adhan/reminder_salawat.wav",
             "./assets/adhan/reminder_chime.ogg",
-            "./assets/adhan/reminder_chime.wav"
+            "./assets/adhan/reminder_chime.wav",
+            "./assets/adhan/reminder_salawat_rasul.ogg",
+            "./assets/adhan/reminder_salawat_rasul.wav",
+            "./assets/adhan/reminder_salawat_sallallahu.ogg",
+            "./assets/adhan/reminder_salawat_sallallahu.wav",
+            "./assets/adhan/reminder_salawat_prophet.ogg",
+            "./assets/adhan/reminder_salawat_prophet.wav",
+            "./assets/adhan/reminder_salawat_muhammad.ogg",
+            "./assets/adhan/reminder_salawat_muhammad.wav",
+            "./assets/adhan/reminder_salawat_english.ogg",
+            "./assets/adhan/reminder_salawat_english.wav"
           ],
           "enableBackgroundRemoteNotifications": false,
           "icon": "./assets/branding/notification-icon.png",
@@ -101,7 +109,8 @@
         }
       ],
       "./plugins/withPrayerExactAlarm.cjs",
-      "./plugins/withAndroidReleaseSize.cjs"
+      "./plugins/withAndroidReleaseSize.cjs",
+      "./plugins/withAndroidTextLayout.cjs"
     ],
     "backgroundColor": "#14293C"
   }

@@ -68,7 +68,6 @@ export function useHeading(enabled: boolean, coordinates?: { latitude: number; l
 
     const onHeading = (sample: LocationHeadingObject) => {
       if (cancelled || failed) return;
-      clearTimeout(timer);
       let heading = usableTrueHeading(sample);
       if (heading === null && coordinates) {
         heading = magneticToTrueHeading(sample, declination);
@@ -79,6 +78,9 @@ export function useHeading(enabled: boolean, coordinates?: { latitude: number; l
         publish({ heading: null, status: 'calibrating', reason: 'calibration' });
         return;
       }
+      // The timeout only disarms once a usable heading exists, so a device that keeps
+      // reporting low-accuracy samples still surfaces the timeout instead of hanging.
+      clearTimeout(timer);
       const previous = previousHeading.current;
       const now = performance.now();
       const smooth = previous === null ? heading : responsiveHeading(previous, heading, now - (previousSampleTime ?? now));

@@ -1,3 +1,4 @@
+import { prayerNotificationLimit } from './src/domain/devotional-reminders';
 import { PressFeedbackProvider } from './src/components/Pressable';
 import { Text, TextSizeContext, textScaleForSize } from './src/text-size';
 import * as SystemUI from 'expo-system-ui';
@@ -48,8 +49,10 @@ function Main() {
   const { preferences, setPreferences, ready: preferencesReady } = usePreferences();
   const { language, prayer: settings, reader, compassMode } = preferences;
   const textScale = textScaleForSize(reader.fontSize);
-  const headerHeight = Math.max(48,48*textScale);
-  const navigationHeight = Math.max(64,64*textScale);
+  const [bannerHeight,setBannerHeight] = useState(48);
+  const [dockHeight,setDockHeight] = useState(64);
+  const headerHeight = Math.max(48,48*textScale,bannerHeight);
+  const navigationHeight = Math.max(64,64*textScale,dockHeight);
   const tafsirLibrary = useTafsirLibrary();
   const quranTheme = useQuranTheme();
   useEffect(() => { void SystemUI.setBackgroundColorAsync(quranTheme.theme.appBackground).catch(() => undefined); }, [quranTheme.theme.appBackground]);
@@ -85,17 +88,18 @@ function Main() {
     });
     return()=>subscription.remove();
   },[menuEnabled,homeVisible,readingBook,showSettings,showLocation,showLanguages,showReminders,tab,adhkarReading]);
-  const devotional = useDevotionalReminders({ready:preferencesReady&&locationState.ready,preferences:preferences.devotional,language,location,prayer:settings,onOpen:kind=>{
+  const notifications = usePrayerNotifications({
+    ready: preferencesReady && locationState.ready,
+    enabled: preferences.prayerNotifications,
+    notificationLimit: prayerNotificationLimit(preferences.devotional),
+    location, settings, language, prayerSounds: preferences.prayerSounds,
+    labels: { title: t.brand, channelName: notificationLabels.title, body: name => t[name], testTitle: notificationLabels.test, testBody: t.brand },
+  });
+  const devotional = useDevotionalReminders({onReconciled:notifications.reconcile,ready:preferencesReady&&locationState.ready,preferences:preferences.devotional,language,location,prayer:settings,onOpen:kind=>{
     chooseSection('adhkar');
     if(kind==='salawat')setShowReminders(true);
     else setAdhkarRequest(value=>({id:value.id+1,collection:kind}));
   }});
-  const notifications = usePrayerNotifications({
-    ready: preferencesReady && locationState.ready,
-    enabled: preferences.prayerNotifications,
-    location, settings, language, prayerSounds: preferences.prayerSounds,
-    labels: { title: t.brand, channelName: notificationLabels.title, body: name => t[name], testTitle: notificationLabels.test, testBody: t.brand },
-  });
   // Calculations always use Gregorian date components, including in Arabic.
   const [year, month, day] = localCalendarDate(now);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -139,9 +143,9 @@ function Main() {
 
   return <TextSizeContext.Provider value={textScale}><QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
     <StatusBar style={quranTheme.mode==='light'?'dark':'light'} />
-    <AppBanner language={language} top={insets.top} showHome={menuEnabled||tab==='quran'} onHome={goHome}
+    <AppBanner onHeightChange={setBannerHeight} language={language} top={insets.top} showHome={menuEnabled||tab==='quran'} onHome={goHome}
       onLanguages={() => setShowLanguages(true)} onSettings={() => setShowSettings(true)} />
-    <SwipeTabs hideNavigation={homeVisible||(tab === 'quran' && readingBook)} language={language} tab={tab} reading={homeVisible||(tab === 'quran' && readingBook)} chromeVisible={readingChromeVisible} onChange={chooseSection}>
+    <SwipeTabs onDockHeightChange={setDockHeight} hideNavigation={homeVisible||(tab === 'quran' && readingBook)} language={language} tab={tab} reading={homeVisible||(tab === 'quran' && readingBook)} chromeVisible={readingChromeVisible} onChange={chooseSection}>
       <ScreenLayer testID="screen-qibla" active={!homeVisible&&tab === 'qibla'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
         <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
           calculationAvailable={isQiblaAvailable} calculationError={qibla.error}
@@ -157,7 +161,7 @@ function Main() {
           onChangeLocation={()=>setShowLocation(true)}/>
       </ScreenLayer>
       <ScreenLayer testID="screen-quran" active={!homeVisible&&tab === 'quran'} background={quranTheme.theme.appBackground}>
-        <ConnectedQuranLibrary homeRequest={homeRequest} onHome={goHome} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} settings={{...reader, nightMode:quranTheme.mode === 'dark'}}
+        <ConnectedQuranLibrary headerHeight={headerHeight} navigationHeight={navigationHeight} homeRequest={homeRequest} onHome={goHome} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} settings={{...reader, nightMode:quranTheme.mode === 'dark'}}
           onReadingChromeChange={setReadingChromeVisible}
           onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
       </ScreenLayer>

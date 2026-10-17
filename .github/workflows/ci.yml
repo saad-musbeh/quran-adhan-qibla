@@ -11,7 +11,8 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 15 minutes was too tight for a cold Rust/clippy/test run alongside typecheck, locale audit and both bundle exports; 30 keeps headroom.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
@@ -22,6 +23,7 @@ jobs:
           cache: npm
       - name: Install Rust toolchain and components
         run: rustup show
+      - uses: Swatinem/rust-cache@v2
       - run: npm ci
       - name: TypeScript and Rust checks
         run: npm run check

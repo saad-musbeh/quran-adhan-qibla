@@ -173,6 +173,80 @@ mod tests {
     }
 
     #[test]
+    fn sydney_southern_hemisphere_reference_covers_both_dst_states() {
+        // Independent MWL (18/17) + Shafi reference for the southern hemisphere,
+        // hand-verified with a NOAA/Meeus solar calculation. Fajr coincides with
+        // the reported fixture values: 05:30 AEST 2026-06-21, 03:56 AEDT 2026-12-21.
+        let check = |date: Date, expected: [(i8, i8); 6]| {
+            let actual = prayer_times(-33.8688, 151.2093, date, 1).unwrap();
+            for (timestamp, (hour, minute)) in actual.into_iter().zip(expected) {
+                let reference = date
+                    .at(hour, minute, 0, 0)
+                    .in_tz("Australia/Sydney")
+                    .unwrap()
+                    .timestamp()
+                    .as_second();
+                assert!(
+                    (timestamp - reference).abs() <= 120,
+                    "{date} {timestamp} vs {reference}"
+                );
+            }
+        };
+        // Winter solstice in standard time (AEST, UTC+10).
+        check(
+            Date::new(2026, 6, 21).unwrap(),
+            [(5, 30), (7, 0), (11, 57), (14, 36), (16, 54), (18, 18)],
+        );
+        // Summer solstice in daylight time (AEDT, UTC+11).
+        check(
+            Date::new(2026, 12, 21).unwrap(),
+            [(3, 56), (5, 41), (12, 53), (16, 38), (20, 5), (21, 43)],
+        );
+    }
+
+    #[test]
+    fn santiago_dst_transition_moves_local_clocks_but_not_solar_utc() {
+        // Chile begins DST on the night of 2025-09-06 (America/Santiago moves
+        // from UTC-4 to UTC-3). Fixtures on either side pin the local schedule,
+        // while the UTC instant of Dhuhr is unchanged by the clock change.
+        let check = |date: Date, expected: [(i8, i8); 6]| {
+            let actual = prayer_times(-33.4489, -70.6693, date, 1).unwrap();
+            for (timestamp, (hour, minute)) in actual.into_iter().zip(expected) {
+                let reference = date
+                    .at(hour, minute, 0, 0)
+                    .in_tz("America/Santiago")
+                    .unwrap()
+                    .timestamp()
+                    .as_second();
+                assert!(
+                    (timestamp - reference).abs() <= 120,
+                    "{date} {timestamp} vs {reference}"
+                );
+            }
+        };
+        check(
+            Date::new(2025, 9, 6).unwrap(),
+            [(5, 32), (6, 54), (12, 41), (15, 59), (18, 28), (19, 46)],
+        );
+        check(
+            Date::new(2025, 9, 7).unwrap(),
+            [(6, 30), (7, 53), (13, 41), (16, 59), (19, 29), (20, 46)],
+        );
+
+        let before = prayer_times(-33.4489, -70.6693, Date::new(2025, 9, 6).unwrap(), 1).unwrap();
+        let after = prayer_times(-33.4489, -70.6693, Date::new(2025, 9, 7).unwrap(), 1).unwrap();
+        // The DST change is a display offset only: consecutive civil dates must
+        // stay one solar day (86400 s) apart in UTC, never an hour off.
+        for index in 0..6 {
+            let delta = after[index] - before[index];
+            assert!(
+                (delta - 86_400).abs() <= 300,
+                "UTC day delta at index {index} was {delta}s, not one solar day"
+            );
+        }
+    }
+
+    #[test]
     fn london_summer_reference_uses_dst_and_seasonal_twilight() {
         // The same published London fixture in British Summer Time (UTC+1).
         let date = Date::new(2016, 6, 1).unwrap();

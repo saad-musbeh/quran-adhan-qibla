@@ -18,6 +18,11 @@ let turnSequence = 0;
 const keyOf = node => node.getAttribute('surah') + ':' + node.getAttribute('ayah');
 const send = data => window.ReactNativeWebView.postMessage(JSON.stringify({ ...data, page: shownPage }));
 const acknowledge = () => send({ type: 'cache', pages: [...cache.keys()] });
+function targetForTurn(from, delta) {
+  const step = from >= 605 ? 1 : pageStep;
+  const rawTarget = from + delta * step;
+  return pageStep === 2 && rawTarget === 604 ? 603 : rawTarget;
+}
 function closeMenu() {
   menu.classList.remove('show');
   if (selected) selected.classList.remove('selected');
@@ -42,10 +47,11 @@ function prefixIds(svg, page) {
 function makeLeaf(item) {
   const panel = document.createElement('section');
   panel.className = 'panel leaf'; panel.dataset.page = item.page;
+  if (item.page > 604) panel.classList.add('khatm');
   panel.innerHTML = '<header class="metadata"><span class="juz"></span><span class="names"></span></header><div class="page-art"></div><footer class="page-number"></footer>';
   panel.querySelector('.juz').textContent = item.juzName;
-  panel.querySelector('.names').textContent = item.surahNames;
-  panel.querySelector('.page-number').textContent = String(item.page).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[Number(d)]);
+  panel.querySelector('.names').textContent = item.page > 604 ? initial.khatmTitle : item.surahNames;
+  panel.querySelector('.page-number').textContent = item.page > 604 ? (item.page === 605 ? '١ / ٢' : '٢ / ٢') : String(item.page).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[Number(d)]);
   const art = panel.querySelector('.page-art'), metadata = panel.querySelector('.metadata');
   metadata.style.left = art.style.left = '6%';
   metadata.style.right = art.style.right = '6%';
@@ -109,8 +115,9 @@ function makeLeaf(item) {
   return panel;
 }
 function makePanel(item) {
-  if (pageStep === 1) return makeLeaf(item);
-  if (!item.companion || item.page % 2 !== 1 || item.companion.page !== item.page + 1) throw new Error('Invalid Mushaf spread');
+  // Each khatm dua sheet is a single page; Quran spreads must remain paired.
+  if (pageStep === 1 || !item.companion) return makeLeaf(item);
+  if (item.page % 2 !== 1 || item.companion.page !== item.page + 1) throw new Error('Invalid Mushaf spread');
   const panel = document.createElement('section');
   panel.className = 'panel spread'; panel.dataset.page = item.page;
   // One cached panel owns both leaves: gestures, zoom and animation cannot diverge.
@@ -119,8 +126,8 @@ function makePanel(item) {
   return panel;
 }
 function updatePanel(panel) {
-  panel.setAttribute('aria-label', ui.page + ' ' + panel.dataset.page + (pageStep === 2 ? '–' + (Number(panel.dataset.page) + 1) : ''));
-  for (const leaf of panel.querySelectorAll('.leaf')) leaf.setAttribute('aria-label', ui.page + ' ' + leaf.dataset.page);
+  panel.setAttribute('aria-label', Number(panel.dataset.page) >= 605 ? initial.khatmTitle : ui.page + ' ' + panel.dataset.page + (pageStep === 2 ? '–' + (Number(panel.dataset.page) + 1) : ''));
+  for (const leaf of panel.querySelectorAll('.leaf')) leaf.setAttribute('aria-label', Number(leaf.dataset.page) >= 605 ? initial.khatmTitle + ' ' + (Number(leaf.dataset.page)-604) + '/2' : ui.page + ' ' + leaf.dataset.page);
   // Keep the source artwork and the added heading banners in their authored
   // colors. Invert only the source glyph group so dark ink stays legible on
   // the night page while the pale banner center remains pale.
@@ -136,7 +143,7 @@ function layoutLeaf(panel) {
   // Prepared panels have viewport dimensions, which differ from the zoomed
   // sheet. Measure only after mounting in the stage; source paths and their
   // hit polygons stay together inside an aspect-preserving SVG.
-  if (!stage.contains(panel) || panel.classList.contains('opening')) return;
+  if (!stage.contains(panel) || panel.classList.contains('opening') || panel.classList.contains('khatm')) return;
   const metadata = panel.querySelector('.metadata'), footer = panel.querySelector('.page-number');
   const gap = Math.max(4, parseFloat(getComputedStyle(metadata).fontSize) * .6);
   const top = Math.max(panel.clientHeight * .09, metadata.offsetTop + metadata.offsetHeight + gap);
@@ -148,6 +155,7 @@ function layoutVisiblePanels() { for (const panel of stage.children) layoutPanel
 function updateState(state) {
   if (Number.isFinite(state.textScale)) document.documentElement.style.setProperty('--text-scale', String(state.textScale));
   language = state.language ?? language; dark = state.dark ?? dark;
+  if (state.khatmTitle) { initial.khatmTitle=state.khatmTitle; for (const leaf of document.querySelectorAll('.panel.khatm .names')) leaf.textContent=state.khatmTitle; }
   ui=state.ui??(state.language?defaultUi(language):ui);
   if ('activeKey' in state) activeKey = state.activeKey;
   if ('bookmarkedKeys' in state) bookmarks = state.bookmarkedKeys;
@@ -168,7 +176,7 @@ function updateState(state) {
   const bookmark = menu.querySelector('[data-action="bookmark"]');
   bookmark.classList.toggle('bookmarked', marked); bookmark.setAttribute('aria-pressed', String(marked));
   for (const panel of cache.values()) updatePanel(panel);
-  document.getElementById('sheet').setAttribute('aria-label', ui.page + ' ' + shownPage);
+  document.getElementById('sheet').setAttribute('aria-label', shownPage >= 605 ? initial.khatmTitle : ui.page + ' ' + shownPage);
   layoutVisiblePanels();
 }
 function settle() {
@@ -252,7 +260,7 @@ function moveDrag(origin, dx, dy) {
   }
   const axis = origin.axis, extent = (axis === 'x' ? innerWidth : innerHeight) * zoom;
   const offset = axis === 'x' ? dx : dy, sign = offset >= 0 ? 1 : -1;
-  const delta = axis === 'x' ? sign : -sign, target = shownPage + delta * pageStep;
+  const delta = axis === 'x' ? sign : -sign, target = targetForTurn(shownPage,delta);
   const next = cache.get(target);
   if (drag && drag.target !== target) {
     const abandoned = cache.get(drag.target);
@@ -342,8 +350,8 @@ document.addEventListener('touchend', event => {
     // distance so large pages never demand a half-screen movement.
     const turnDistance=drag?Math.max(24,Math.min(64,drag.extent*.18)):Infinity;
     if (drag && Math.abs(drag.offset) >= turnDistance && cache.has(drag.target)) {
-      const target = drag.target, delta=(target-shownPage)/pageStep;
-      send({type:'swipe',delta,turn:++turnSequence});
+      const target = drag.target, turnDelta=target<shownPage?-1:1;
+      send({type:'swipe',delta:turnDelta,turn:++turnSequence});
       window.activatePage(target,{},true);
     } else returnDrag();
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && !event.target.closest('#verse-menu')) {

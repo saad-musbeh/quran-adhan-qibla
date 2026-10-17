@@ -1,0 +1,113 @@
+{
+  "source": {
+    "file": "134122.mp4",
+    "sha256": "4ccf91decd51a7608439b491e5f412e51e3903881f9a4f900011438434df2493",
+    "provenance": "User-provided reference video, 16 October 2026",
+    "license": "No public redistribution licence supplied. User requested these reference sounds for the app; do not describe these recordings as CC0 or covered by the code MIT licence."
+  },
+  "phrases": [
+    {
+      "id": "rasul",
+      "text": "صلِّ على رسول الله",
+      "rangeSeconds": [
+        19.13,
+        21.15
+      ]
+    },
+    {
+      "id": "sallallahu",
+      "text": "صلى الله عليه وسلم",
+      "rangeSeconds": [
+        11.03,
+        13.24
+      ]
+    },
+    {
+      "id": "prophet",
+      "text": "صلِّ على النبي",
+      "rangeSeconds": [
+        8.52,
+        10.04
+      ]
+    },
+    {
+      "id": "muhammad",
+      "text": "اللهم صلِّ على محمد",
+      "rangeSeconds": [
+        13.95,
+        16.28
+      ]
+    },
+    {
+      "id": "english",
+      "text": "Peace be upon him",
+      "rangeSeconds": [
+        17.03,
+        18.41
+      ]
+    }
+  ],
+  "processing": "Complete speech excerpts, mono at source sample rate, 65 Hz high-pass, short boundary fades and two-pass loudness matching (-18 LUFS, -2 dBTP ceiling). No synthesis, pitch changes or speed changes.",
+  "files": [
+    {
+      "file": "reminder_salawat_rasul.ogg",
+      "sha256": "3f761da6c3bcb8ee604005a0b427dc1c69ae02a847dea0b68d147a6acd26f25c",
+      "bytes": 21186,
+      "duration": 2.02
+    },
+    {
+      "file": "reminder_salawat_rasul.wav",
+      "sha256": "db37a8ce2f6fd1660da49ad51bfb0bdab32763388e09e007a9eb30b4f2657334",
+      "bytes": 178242,
+      "duration": 2.02
+    },
+    {
+      "file": "reminder_salawat_sallallahu.ogg",
+      "sha256": "847deb51f346876a9c13a3d0c9fbb42a92d2974e48b2d800c194242b971e25e8",
+      "bytes": 24865,
+      "duration": 2.21
+    },
+    {
+      "file": "reminder_salawat_sallallahu.wav",
+      "sha256": "037d086211ad213a707e0040a11a05961b3ff0e15ef984fb7ff984d2826edeba",
+      "bytes": 195000,
+      "duration": 2.21
+    },
+    {
+      "file": "reminder_salawat_prophet.ogg",
+      "sha256": "eadda1664aee470adb1db8579cf934f6b642e408e7476b971423573217face58",
+      "bytes": 17243,
+      "duration": 1.52
+    },
+    {
+      "file": "reminder_salawat_prophet.wav",
+      "sha256": "8e4776a7c711f05c2fc1b4fc67d43636a17e7767392dc717b7f7cf433e6e64f2",
+      "bytes": 134142,
+      "duration": 1.52
+    },
+    {
+      "file": "reminder_salawat_muhammad.ogg",
+      "sha256": "222e7ad8fc4f464b072d05dfba7d82f3866b3324011e699504d1f56c68fe8be2",
+      "bytes": 23520,
+      "duration": 2.33
+    },
+    {
+      "file": "reminder_salawat_muhammad.wav",
+      "sha256": "f340631d92ece31114a847ef7b24f1c706e3a97d3e64aee84208b2857a543fd3",
+      "bytes": 205584,
+      "duration": 2.33
+    },
+    {
+      "file": "reminder_salawat_english.ogg",
+      "sha256": "8db60aa2aba23cd86c29f31b8e99cb90d8a45d878c3b9ea83730d010f4e82750",
+      "bytes": 15883,
+      "duration": 1.38
+    },
+    {
+      "file": "reminder_salawat_english.wav",
+      "sha256": "4d49e83c251f6931730b2061d9b15612547e5d8161590a1e7c850d0f463023e5",
+      "bytes": 121794,
+      "duration": 1.38
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 import type { PrayerName } from './prayers';
 
 export const PRAYER_NOTIFICATION_NAMESPACE = 'quran-adhan-qibla.prayer.v1';
+/** iOS keeps at most 64 pending notifications; the shared recurring budget leaves room for the
+ * test alerts of both reminder families. */
+export const IOS_PENDING_NOTIFICATION_LIMIT = 62;
 export const NOTIFIABLE_PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] as const satisfies readonly PrayerName[];
 
 export type NotifiablePrayer = typeof NOTIFIABLE_PRAYERS[number];
@@ -45,4 +48,11 @@ export function isPrayerNotificationOwned(notification: ScheduledNotificationLik
   const data = notification.content.data;
   return !!data && typeof data === 'object'
     && (data as { namespace?: unknown }).namespace === PRAYER_NOTIFICATION_NAMESPACE;
+}
+
+/** Five-second user-triggered test alerts live outside every recurring reconcile. */
+export function isPrayerTestNotification(notification: ScheduledNotificationLike): boolean {
+  if (!isPrayerNotificationOwned(notification)) return false;
+  const data = notification.content.data as { test?: unknown } | undefined;
+  return data?.test === true;
 }

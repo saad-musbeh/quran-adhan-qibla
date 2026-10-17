@@ -9,6 +9,42 @@ surah/ayah identifiers. The page renderer uses those polygons to link recited
 verses to the printed page. The separate `src/data/mushaf-pages.json` is a
 compact index extracted from the verse polygon identifiers.
 
+## Closing dua appendix (reader sheets 605–606)
+
+After the 604 Quran pages, the reader offers **دعاء ختم القرآن** on two
+standalone appendix sheets. They contain the complete Arabic wording supplied
+by the user in two photos of printed closing dua pages, in the photographed
+reading order:
+
+- Printed page 605: attachment `image_f9d1822d-7133-4ee3-a3ba-a55fbf420370`,
+  opening «اللهم ارحمني بالقرآن», ending «وتقبل صلاتي واغفر خطيئاتي».
+- Printed page 606: attachment `image_478649c5-abf8-456e-ad04-f2fb1f0a034f`,
+  continuing «وأسألك العلا من الجنة» and ending with the salawat
+  «وصلى الله على نبينا محمد وعلى آله وأصحابه الأخيار وسلم تسليما كثيرا».
+
+The photos were supplied in this project conversation on 2026-10-17; the
+publisher and edition are not identified. The wording is transcribed in
+[`pages-src/khatm-dua.json`](./pages-src/khatm-dua.json). The app uses the
+Arabic words without the photographs' vowel marks; it does not add prayers,
+translate the supplication, or attribute the whole compilation to the Prophet.
+The shorter draft's attribution to *al-Nashr* has been removed because it did
+not document the full compilation requested in these photographs.
+
+The frame and typesetting are original app artwork, using the existing Amiri
+Quran font and `345 × 550` viewBox. The Arabic glyphs are converted to vector
+paths at build time, so runtime font loading cannot shift the lines. Both
+sheets fit the actual ink bounds with at least three SVG units between rows. The source SVGs are
+[`pages-src/605.svg`](./pages-src/605.svg) and
+[`pages-src/606.svg`](./pages-src/606.svg). Rebuild them and their offline
+Zstandard assets with `python3 scripts/build-khatm-pages.py` (PyGObject/PangoCairo, pycairo,
+fontconfig and the `zstd` CLI are required). `src/domain/khatm-dua.test.ts` checks
+that all transcribed words survive wrapping and compression, including the
+continuation boundary and final salawat.
+
+These are supplication appendix sheets rather than additional Quran pages.
+The original 604 Quran assets, source checksums, verse index, and verse counts
+remain unchanged. The appendix has no ayah polygons or recitation targets.
+
 Page dimensions use SVG viewBox `0 0 345 550`. Page 599 contains verses 98:6
 through 100:5; page 600 contains 100:6 through 102:8. The importer validates
 all 604 page numbers, all 6,236 verse keys, and these page boundaries. It

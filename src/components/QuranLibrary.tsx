@@ -9,14 +9,14 @@ import { ScreenLayer } from './ScreenLayer';
 import { QuranScreen, type QuranReaderSettings } from './QuranScreen';
 import { addQuranBook, MAX_QURAN_BOOKS, createQuranBooks, readQuranBooks, readLegacyQuranBooks, LEGACY_QURAN_KEYS, QURAN_BOOKS_KEY, type QuranBook } from '../domain/quran-books';
 import { getVerse, getSurah } from '../domain/quran';
-import { getMushafPageVerses } from '../data/mushaf';
+import { getMushafPageVerses, KHATM_DUA_PAGE, LAST_READER_PAGE } from '../data/mushaf';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
 import { preloadMushafResources } from './MushafPageView';
 import { bilingual, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import type { QuranAudioController } from '../use-quran-audio';
 
-type Props = { homeRequest: number; onHome: () => void; tafsirLibrary: ReturnType<typeof useTafsirLibrary>; onBookOpenChange: (open:boolean)=>void; active: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onReadingChromeChange: (visible: boolean) => void; onSettingsChange: (settings: QuranReaderSettings) => void };
+type Props = { headerHeight?: number; navigationHeight?: number; homeRequest: number; onHome: () => void; tafsirLibrary: ReturnType<typeof useTafsirLibrary>; onBookOpenChange: (open:boolean)=>void; active: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onReadingChromeChange: (visible: boolean) => void; onSettingsChange: (settings: QuranReaderSettings) => void };
 
 export function QuranLibrary(props: Props) {
   const textScale = useTextScale();
@@ -62,17 +62,21 @@ export function QuranLibrary(props: Props) {
   const updateBook = (id: string, change: (book: QuranBook) => QuranBook) => setBooks(values => values.map(book => book.id === id ? change(book) : book));
   return <View style={[styles.root,{backgroundColor:colors.appBackground}]}>
     <ScreenLayer active={!selectedId} background={colors.appBackground}>
-      <ScrollView onLayout={event=>setShelfWidth(event.nativeEvent.layout.width)} contentContainerStyle={[styles.shelf,{paddingTop:Math.max(48,48*textScale)+10,paddingBottom:Math.max(80,80*textScale)}]}>
+      <ScrollView onLayout={event=>setShelfWidth(event.nativeEvent.layout.width)} contentContainerStyle={[styles.shelf,{paddingTop:(props.headerHeight??Math.max(48,48*textScale))+10,paddingBottom:Math.max(80,80*textScale,(props.navigationHeight??64)+16)}]}>
         <Text style={[styles.heading,rtl&&styles.rtl]}>{bilingual(language,'مكتبتي القرآنية','My Quran library')}</Text>
         {!ready&&<ActivityIndicator color={colors.accent}/>}
         <View style={[styles.grid,rtl&&styles.reverse]}>{books.map(book => {
-          const [s,a] = (getMushafPageVerses(book.page)[0]??'1:1').split(':').map(Number);
-          const verse = getVerse(s,a), surah = verse ? getSurah(verse.surah) : undefined;
+          const isKhatm=book.page>=KHATM_DUA_PAGE&&book.page<=LAST_READER_PAGE;
+          const [s,a] = (isKhatm?'1:1':getMushafPageVerses(book.page)[0]??'1:1').split(':').map(Number);
+          const verse = isKhatm?undefined:getVerse(s,a), surah = verse ? getSurah(verse.surah) : undefined;
           const name = nameOf(book);
+          const position=isKhatm
+            ? `${bilingual(language,'دعاء ختم القرآن','Khatm dua')} · ${(book.page-KHATM_DUA_PAGE+1).toLocaleString(localeFor(language),{useGrouping:false})}/${(LAST_READER_PAGE-KHATM_DUA_PAGE+1).toLocaleString(localeFor(language),{useGrouping:false})}`
+            : `${surah?.arabicName} · ${bilingual(language,'صفحة {n}','Page {n}',{n:book.page.toLocaleString(localeFor(language))})}`;
           return <View key={book.id} style={[styles.card,{width:cardWidth,maxWidth:cardWidth,flexBasis:cardWidth,flexGrow:0}]}>
-            <Pressable testID={`open-${book.id}`} accessibilityRole="button" accessibilityLabel={`${name} · ${surah?.arabicName} · ${book.page}`} disabled={!ready} onPressIn={()=>{void preloadMushafResources(MUSHAF_PAGE_ASSETS[book.page]).catch(()=>undefined);}} onPress={()=>choose(book.id)} style={styles.cover}>
+            <Pressable testID={`open-${book.id}`} accessibilityRole="button" accessibilityLabel={`${name} · ${position}`} disabled={!ready} onPressIn={()=>{void preloadMushafResources(MUSHAF_PAGE_ASSETS[book.page]).catch(()=>undefined);}} onPress={()=>choose(book.id)} style={styles.cover}>
               <View pointerEvents="none" style={styles.coverFrame}><Ionicons name="book-outline" size={32} color={colors.accent}/><Text numberOfLines={2} style={styles.bookName}>{name}</Text></View>
-              <Text style={styles.position}>{surah?.arabicName} · {bilingual(language,'صفحة {n}','Page {n}',{n:book.page.toLocaleString(localeFor(language))})}</Text>
+              <Text style={styles.position}>{position}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language,'تسمية {name}','Rename {name}',{name})} testID={`rename-${book.id}`} style={styles.rename} onPress={()=>{setEditing(book);setName(book.name)}}><Ionicons name="pencil-outline" size={15} color={colors.accent}/><Text style={styles.renameText}>{bilingual(language,'تسمية المصحف','Rename book')}</Text></Pressable>
           </View>;
@@ -98,5 +102,5 @@ export function QuranLibrary(props: Props) {
   </View>;
 }
 const baseStyles = StyleSheet.create({
-  root:{flex:1},shelf:{width:'100%',maxWidth:1100,alignSelf:'center',paddingTop:58,paddingHorizontal:16,paddingBottom:80,gap:12},heading:{fontSize:23,fontWeight:'600',color:'#FAF7EF'},hint:{fontSize:13,lineHeight:21,color:'#BCD0DF'},grid:{flexDirection:'row',flexWrap:'wrap',gap:12},reverse:{flexDirection:'row-reverse'},card:{width:'48%',flexGrow:1,flexBasis:'45%',maxWidth:'49%',gap:2},cover:{minHeight:154,padding:10,gap:10,borderRadius:18,borderWidth:1,borderColor:'#DBAB68',backgroundColor:'#15342E'},coverFrame:{flex:1,minHeight:103,borderRadius:12,borderWidth:1,borderColor:'#DBAB68',alignItems:'center',justifyContent:'center',gap:8,padding:6},bookName:{color:'#FAF7EF',fontSize:17,fontWeight:'600',textAlign:'center'},position:{color:'#BCD0DF',fontSize:11,textAlign:'center'},rename:{minHeight:44,flexDirection:'row',gap:5,alignItems:'center',justifyContent:'center'},renameText:{fontSize:11,color:'#DBAB68'},rtl:{textAlign:'right',writingDirection:'rtl'},overlay:{flex:1,justifyContent:'center',padding:24,backgroundColor:'#0009'},editor:{padding:18,gap:16,borderRadius:20,borderWidth:1,borderColor:'#DBAB68',backgroundColor:'#18334A'},input:{minHeight:48,paddingHorizontal:12,borderWidth:1,borderColor:'#DBAB68',borderRadius:10,fontSize:17,color:'#FAF7EF'},actions:{flexDirection:'row',gap:10},button:{flex:1,minHeight:44,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#DBAB68',borderRadius:12},buttonText:{color:'#FAF7EF',fontSize:16},
+  root:{flex:1},shelf:{width:'100%',maxWidth:1100,alignSelf:'center',paddingTop:58,paddingHorizontal:16,paddingBottom:80,gap:12},heading:{fontSize:23,fontWeight:'600',color:'#FAF7EF'},hint:{fontSize:13,lineHeight:21,color:'#BCD0DF'},grid:{flexDirection:'row',flexWrap:'wrap',gap:12},reverse:{flexDirection:'row-reverse'},card:{width:'48%',flexGrow:1,flexBasis:'45%',maxWidth:'49%',gap:2},cover:{minHeight:154,padding:10,gap:10,borderRadius:18,borderWidth:1,borderColor:'#DBAB68',backgroundColor:'#15342E'},coverFrame:{flex:1,minHeight:103,borderRadius:12,borderWidth:1,borderColor:'#DBAB68',alignItems:'center',justifyContent:'center',gap:8,padding:6},bookName:{width:'100%',alignSelf:'stretch',flexShrink:0,lineHeight:27,color:'#FAF7EF',fontSize:17,fontWeight:'600',textAlign:'center'},position:{width:'100%',lineHeight:18,color:'#BCD0DF',fontSize:11,textAlign:'center'},rename:{minHeight:44,flexDirection:'row',gap:5,alignItems:'center',justifyContent:'center'},renameText:{fontSize:11,color:'#DBAB68'},rtl:{textAlign:'right',writingDirection:'rtl'},overlay:{flex:1,justifyContent:'center',padding:24,backgroundColor:'#0009'},editor:{padding:18,gap:16,borderRadius:20,borderWidth:1,borderColor:'#DBAB68',backgroundColor:'#18334A'},input:{minHeight:48,paddingHorizontal:12,borderWidth:1,borderColor:'#DBAB68',borderRadius:10,fontSize:17,color:'#FAF7EF'},actions:{flexDirection:'row',gap:10},button:{flex:1,minHeight:44,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#DBAB68',borderRadius:12},buttonText:{color:'#FAF7EF',fontSize:16},
 });

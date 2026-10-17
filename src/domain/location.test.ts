@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { LOCATION_REFRESH_MS, LocationAccessError, requestDeviceLocation, shouldRefreshLocation, type LocationProvider } from './location.ts';
+import { LOCATION_REFRESH_MS, LocationAccessError, nativeLocationFailure, requestDeviceLocation, shouldRefreshLocation, type LocationProvider } from './location.ts';
 
 const position = { coords: { latitude: 24.7136, longitude: 46.6753, accuracy: 1000 }, timestamp: 123 };
 function provider(overrides: Partial<LocationProvider> = {}): LocationProvider {
@@ -79,4 +79,19 @@ test('invalid fixes and provider errors become recoverable location errors', asy
   await assert.rejects(requestDeviceLocation(provider({
     currentPosition: async () => { throw new Error('GPS unavailable'); },
   })), LocationAccessError);
+});
+
+test('native location service error codes match the expo permission path states', () => {
+  assert.equal(nativeLocationFailure('ERR_LOCATION_SERVICES_DISABLED'), 'servicesDisabled');
+  assert.equal(nativeLocationFailure('ERR_LOCATION_TIMEOUT'), 'timeout');
+  assert.equal(nativeLocationFailure(undefined), 'locationError');
+  assert.equal(nativeLocationFailure('ERR_LOCATION_PROVIDER'), 'locationError');
+});
+
+test('a native denial resolves to the same blocked state once the permission cannot be asked again', () => {
+  assert.equal(nativeLocationFailure('ERR_LOCATION_DENIED'), 'denied');
+  assert.equal(nativeLocationFailure('ERR_LOCATION_DENIED', null), 'denied');
+  assert.equal(nativeLocationFailure('ERR_LOCATION_DENIED', { granted: false, canAskAgain: true }), 'denied');
+  assert.equal(nativeLocationFailure('ERR_LOCATION_DENIED', { granted: false, canAskAgain: false }), 'blocked');
+  assert.equal(nativeLocationFailure('ERR_LOCATION_DENIED', { granted: true, canAskAgain: false }), 'denied');
 });

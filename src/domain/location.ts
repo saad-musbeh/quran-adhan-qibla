@@ -21,6 +21,22 @@ export type LocationProvider = {
 
 export const LOCATION_REFRESH_MS = 6 * 60 * 60 * 1000;
 
+/** Maps SystemDeviceLocation error codes to the same [[LocationFailure]] states as [[requestDeviceLocation]].
+ * When a permission snapshot is available, ERR_LOCATION_DENIED distinguishes recoverable denial from a
+ * permanently blocked permission exactly like the expo permission path. */
+export function nativeLocationFailure(
+  code: string | undefined,
+  permission?: { granted: boolean; canAskAgain: boolean } | null,
+): LocationFailure {
+  switch (code) {
+    case 'ERR_LOCATION_SERVICES_DISABLED': return 'servicesDisabled';
+    case 'ERR_LOCATION_TIMEOUT': return 'timeout';
+    case 'ERR_LOCATION_DENIED':
+      return permission && !permission.granted && !permission.canAskAgain ? 'blocked' : 'denied';
+    default: return 'locationError';
+  }
+}
+
 /** Only an already selected device location can refresh automatically. */
 export function shouldRefreshLocation(source: LocationSource | undefined, lastAttempt: number, now: number): boolean {
   return source === 'device' && now - lastAttempt >= LOCATION_REFRESH_MS;

@@ -604,4 +604,6 @@ export const MUSHAF_PAGE_ASSETS: Record<number, number> = {
   602: require('../../assets/mushaf/pages/602.svg.zst'),
   603: require('../../assets/mushaf/pages/603.svg.zst'),
   604: require('../../assets/mushaf/pages/604.svg.zst'),
+  605: require('../../assets/mushaf/pages/605.svg.zst'),
+  606: require('../../assets/mushaf/pages/606.svg.zst'),
 };
