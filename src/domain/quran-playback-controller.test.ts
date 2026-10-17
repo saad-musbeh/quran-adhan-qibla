@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import ts from 'typescript';
-import type { QuranAudioController } from '../use-quran-audio';
+import type { QuranAudioController, QuranAudioTiming } from '../use-quran-audio';
 
 const require = createRequire(import.meta.url);
 (globalThis as typeof globalThis & { require: NodeRequire; IS_REACT_ACT_ENVIRONMENT: boolean }).require = require;
@@ -24,6 +24,7 @@ async function playerHarness(localFiles: string[] = [], timingRows: unknown = []
   const tracks: string[] = [], requested: string[] = [];
   let status = {currentTime:0,duration:0,currentIndex:0,trackCount:0,isLoaded:false,isBuffering:false,playing:false,didJustFinish:false};
   let plays = 0;
+  let trackEnds: Record<string, number> = {};
   let errorListener: (message:string,uri?:string,time?:number)=>void = ()=>{};
   let remoteListener: (command:string,nativeHandled:boolean)=>void = ()=>{};
   const playlist = {
@@ -56,23 +57,23 @@ async function playerHarness(localFiles: string[] = [], timingRows: unknown = []
     'expo-file-system/legacy':fs,
     'expo-network':{async getNetworkStateAsync(){return {isConnected:true,isInternetReachable:true};},addNetworkStateListener:()=>({remove(){}})},
     'react-native':{AppState:{addEventListener:()=>({remove(){}})}},
-    './quran-audio-controls':{quranAudioControls:{available:false,attach(){},detach(){},updateTitles(){},updateMetadata(){},updatePlaybackRate(){},
+    './quran-audio-controls':{quranAudioControls:{available:false,attach(_playlist:unknown,_titles:unknown,_reciter:unknown,ends:Record<string,number>){trackEnds=ends;},detach(){},updateTitles(){},updateMetadata(){},updatePlaybackRate(){},
       addPlaybackErrorListener(fn:typeof errorListener){errorListener=fn;return {remove(){}};},
       addRemoteCommandListener(fn:typeof remoteListener){remoteListener=fn;return {remove(){}};}}},
   };
-  const output={exports:{} as {useQuranAudio:()=>QuranAudioController}};
+  const output={exports:{} as {useQuranAudio:()=>QuranAudioController & QuranAudioTiming}};
   new Function('require','module','exports',compiled)((name:string)=>{
     if (!(name in mocks)) throw Error(`Unexpected native import: ${name}`);
     return mocks[name];
   },output,output.exports);
-  let controller!: QuranAudioController;
+  let controller!: QuranAudioController & QuranAudioTiming;
   function Probe(){controller=output.exports.useQuranAudio();return null;}
   let root!: ReactTestRenderer;
   const previousFetch = globalThis.fetch;
   globalThis.fetch = async ()=>({ok:true,async json(){return timingRows;}} as unknown as Response);
   await act(async()=>{root=create(createElement(Probe));});
   return {
-    get controller(){return controller;},get plays(){return plays;},get time(){return status.currentTime;},tracks,requested,files,fs,
+    get controller(){return controller;},get plays(){return plays;},get time(){return status.currentTime;},get trackEnds(){return trackEnds;},get loop(){return playlist.loop;},tracks,requested,files,fs,
     async command(fn:()=>unknown){ await act(async()=>{await fn();}); },
     async tick(next:Partial<typeof status>){await act(async()=>{status={...status,...next};root.update(createElement(Probe));});},
     async fail(message:string,time:number){await act(async()=>{errorListener(message,tracks[status.currentIndex],time);});},
@@ -105,6 +106,35 @@ test('starting at ayah one uses a full-surah file, ignores saved Next, resumes, 
     assert.equal(h.controller.fullSurah,112);
     assert.equal(h.tracks.length,1);
   } finally {await h.close();}
+});
+
+test('Ghamdi Fatiha uses the audited native end for streams, downloads, repeats and Next', async()=>{
+  const local='file:///private/quran-audio/ghamdi/001/surah.mp3';
+  for (const cached of [false,true]) {
+    const h=await playerHarness(cached?[local]:[]);
+    try {
+      await h.command(()=>h.controller.playSurah(1));
+      const source=cached?local:'https://cdn.mp3quran.net/audio/saad-ghamdi/r1/001.mp3';
+      assert.deepEqual(h.trackEnds,{[source]:42});
+      await h.tick({playing:true,isLoaded:true,duration:48.091417,currentTime:40});
+      assert.equal(h.controller.duration,42);
+      await h.command(()=>h.controller.seekBy(15));
+      assert.equal(h.time,42);
+      await h.tick({playing:false,currentTime:42});
+      assert.equal(h.controller.status,'idle');
+      await h.command(()=>h.controller.setSurahEnd('repeat'));
+      assert.deepEqual(h.trackEnds,{[source]:42});
+      assert.equal(h.loop,'all');
+      await h.command(()=>h.controller.setSurahEnd('next'));
+      assert.deepEqual(h.trackEnds,{[source]:42});
+      assert.equal(h.tracks.length,114);
+      await h.command(()=>h.controller.playRange(1,7,7));
+      assert.deepEqual(h.trackEnds,{}); // Do not apply a full-recording offset to an ayah MP3.
+      await h.command(()=>h.controller.setReciter('alafasy'));
+      await h.command(()=>h.controller.playSurah(1));
+      assert.deepEqual(h.trackEnds,{}); // No guessed cutoff for another voice.
+    } finally {await h.close();}
+  }
 });
 
 test('whole-surah retry retains its source and time; an explicit Next queues full recordings only', async()=>{

@@ -6,7 +6,7 @@ This app includes an offline Arabic Quran reader with verse audio, Arabic/Englis
 
 ## What is ready
 
-- **0.6.3 test build:** main Play starts one complete surah recording, removing per-ayah file transitions; offline downloads include that full recording alongside ayah files. Surah-end behavior starts at Stop each app session. Physical-phone confirmation remains pending. See [verification and limitations](docs/RELEASE-0.6.3.md).
+- **0.6.4:** main Play starts one complete surah recording, removing per-ayah file transitions; offline downloads include that full recording alongside ayah files. Surah-end behavior starts at Stop each app session. Ghamdi’s full Al-Fatiha ends at an audited pause before its recorded Ameen, including offline and repeated playback. Physical-phone confirmation remains pending. See [verification and limitations](docs/RELEASE-0.6.4.md).
 - **0.6.2:** updates Android's native audio libraries to Media3 1.9.3 for MP3 queue and audio-output fixes, with regression coverage across Al-Ikhlas, Al-Falaq and An-Nas. See [release notes](docs/RELEASE-0.6.2.md) for verification limits. iOS device testing is deferred.
 - **0.6.1:** adds the complete **دعاء ختم القرآن** after page 604, with stable Arabic lettering and clear row spacing, and fixes Android text clipping across the app. Salawat reminders gain recorded phrase choices and daytime repeat controls; reminder reconciliation and native audio cleanup are hardened. See [release notes](docs/RELEASE-0.6.1.md).
 - **0.6.0:** a fourth **أذكار وأدعية / Adhkar & dua** tab with 54 offline Arabic entries from حصن المسلم, in three fixed collections. Scrolling is the default; source references open on demand. Optional الصلاة على النبي reminders offer a daytime repeat window, selectable recorded speech and retained chosen times, and morning/evening reminders open their collections. Counters, single-entry reading, other notification styles and scheduling experiments are under Extra testing settings. See [sources and behavior](docs/ADHKAR.md).
@@ -99,7 +99,7 @@ See [Android APK size and validation](docs/ANDROID-SIZE.md) for measured before/
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-The published baseline is `v0.6.2` (build 25); the continuous-surah follow-up is on `codex/continuous-surah-playback` (0.6.3 / build 26 test source). The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use `v0.6.4` or `codex/release-0.6.4` for the 0.6.4 / build 27 source. This includes continuous-surah playback and native, source-specific ending limits; iOS device listening remains unverified. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios

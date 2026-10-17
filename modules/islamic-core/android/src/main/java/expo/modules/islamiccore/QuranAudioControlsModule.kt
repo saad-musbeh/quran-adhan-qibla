@@ -56,10 +56,11 @@ class QuranAudioControlsModule : Module() {
     Name("QuranAudioControls")
     Events("remoteCommand", "playbackError")
 
-    Function("attach") { playlist: AudioPlaylist, titles: List<String>, artist: String ->
+    Function("attach") { playlist: AudioPlaylist, titles: List<String>, artist: String, trackEnds: Map<String, Double> ->
       runOnMain {
         observedPlayer?.removeListener(errorListener)
         observedPlayer = playlist.ref
+        applyQuranTrackEnds(playlist.ref, trackEnds)
         // Expo leaves playlist preloading disabled. Preparing the next ayah's
         // media source ahead of the boundary avoids per-file preparation stalls.
         // Media3 owns the buffer for local files and streams; no recitation is edited.

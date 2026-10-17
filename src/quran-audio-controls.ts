@@ -3,7 +3,7 @@ import type { AudioPlaylist } from 'expo-audio';
 import { RECITERS, type ReciterId } from './data/reciters';
 
 type NativeQuranAudioControls = {
-  attach(playlist: AudioPlaylist, titles: string[], artist: string): void;
+  attach(playlist: AudioPlaylist, titles: string[], artist: string, trackEnds: Record<string, number>): void;
   updateTitles(titles: string[], artist: string, currentIndex: number): void;
   updateMetadata(title: string, artist: string): void;
   updatePlaybackRate(rate: number): void;
@@ -16,7 +16,7 @@ const reciterNames = Object.fromEntries(RECITERS.map(reciter => [reciter.id, rec
 
 export const quranAudioControls = {
   get available() { return native !== null; },
-  attach(playlist: AudioPlaylist, titles: string[], reciter: ReciterId) { native?.attach(playlist, titles, reciterNames[reciter]); },
+  attach(playlist: AudioPlaylist, titles: string[], reciter: ReciterId, trackEnds: Record<string, number> = {}) { native?.attach(playlist, titles, reciterNames[reciter], trackEnds); },
   updateTitles(titles: string[], reciter: ReciterId, currentIndex: number) { native?.updateTitles(titles, reciterNames[reciter], currentIndex); },
   updateMetadata(title: string, reciter: ReciterId) { native?.updateMetadata(title, reciterNames[reciter]); },
   updatePlaybackRate(rate: number) { native?.updatePlaybackRate(rate); },

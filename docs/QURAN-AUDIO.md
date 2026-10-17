@@ -1,5 +1,11 @@
 # Quran audio
 
+## 0.6.4 — Al-Fatiha ending
+
+Ghamdi’s MP3Quran read-30 Al-Fatiha contains a closing Ameen after the recitation. The app now ends that specific full recording at **42.000 seconds**, in the quiet interval after ayah 7 and before the response. The provider marks ayah 7’s end at 41.660 seconds; the extra 340 ms preserves the word’s tail. The canonical ending was also compared with EveryAyah’s separate seventh-ayah recording by waveform alignment. Source URLs, SHA-256 hashes and the twenty-voice source/metadata audit are recorded in `assets/quran/fatiha-ending-verification-2026-10-17.json`. Timing gaps alone are not treated as proof that another voice includes Ameen. Other voices retain their recordings until their endings are verified.
+
+The end is applied by Media3 clipping on Android and `AVPlayerItem.forwardPlaybackEndTime` on iOS, keyed to the actual streaming or private-download URI. It remains in effect for Next, Repeat, seeks and native background playback, without a JavaScript stop timer. iOS reapplies the boundary to recreated items and loop copies. Player durations and seek controls respect the limit. The original MP3 and existing downloaded files stay unchanged; previously saved full recordings do not need another download. Individual ayah files/range loops do not receive an offset intended for the full recording. A fresh native 0.6.4 build is required for this bridge change. See [release verification](RELEASE-0.6.4.md).
+
 ## 0.6.3 — continuous full-surah playback
 
 The reader's main Play button starts the current surah from its beginning as **one complete MP3**, rather than switching files at every ayah. The player also has **Play full surah / تشغيل السورة كاملة**. Pause/resume and retry keep that source and position; replay restarts the surah. A normal session queues only that surah and stops when it ends. **Next surah** explicitly queues subsequent complete surah recordings through An-Nas; **Repeat surah** repeats the one recording. Surah-end choices apply within the current app session and start at Stop on relaunch, including upgrades with an older saved Next setting. Starting a full surah clears any selected ayah loop.

@@ -5,6 +5,22 @@ import type { QuranQueuePosition, SurahEndMode } from './quran-audio-queue.ts';
 
 export type AyahTiming = { ayah: number; start: number; end: number };
 
+/** Audited against the exact MP3Quran read-30 recording and its ayah timings.
+ * 42s is in the pause after ayah 7, before the recorded Ameen. This is a
+ * source-specific boundary, never a general Al-Fatiha duration heuristic.
+ * Provenance: assets/quran/fatiha-ending-verification-2026-10-17.json.
+ */
+export function fullSurahEndSeconds(reciter: ReciterId, surah: number): number | null {
+  return reciter === 'ghamdi' && surah === 1 ? 42 : null;
+}
+
+export function fullSurahTrackEnds(reciter: ReciterId, positions: readonly QuranQueuePosition[], sources: readonly string[]): Record<string, number> {
+  return Object.fromEntries(positions.flatMap((position, index) => {
+    const end = fullSurahEndSeconds(reciter, position.surah);
+    return end !== null && sources[index] ? [[sources[index], end]] : [];
+  }));
+}
+
 export function fullSurahUri(reciter: ReciterId, surah: number): string {
   if (!getSurah(surah)) throw new RangeError('Invalid surah');
   return `${SURAH_RECITATIONS[reciter].server}${String(surah).padStart(3, '0')}.mp3`;
