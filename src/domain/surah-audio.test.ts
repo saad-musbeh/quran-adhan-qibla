@@ -3,15 +3,21 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 (globalThis as typeof globalThis & { require: NodeRequire }).require = createRequire(import.meta.url);
-const { fullSurahUri, fullSurahQueue, fullSurahEndSeconds, fullSurahTrackEnds, parseAyahTimings, ayahAtTime } = await import('./surah-audio.ts');
+const { fullSurahUri, fullSurahQueue, fullSurahEndSeconds, recordingEndSeconds, quranTrackEnds, parseAyahTimings, ayahAtTime } = await import('./surah-audio.ts');
 const { RECITERS } = await import('../data/reciters.ts');
 
-test('the audited Al-Fatiha end is limited to Ghamdi and follows the actual source URI',()=>{
+test('audited Al-Fatiha ends follow exact recording editions and actual source URIs',()=>{
   assert.equal(fullSurahEndSeconds('ghamdi',1),42);
   assert.equal(fullSurahEndSeconds('ghamdi',2),null);
-  for (const voice of RECITERS.filter(voice=>voice.id!=='ghamdi')) assert.equal(fullSurahEndSeconds(voice.id,1),null);
-  assert.deepEqual(fullSurahTrackEnds('ghamdi',[{surah:1,verse:1},{surah:2,verse:1}],['file:///private/001/surah.mp3','https://source/002.mp3']),{'file:///private/001/surah.mp3':42});
-  assert.deepEqual(fullSurahTrackEnds('ghamdi',[{surah:1,verse:1}],[]),{});
+  for (const voice of RECITERS) assert.equal(fullSurahEndSeconds(voice.id,2),null);
+  assert.equal(fullSurahEndSeconds('alafasy',1),null);
+  assert.equal(recordingEndSeconds('shuraym',{surah:1,verse:7},true),35.25);
+  assert.equal(recordingEndSeconds('shuraym',{surah:1,verse:7},false),11.95);
+  assert.equal(recordingEndSeconds('ghamdi',{surah:1,verse:7},false),null);
+  assert.equal(recordingEndSeconds('shuraym',{surah:1,verse:6},false),null);
+  assert.deepEqual(quranTrackEnds('shuraym',[{surah:1,verse:6},{surah:1,verse:7}],['https://source/001006.mp3','file:///private/001007.mp3'],false),{'file:///private/001007.mp3':11.95});
+  assert.deepEqual(quranTrackEnds('ghamdi',[{surah:1,verse:1},{surah:2,verse:1}],['file:///private/001/surah.mp3','https://source/002.mp3'],true),{'file:///private/001/surah.mp3':42});
+  assert.deepEqual(quranTrackEnds('ghamdi',[{surah:1,verse:1}],[],true),{});
 });
 
 test('normal playback uses exactly one complete recording and never queues the following surah', () => {

@@ -137,6 +137,30 @@ test('Ghamdi Fatiha uses the audited native end for streams, downloads, repeats 
   }
 });
 
+test('Shuraym uses independent full and final-ayah ends on streams and saved ranges', async()=>{
+  const local='file:///private/quran-audio/shuraym/001/001007.mp3';
+  for (const cached of [false,true]) {
+    const h=await playerHarness(cached?[local]:[]);
+    try {
+      await h.command(()=>h.controller.setReciter('shuraym'));
+      await h.command(()=>h.controller.playSurah(1));
+      assert.equal(Object.values(h.trackEnds)[0],35.25);
+      await h.command(()=>h.controller.playRange(1,6,7));
+      const source=cached?local:h.tracks[1];
+      assert.deepEqual(h.trackEnds,{[source]:11.95});
+      assert.equal(h.loop,'all');
+      await h.tick({currentIndex:1,playing:true,isLoaded:true,currentTime:10,duration:14});
+      assert.equal(h.controller.duration,11.95);
+      await h.command(()=>h.controller.seekBy(15));
+      assert.equal(h.time,11.95);
+      await h.command(()=>h.controller.playVerse(1,6));
+      assert.deepEqual(h.trackEnds,{[source]:11.95});
+      await h.command(()=>h.controller.playSurah(112));
+      assert.deepEqual(h.trackEnds,{});
+    } finally {await h.close();}
+  }
+});
+
 test('whole-surah retry retains its source and time; an explicit Next queues full recordings only', async()=>{
   const h=await playerHarness();
   try {

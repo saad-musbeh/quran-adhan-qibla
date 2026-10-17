@@ -1,6 +1,6 @@
 {
   "checkedAt": "2026-10-17",
-  "scope": "Al-Fatiha source/metadata audit. Tail duration alone is not evidence of Ameen. No Quran MP3s are bundled or published.",
+  "scope": "All twenty selectable full Al-Fatiha recordings and twenty official EveryAyah final-ayah references reviewed by four Luna groups. Machine-assisted review, not human listening or certification of absence. No Quran MP3s or machine transcripts are bundled or published.",
   "ghamdiBoundary": {
     "endSeconds": 42,
     "timingSource": "https://www.mp3quran.net/api/v3/ayat_timing?surah=1&read=30",
@@ -28,7 +28,17 @@
         "y": "148.25",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Strong reference match ends 54.282s (correlation .9758); remaining tail is effectively silent. Unsupported speech-model labels in silence were excluded.",
+        "referenceSource": "https://everyayah.com/data/Husary_128kbps/001007.mp3",
+        "referenceSha256": "83c01a366e877db3bc67b77d4a451bd3f162a5e64fda8cad80be64dae11d68cb",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "ghamdi": {
       "read": 30,
@@ -46,7 +56,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "reported by user"
+      "ameenStatus": "response_reported",
+      "endingReview": {
+        "classification": "response_reported",
+        "evidence": "User reports Ameen. Reference matches at 29.726s (correlation .918); provider ayah 7 ends 41.660s. A quiet interval around 41.8–42.2s separates the final word from distinct voiced activity around 42.2–47.0s. Both speech models miss that response; phrase identity is not independently recognized.",
+        "referenceSource": "https://everyayah.com/data/Ghamadi_40kbps/001007.mp3",
+        "referenceSha256": "fe8c3cd8fbf18f76aea1e57c95e0f7c20dea9bb74a807890c137c49f90449d1b",
+        "appliedFullEndSeconds": 42,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": "medium-high",
+        "referenceResponseDetectedByModels": false
+      }
     },
     "alafasy": {
       "read": 123,
@@ -64,7 +84,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "inconclusive",
+      "endingReview": {
+        "classification": "inconclusive",
+        "evidence": "Reference correlation .0603 does not establish a matching take. Models detect no later response, but their negative result cannot certify absence. No cutoff.",
+        "referenceSource": "https://everyayah.com/data/Alafasy_128kbps/001007.mp3",
+        "referenceSha256": "6165fc6954e63686f556a8049c0d5231d6dbe812158da9b63e6d5f7191b1320e",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "sudais": {
       "read": 54,
@@ -82,7 +112,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "inconclusive",
+      "endingReview": {
+        "classification": "inconclusive",
+        "evidence": "Reference correlation .0210 is insufficient. Full-source speech output is unreliable near the canonical ending; unsupported labels are excluded. Provider timing alone cannot establish a cutoff.",
+        "referenceSource": "https://everyayah.com/data/Abdurrahmaan_As-Sudais_64kbps/001007.mp3",
+        "referenceSha256": "c658953bec228a47acca3adb79ac560871e29bd7ecbb2351d082aa4cd8cc2fed",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "abdulbasit": {
       "read": 53,
@@ -100,7 +140,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Strong reference match ends 46.442s (correlation .9706); remaining tail is quiet. Neither model detects a separate closing response.",
+        "referenceSource": "https://everyayah.com/data/Abdul_Basit_Murattal_192kbps/001007.mp3",
+        "referenceSha256": "865bf7586faf54fd9222424c0b34dde6e1a482c1be1ac77debead6558ee3395d",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "minshawi": {
       "read": 112,
@@ -118,7 +168,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Reference match ends 50.991s (correlation .9964), consistent with provider end 51.018s. Models detect only canonical wording and the remaining waveform decays. No silence-only trim applied.",
+        "referenceSource": "https://everyayah.com/data/Minshawy_Murattal_128kbps/001007.mp3",
+        "referenceSha256": "7aa3230c88f29a29f09e22711f83171be8da78ed748b05042d0de3afcde98d6a",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "shuraym": {
       "read": 31,
@@ -136,7 +196,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "ameen_detected",
+      "endingReview": {
+        "classification": "ameen_detected",
+        "evidence": "Both models detect Ameen in full and final-ayah files. Reference aligns at 23.301s (correlation .9669). Canonical vocal taper ends around 34.9s full/11.6s ayah; quiet interval 35.0–35.5s/11.7–12.2s precedes distinct response onset 35.6s/12.3s. Each limit lies in its own pause. Provider end 37.303s includes the response.",
+        "referenceSource": "https://everyayah.com/data/Saood_ash-Shuraym_128kbps/001007.mp3",
+        "referenceSha256": "0a59fdcc957e06d8cb78561a9638b427a1bf09d5b5bd4cd707a9a9a74222e5a4",
+        "appliedFullEndSeconds": 35.25,
+        "appliedVerse7EndSeconds": 11.95,
+        "boundaryConfidence": "high",
+        "referenceResponseDetectedByModels": true
+      }
     },
     "maher": {
       "read": 102,
@@ -146,7 +216,17 @@
       "durationSeconds": 38.076378,
       "canonicalTimingCoverage": false,
       "lastTiming": null,
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "ameen_detected",
+      "endingReview": {
+        "classification": "ameen_detected",
+        "evidence": "Turbo detects Ameen with .97 word probability after the final word ending 32.16s; small model omits the tail. Reference is a different take (correlation .0387); no timing rows. Independent Luna review supports 32.8s in the reduced-energy trough after the word and before renewed strong activity near 33.1s. Medium boundary confidence; needs listening confirmation.",
+        "referenceSource": "https://everyayah.com/data/MaherAlMuaiqly128kbps/001007.mp3",
+        "referenceSha256": "95cfba8c5124afb8e23b0ab5721b52cc1d6cf9cb91e095750603d8e261b8f25e",
+        "appliedFullEndSeconds": 32.8,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": "medium",
+        "referenceResponseDetectedByModels": false
+      }
     },
     "ajamy": {
       "read": 5,
@@ -164,7 +244,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "inconclusive",
+      "endingReview": {
+        "classification": "inconclusive",
+        "evidence": "Reference matches at 26.049s (correlation .9533), ending 37.151s, but strong continuous activity remains through 41.9s without a separating pause. Models do not identify a later response. Do not assume this activity is extra speech or cut the prolonged ending.",
+        "referenceSource": "https://everyayah.com/data/Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net/001007.mp3",
+        "referenceSha256": "91755e93c3d942e2a73a7bbabfd3822cae4dc15a3812c525d2ad98dcb8c3ba81",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "hudhaify": {
       "read": 74,
@@ -182,7 +272,17 @@
         "y": "119.91",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "inconclusive",
+      "endingReview": {
+        "classification": "inconclusive",
+        "evidence": "Reference correlation .1071 is insufficient and provider rows stop at ayah 5. Model final-word estimates differ 58.78s versus 60.16s, while waveform stays active through 60.2s. No safe cutoff established.",
+        "referenceSource": "https://everyayah.com/data/Hudhaify_128kbps/001007.mp3",
+        "referenceSha256": "a0ce2362366fb4699ed413af5d145ffc3fc23f495882810a120e99a94da1cc27",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "basfar": {
       "read": 60,
@@ -200,7 +300,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "inconclusive",
+      "endingReview": {
+        "classification": "inconclusive",
+        "evidence": "Reference correlation .04758 is insufficient. Provider timing ends at file duration 49.424s; models detect canonical wording and waveform decays near the end, but absence remains unresolved. No cutoff.",
+        "referenceSource": "https://everyayah.com/data/Abdullah_Basfar_192kbps/001007.mp3",
+        "referenceSha256": "3690b9c5387bb25b1f81005c02f69b1de9f7e5e4cd81bfc1fa182696ef3cbb04",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "fares": {
       "read": 81,
@@ -218,7 +328,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Strong reference match at 30.429s (correlation .97481), ending 43.438s. Models detect canonical ending only; remaining tail is low-level decay.",
+        "referenceSource": "https://everyayah.com/data/Fares_Abbad_64kbps/001007.mp3",
+        "referenceSha256": "da28abc9f090f2500f0139585a87ebcd37763f0e41720a1e3fb334ba851c09dd",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "dossary": {
       "read": 92,
@@ -236,7 +356,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Strong reference match at 32.156s (correlation .968), ending 47.046s. Canonical wording is detected and remaining tail decays without a distinct later response.",
+        "referenceSource": "https://everyayah.com/data/Yasser_Ad-Dussary_128kbps/001007.mp3",
+        "referenceSha256": "5c85e1a29cecc30063d7fe58ba9d268d9a43083c91ed25900c09e62008ec2646",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "qatami": {
       "read": 86,
@@ -254,7 +384,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Strong reference match at 24.841s (correlation .9996), ending 39.392s. No distinct extra speech detected in the matched ending and short remaining tail.",
+        "referenceSource": "https://everyayah.com/data/Nasser_Alqatami_128kbps/001007.mp3",
+        "referenceSha256": "32dd77991dcd6e03fc8269a5c37616320b0c1c6b352648303802f7f58c48e3de",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "qasim": {
       "read": 67,
@@ -272,7 +412,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Strong reference match at 26.811s (correlation .9955), ending 39.193s. No distinct extra speech detected; retain original ending.",
+        "referenceSource": "https://everyayah.com/data/Muhsin_Al_Qasim_192kbps/001007.mp3",
+        "referenceSha256": "346fa35d32cad6dd8769dc7eef9d6a23f1621bfb799ec2f208dffb798031c872",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "budair": {
       "read": 43,
@@ -290,7 +440,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "ameen_detected",
+      "endingReview": {
+        "classification": "ameen_detected",
+        "evidence": "Both models detect Ameen. Their direct-source final-word ends 49.20s/49.12s agree closely, following provider end 49.02s. The source dips 49.30–49.50s then rises 49.60s. Independent Luna review supports 49.45s after the word, with a narrow margin before renewed activity. Reference is a different take, not used to transfer an endpoint. Medium boundary confidence; needs listening confirmation.",
+        "referenceSource": "https://everyayah.com/data/Salah_Al_Budair_128kbps/001007.mp3",
+        "referenceSha256": "d649512badc862455212215dea9d051b287e3819a6933321ecbfd2d27af3beaf",
+        "appliedFullEndSeconds": 49.45,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": "medium",
+        "referenceResponseDetectedByModels": false
+      }
     },
     "rifai": {
       "read": 89,
@@ -308,7 +468,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "ameen_detected",
+      "endingReview": {
+        "classification": "ameen_detected",
+        "evidence": "Both models detect Ameen. Reference matches at 25.311s (correlation .99603), placing its complete endpoint 38.033s. Limit 38.375s preserves another 342ms of source decay and precedes renewed activity around 38.50s. Provider end 35.86s is unsafe because it precedes the complete matched word. Moderate boundary confidence due to the short pause.",
+        "referenceSource": "https://everyayah.com/data/Hani_Rifai_192kbps/001007.mp3",
+        "referenceSha256": "3b3d8656623715162417311f474a1da3b3d0ab33b668762e6df6e387f1c92dda",
+        "appliedFullEndSeconds": 38.375,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": "moderate",
+        "referenceResponseDetectedByModels": false
+      }
     },
     "jibreel": {
       "read": 111,
@@ -318,7 +488,17 @@
       "durationSeconds": 46.114067,
       "canonicalTimingCoverage": false,
       "lastTiming": null,
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Reference aligns at 31.423s (correlation .85642, rising near the ending). Both models detect only the final ayah; source decays near 44.0s and is silent from 44.25s through 46.106s.",
+        "referenceSource": "https://everyayah.com/data/Muhammad_Jibreel_128kbps/001007.mp3",
+        "referenceSha256": "68762da94287395ab6e22091cfbc0dae3cffc9bd9639d087a974526ca55bfabc",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "jaber": {
       "read": 76,
@@ -336,7 +516,17 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Models detect the final verse; a turbo-only extra label is unsupported by any separate waveform onset and was excluded. Envelope smoothly decays after 54.3s. Reference does not match (.055 correlation), so confidence is low to moderate and no cutoff is applied.",
+        "referenceSource": "https://everyayah.com/data/Ali_Jaber_64kbps/001007.mp3",
+        "referenceSha256": "206f0662dede8a2fd7a27c93e2e48c2938d281930b59ceb911d4f41e16678cdf",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     },
     "shaatree": {
       "read": 4,
@@ -354,7 +544,51 @@
         "y": "205.31",
         "page": "https://www.mp3quran.net/api/quran_pages_svg/001.svg"
       },
-      "ameenStatus": "not speech-verified; no automatic cutoff applied"
+      "ameenStatus": "no_extra_speech_detected",
+      "endingReview": {
+        "classification": "no_extra_speech_detected",
+        "evidence": "Reference matches at 41.325s (correlation .96134), ending 61.022s. Both models detect the final ayah only. Source fades around 60.75s and remains silent through 62.851s.",
+        "referenceSource": "https://everyayah.com/data/Abu_Bakr_Ash-Shaatree_128kbps/001007.mp3",
+        "referenceSha256": "8483c4879b896bd7241b5e59edecaf7a7c1a6be12a827020635e51a7e3fb46bd",
+        "appliedFullEndSeconds": null,
+        "appliedVerse7EndSeconds": null,
+        "boundaryConfidence": null,
+        "referenceResponseDetectedByModels": false
+      }
     }
+  },
+  "speechAudit": {
+    "reviewedAt": "2026-10-17",
+    "workers": "Four gpt-6-luna audit groups plus an independent native/runtime and Maher/Budair boundary review",
+    "methods": [
+      "Exact-source SHA-256 verification",
+      "ffmpeg mono PCM waveform comparison and short-window RMS envelopes",
+      "Published MP3Quran timing metadata where available",
+      "Local Arabic faster-whisper small and large-v3-turbo with no initial prompt"
+    ],
+    "humanListening": false,
+    "limitations": [
+      "Both speech models miss the reported Ghamdi response. A negative result does not certify absence.",
+      "Unsupported model labels in silence or without a separate waveform onset are excluded.",
+      "Some full-surah and ayah editions are different takes. Never transfer an unmatched reference timestamp.",
+      "Medium-confidence Maher/Budair and moderate-confidence Rifai boundaries require physical-phone listening confirmation."
+    ],
+    "fullSourceEndsSeconds": {
+      "ghamdi": 42,
+      "shuraym": 35.25,
+      "maher": 32.8,
+      "budair": 49.45,
+      "rifai": 38.375
+    },
+    "verse7EndsSeconds": {
+      "shuraym": 11.95
+    },
+    "summary": {
+      "reviewed": 20,
+      "reportedOrDetectedClosingResponse": 5,
+      "noExtraSpeechDetected": 10,
+      "inconclusive": 5
+    },
+    "integrationDecision": "Apply response-specific boundaries only; do not shorten silence-only tails. Budair uses convergent direct-source word estimates and a measured trough, with independent review, despite the unmatched reference. Preserve uncertainty explicitly."
   }
 }

@@ -63,6 +63,11 @@ class QuranPlaybackTest {
       baseUrl = "https://cdn.mp3quran.net/audio/saad-ghamdi/r1/", endSeconds = 42.0)
   }
 
+  @Test fun shuraymFinalAyahExcludesRecordedResponseFromDownloadAndStream() {
+    assertRecordings(listOf("001007"), playbackRate = 1.25f,
+      baseUrl = "https://everyayah.com/data/Saood_ash-Shuraym_128kbps/", endSeconds = 11.95)
+  }
+
   private fun assertRecordings(keys: List<String>, playbackRate: Float = 1f,
     baseUrl: String = "https://everyayah.com/data/Ghamadi_40kbps/", endSeconds: Double? = null) {
     val context = InstrumentationRegistry.getInstrumentation().targetContext

@@ -1,22 +1,25 @@
 import { SURAH_RECITATIONS } from '../data/surah-recitations.ts';
+import { FULL_SURAH_ENDS, VERSE_RECORDING_ENDS } from '../data/recitation-ends.ts';
 import type { ReciterId } from '../data/reciters.ts';
 import { getSurah } from './quran.ts';
 import type { QuranQueuePosition, SurahEndMode } from './quran-audio-queue.ts';
 
 export type AyahTiming = { ayah: number; start: number; end: number };
 
-/** Audited against the exact MP3Quran read-30 recording and its ayah timings.
- * 42s is in the pause after ayah 7, before the recorded Ameen. This is a
- * source-specific boundary, never a general Al-Fatiha duration heuristic.
+/** Audited source-specific boundaries; never infer an end from a timing row.
  * Provenance: assets/quran/fatiha-ending-verification-2026-10-17.json.
  */
 export function fullSurahEndSeconds(reciter: ReciterId, surah: number): number | null {
-  return reciter === 'ghamdi' && surah === 1 ? 42 : null;
+  return FULL_SURAH_ENDS[reciter]?.[surah] ?? null;
 }
 
-export function fullSurahTrackEnds(reciter: ReciterId, positions: readonly QuranQueuePosition[], sources: readonly string[]): Record<string, number> {
+export function recordingEndSeconds(reciter: ReciterId, position: QuranQueuePosition, full: boolean): number | null {
+  return full ? fullSurahEndSeconds(reciter, position.surah) : VERSE_RECORDING_ENDS[reciter]?.[`${position.surah}:${position.verse}`] ?? null;
+}
+
+export function quranTrackEnds(reciter: ReciterId, positions: readonly QuranQueuePosition[], sources: readonly string[], full: boolean): Record<string, number> {
   return Object.fromEntries(positions.flatMap((position, index) => {
-    const end = fullSurahEndSeconds(reciter, position.surah);
+    const end = recordingEndSeconds(reciter, position, full);
     return end !== null && sources[index] ? [[sources[index], end]] : [];
   }));
 }
