@@ -210,7 +210,7 @@ internal object QuranTitleIndex {
 
 /** Adds native current-track metadata while forwarding all playback to the same player. */
 @UnstableApi
-private class QuranMetadataPlayer(
+internal class QuranMetadataPlayer(
   player: Player,
   titles: List<String>,
   artist: String,

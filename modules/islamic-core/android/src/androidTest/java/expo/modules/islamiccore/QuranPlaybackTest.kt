@@ -2,8 +2,11 @@ package expo.modules.islamiccore
 
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.session.MediaSession
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -32,16 +35,28 @@ class QuranPlaybackTest {
   }
 
   @Test fun ghamdiAyahsPlayFromPrivateDownloadsAndStreams() {
+    assertRecordings((1..3).map { "001${it.toString().padStart(3, '0')}" })
+  }
+
+  @Test fun finalSurahsAdvanceThroughAnNasAndStopWithMediaSession() {
+    // The reported recording crosses Al-Ikhlas -> Al-Falaq -> An-Nas.
+    assertRecordings((112..114).flatMap { surah ->
+      (1..when (surah) { 112 -> 4; 113 -> 5; else -> 6 }).map { verse ->
+        "$surah${verse.toString().padStart(3, '0')}"
+      }
+    })
+  }
+
+  private fun assertRecordings(keys: List<String>) {
     val context = InstrumentationRegistry.getInstrumentation().targetContext
-    val urls = (1..3).map { "https://everyayah.com/data/Ghamadi_40kbps/001${it.toString().padStart(3, '0')}.mp3" }
-    val files = urls.mapIndexed { index, url ->
-      val connection = URL(url).openConnection().apply { connectTimeout = 15000; readTimeout = 20000 }
-      File(context.cacheDir, "ghamdi-test-$index.mp3").also { file ->
+    val urls = keys.map { "https://everyayah.com/data/Ghamadi_40kbps/$it.mp3" }
+    val files = keys.map { File(context.cacheDir, "ghamdi-test-$it.mp3") }
+    try {
+      urls.zip(files).forEach { (url, file) ->
+        val connection = URL(url).openConnection().apply { connectTimeout = 15000; readTimeout = 20000 }
         connection.getInputStream().use { input -> file.outputStream().use { output -> input.copyTo(output) } }
         assertTrue("Empty source recording", file.length() > 1000)
       }
-    }
-    try {
       assertQueue(files.map { MediaItem.fromUri(it.toURI().toString()) })
       assertQueue(urls.map { MediaItem.fromUri(it) })
     } finally {
@@ -55,32 +70,48 @@ class QuranPlaybackTest {
     val finished = CountDownLatch(1)
     val transitions = mutableListOf<Int>()
     val buffering = mutableListOf<Int>()
+    val errors = mutableListOf<String>()
+    val underruns = mutableListOf<Int>()
     var player: ExoPlayer? = null
+    var session: MediaSession? = null
     try {
       instrumentation.runOnMainSync {
         val queue = ExoPlayer.Builder(instrumentation.targetContext).build()
         player = queue
         configureQuranPlayback(queue)
+        session = MediaSession.Builder(instrumentation.targetContext,
+          QuranMetadataPlayer(queue, items.indices.map { "Ayah $it" }, "Test reciter") {}).build()
+        queue.addAnalyticsListener(object : AnalyticsListener {
+          override fun onAudioUnderrun(eventTime: AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) {
+            underruns.add(eventTime.windowIndex)
+          }
+        })
         queue.addListener(object : Player.Listener {
           override fun onMediaItemTransition(item: MediaItem?, reason: Int) { transitions.add(queue.currentMediaItemIndex) }
           override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_BUFFERING) buffering.add(queue.currentMediaItemIndex)
             if (state == Player.STATE_ENDED) finished.countDown()
           }
+          override fun onPlayerError(error: PlaybackException) {
+            errors.add(error.toString())
+            finished.countDown()
+          }
         })
         queue.setMediaItems(items)
         queue.prepare()
         queue.play()
       }
-      assertTrue("Native queue did not finish", finished.await(90, TimeUnit.SECONDS))
+      assertTrue("Native queue did not finish", finished.await(180, TimeUnit.SECONDS))
       instrumentation.runOnMainSync {
+        assertTrue("Playback failed: $errors", errors.isEmpty())
         assertEquals(items.indices.toList(), transitions)
         assertTrue("Unexpected buffering at file boundaries: $buffering", buffering.all { it == 0 })
+        assertTrue("Audio ran dry at file boundaries: $underruns", underruns.isEmpty())
         assertEquals(Player.STATE_ENDED, player!!.playbackState)
         assertEquals(false, player!!.isPlaying)
       }
     } finally {
-      instrumentation.runOnMainSync { player?.release() }
+      instrumentation.runOnMainSync { session?.release(); player?.release() }
     }
   }
 
