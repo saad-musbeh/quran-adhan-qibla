@@ -777,5 +777,10 @@
   "m776": "Enable reminder sound",
   "m777": "With frequent reminders, open the app daily to refresh upcoming Adhan alerts.",
   "m778": "Recordings are cleaned and volume-matched. Short Adhan uses licensed excerpts; Fajr joins two credited voices. Salawat sounds are recorded speech excerpts from the reference video supplied to this project.",
-  "m780": "Khatm dua"
+  "m780": "Khatm dua",
+  "m781": "ማውረዶች የሙሉ ሱራ ቀረጻ እና የአያህ ፋይሎች ለ loops ያካትታሉ። ለቆዩ ውርዶች ቀጣይነት ያለው መልሶ ማጫወት ለመጨመር ማውረዱን ቀጥል የሚለውን ይምረጡ።",
+  "m782": "ሱራ እንደገና አጫውት።",
+  "m783": "ሙሉ ሱራ ተጫወት",
+  "m784": "ያለ አያህ ፋይል ሽግግሮች ሱራውን እንደ አንድ ቅጂ ያጫውቱ። ከመስመር ውጭ መልሶ ለማጫወት ሱራውን ያውርዱ።",
+  "m785": "ሙሉ-ሱራ ኦዲዮ እና አያህ የጊዜ መረጃ MP3Quranን ያግኙ።"
 }

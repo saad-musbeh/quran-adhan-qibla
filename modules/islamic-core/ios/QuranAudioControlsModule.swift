@@ -16,6 +16,7 @@ public final class QuranAudioControlsModule: Module {
   private var playlist: AudioPlaylist?
   private var player: AVQueuePlayer?
   private var titlesByURL: [String: String] = [:]
+  private var trackEndsByURL: [String: Double] = [:]
   private var fallbackTitle = ""
   private var artist = ""
   private var playbackRate: Float = 1
@@ -30,9 +31,9 @@ public final class QuranAudioControlsModule: Module {
     Name("QuranAudioControls")
     Events("remoteCommand", "playbackError")
 
-    Function("attach") { (playlist: AudioPlaylist, titles: [String], artist: String) in
+    Function("attach") { (playlist: AudioPlaylist, titles: [String], artist: String, trackEnds: [String: Double]) in
       self.scheduleOnMain {
-        self.attach(playlist, titles: titles, artist: artist)
+        self.attach(playlist, titles: titles, artist: artist, trackEnds: trackEnds)
       }
     }
 
@@ -73,10 +74,12 @@ public final class QuranAudioControlsModule: Module {
     }
   }
 
-  private func attach(_ playlist: AudioPlaylist, titles: [String], artist: String) {
+  private func attach(_ playlist: AudioPlaylist, titles: [String], artist: String, trackEnds: [String: Double]) {
     detach(clearNowPlaying: false)
     self.playlist = playlist
     self.player = playlist.ref
+    trackEndsByURL = trackEnds.filter { $0.value.isFinite && $0.value > 0 }
+    applyTrackEnds()
     self.artist = artist
     playbackRate = playlist.ref.rate > 0 ? playlist.ref.rate : 1
     fallbackTitle = titles.first ?? ""
@@ -84,6 +87,9 @@ public final class QuranAudioControlsModule: Module {
 
     itemObservation = playlist.ref.observe(\.currentItem, options: [.initial, .new]) { [weak self] _, _ in
       DispatchQueue.main.async {
+        // Expo recreates items on skips and replenishes loop copies. Apply
+        // the URI's end to those items too, independently of JavaScript ticks.
+        self?.applyTrackEnds()
         self?.observePlaybackFailure()
         self?.publishNowPlaying()
       }
@@ -108,6 +114,22 @@ public final class QuranAudioControlsModule: Module {
       self.reportFailure(failed)
     }
     publishNowPlaying()
+  }
+
+  private func applyTrackEnds() {
+    guard let player else { return }
+    for item in player.items() {
+      guard let asset = item.asset as? AVURLAsset,
+            let end = trackEndsByURL[asset.url.absoluteString] else { continue }
+      item.forwardPlaybackEndTime = CMTime(seconds: end, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+    }
+  }
+
+  private func effectiveDuration(_ item: AVPlayerItem) -> Double {
+    let duration = item.duration.seconds
+    let end = item.forwardPlaybackEndTime.seconds
+    if end.isFinite && end > 0 { return duration.isFinite && duration > 0 ? min(duration, end) : end }
+    return duration
   }
 
   private func observePlaybackFailure() {
@@ -169,7 +191,9 @@ public final class QuranAudioControlsModule: Module {
             let positionEvent = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
       return self.onMainSync {
         guard let item = self.player?.currentItem else { return .commandFailed }
-        item.seek(to: CMTime(seconds: max(0, positionEvent.positionTime), preferredTimescale: CMTimeScale(NSEC_PER_SEC))) { [weak self] _ in
+        let duration = self.effectiveDuration(item)
+        let destination = min(max(0, positionEvent.positionTime), duration.isFinite && duration > 0 ? duration : Double.greatestFiniteMagnitude)
+        item.seek(to: CMTime(seconds: destination, preferredTimescale: CMTimeScale(NSEC_PER_SEC))) { [weak self] _ in
           DispatchQueue.main.async { self?.publishNowPlaying() }
         }
         return .success
@@ -202,7 +226,7 @@ public final class QuranAudioControlsModule: Module {
     guard let item = player?.currentItem else { return .commandFailed }
     let current = item.currentTime().seconds
     guard current.isFinite else { return .commandFailed }
-    let duration = item.duration.seconds
+    let duration = effectiveDuration(item)
     let upperBound = duration.isFinite ? duration : Double.greatestFiniteMagnitude
     let destination = min(max(0, current + offset), upperBound)
     item.seek(to: CMTime(seconds: destination, preferredTimescale: CMTimeScale(NSEC_PER_SEC))) { [weak self] _ in
@@ -225,7 +249,7 @@ public final class QuranAudioControlsModule: Module {
       MPNowPlayingInfoPropertyPlaybackRate: player.rate,
       MPNowPlayingInfoPropertyDefaultPlaybackRate: playbackRate,
     ]
-    let duration = item.duration.seconds
+    let duration = effectiveDuration(item)
     if duration.isFinite && duration > 0 {
       info[MPMediaItemPropertyPlaybackDuration] = duration
     }
@@ -275,6 +299,7 @@ public final class QuranAudioControlsModule: Module {
     playlist = nil
     player = nil
     titlesByURL.removeAll()
+    trackEndsByURL.removeAll()
     if clearNowPlaying {
       MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }

@@ -48,9 +48,30 @@ class QuranPlaybackTest {
     }, playbackRate = 1.25f)
   }
 
-  private fun assertRecordings(keys: List<String>, playbackRate: Float = 1f) {
+  @Test fun fullSurahsUseOneTrackEachAndStopBeforeTheNextSurah() {
+    // The reported phone cuts between ayah MP3s. Exercise the replacement
+    // whole-surah sources individually: there must be no ayah/file transition
+    // and no following surah in either the downloaded or streaming queue.
+    for (surah in 112..114) {
+      assertRecordings(listOf(surah.toString()), playbackRate = 1.25f,
+        baseUrl = "https://cdn.mp3quran.net/audio/saad-ghamdi/r1/")
+    }
+  }
+
+  @Test fun ghamdiFatihaEndsBeforeAmeenFromDownloadAndStream() {
+    assertRecordings(listOf("001"), playbackRate = 1.25f,
+      baseUrl = "https://cdn.mp3quran.net/audio/saad-ghamdi/r1/", endSeconds = 42.0)
+  }
+
+  @Test fun shuraymFinalAyahExcludesRecordedResponseFromDownloadAndStream() {
+    assertRecordings(listOf("001007"), playbackRate = 1.25f,
+      baseUrl = "https://everyayah.com/data/Saood_ash-Shuraym_128kbps/", endSeconds = 11.95)
+  }
+
+  private fun assertRecordings(keys: List<String>, playbackRate: Float = 1f,
+    baseUrl: String = "https://everyayah.com/data/Ghamadi_40kbps/", endSeconds: Double? = null) {
     val context = InstrumentationRegistry.getInstrumentation().targetContext
-    val urls = keys.map { "https://everyayah.com/data/Ghamadi_40kbps/$it.mp3" }
+    val urls = keys.map { "$baseUrl$it.mp3" }
     val files = keys.map { File(context.cacheDir, "ghamdi-test-$it.mp3") }
     try {
       urls.zip(files).forEach { (url, file) ->
@@ -58,15 +79,15 @@ class QuranPlaybackTest {
         connection.getInputStream().use { input -> file.outputStream().use { output -> input.copyTo(output) } }
         assertTrue("Empty source recording", file.length() > 1000)
       }
-      assertQueue(files.map { MediaItem.fromUri(it.toURI().toString()) }, playbackRate)
-      assertQueue(urls.map { MediaItem.fromUri(it) }, playbackRate)
+      assertQueue(files.map { quranMediaItemWithEnd(MediaItem.fromUri(it.toURI().toString()), endSeconds) }, playbackRate, endSeconds)
+      assertQueue(urls.map { quranMediaItemWithEnd(MediaItem.fromUri(it), endSeconds) }, playbackRate, endSeconds)
     } finally {
       // Test recitations stay in private cache; no audio is bundled or uploaded.
       files.forEach { it.delete() }
     }
   }
 
-  private fun assertQueue(items: List<MediaItem>, playbackRate: Float = 1f) {
+  private fun assertQueue(items: List<MediaItem>, playbackRate: Float = 1f, endSeconds: Double? = null) {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     val finished = CountDownLatch(1)
     val transitions = mutableListOf<Int>()
@@ -111,6 +132,11 @@ class QuranPlaybackTest {
         assertTrue("Audio ran dry at file boundaries: $underruns", underruns.isEmpty())
         assertEquals(Player.STATE_ENDED, player!!.playbackState)
         assertEquals(false, player!!.isPlaying)
+        if (endSeconds != null) {
+          assertEquals((endSeconds * 1000).toLong(), player!!.duration)
+          assertTrue("Playback escaped the audited end", player!!.currentPosition <= (endSeconds * 1000).toLong() + 100)
+          assertTrue("Playback stopped before the final ayah", player!!.currentPosition >= (endSeconds * 1000).toLong() - 100)
+        }
       }
     } finally {
       instrumentation.runOnMainSync { session?.release(); player?.release() }

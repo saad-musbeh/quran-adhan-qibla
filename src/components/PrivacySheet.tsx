@@ -51,6 +51,7 @@ export function PrivacySheet({ language, visible, onClose }: {language: Language
         {(['location', 'storage', 'network', 'notifications', 'remove'] as const).map(key => <View key={key} style={styles.section}>
           <Text accessibilityRole="header" style={[styles.heading, rtl && styles.rtl]}>{c[key]}</Text>
           <Text style={[styles.body, rtl && styles.rtl]}>{c[`${key}Body`]}</Text>
+          {key==='network'&&<Text style={[styles.body,rtl&&styles.rtl]}>{bilingual(language,'تتصل تلاوات السور الكاملة وبيانات توقيت الآيات بـMP3Quran.','Full-surah audio and ayah timing data contact MP3Quran.')}</Text>}
         </View>)}
       </ScrollView>
     </View>
