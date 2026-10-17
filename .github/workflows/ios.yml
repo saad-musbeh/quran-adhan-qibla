@@ -2,7 +2,7 @@ name: iOS native build
 
 on:
   push:
-    branches: [main, codex/reader-polish, codex/test-0.4.0, codex/tablet-location]
+    branches: [main, codex/reader-polish, codex/tablet-location, codex/release-0.6.0, codex/salawat-reminder-controls]
     paths-ignore: ['docs/**', '**/*.md']
   pull_request:
   workflow_dispatch:
@@ -97,12 +97,24 @@ jobs:
           )"
           xcrun simctl boot "$QURAN_SIMULATOR"
           open -a Simulator
+      - uses: Swatinem/rust-cache@v2
       - name: Build Rust device and simulator libraries
         run: |
           rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
           npm run rust:ios
       - name: Generate iOS project
         run: npx expo prebuild --platform ios --no-install
+      - name: Read the CocoaPods cache key
+        id: pods-key
+        run: echo "checksum=$(shasum -a 256 ios/Podfile.lock | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-pods-${{ steps.pods-key.outputs.checksum }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
       - name: Install CocoaPods
         working-directory: ios
         run: pod install

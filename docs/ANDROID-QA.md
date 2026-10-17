@@ -1,4 +1,6 @@
-# Android test build 0.2.0
+# Android test build 0.2.0 — historical record from 11 October 2026
+
+This document records one dated 0.2.0 test build; it is not the current release status. Current checks and verification limits are in the README’s Checks section and the `docs/RELEASE-0.6.0.md` notes.
 
 Validated on 11 October 2026 using Android API 36, an x86_64 Google APIs emulator, JDK 17, and the SDK/NDK versions in the README.
 

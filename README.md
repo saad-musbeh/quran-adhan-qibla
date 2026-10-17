@@ -119,6 +119,8 @@ Android test APKs were compiled on Linux with JDK 17. The 0.3.3 reader/audio che
 
 The 0.5.1 five-language addition and circular Qibla redesign pass host checks, mobile exports and Android release builds; [redesign QA](docs/QIBLA-REDESIGN-QA.md) records layout checks and the emulator startup failure that prevents native runtime verification on this machine. The translation drafts need native-speaker review. The user reports completing the 0.5.1 real-phone follow-up checks (upgrades, saved data, compass/GPS and notifications); device details and logs were not recorded here.
 
+The 0.6.0 Adhkar & dua tab, salawat and morning/evening reminders, Short Adhan and end-of-surah playback stop have their `npm run check`, export and verification results recorded in [the 0.6.0 release notes](docs/RELEASE-0.6.0.md), including the Android code 23 / iOS build 23 artifacts and the checks still owed on physical devices. The Android text-clipping correction behind those layouts is documented with its Robolectric text-manager tests and browser layout harness in [TEXT-LAYOUT-QA.md](docs/TEXT-LAYOUT-QA.md); the reporting-device recheck and local emulator native runtime remain open there.
+
 The initial npm audit (10 October 2026) also reports inherited dependency advisories through Expo/Metro/Xcode tooling (`braces`, `node-forge`, and `uuid`). Compatible automatic updates did not resolve them. Updating upstream packages is follow-up work; functional checks do not imply a clean dependency audit.
 
 ## Layout

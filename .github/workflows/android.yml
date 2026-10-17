@@ -1,6 +1,8 @@
 name: Android native playback
 
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -37,6 +39,7 @@ jobs:
           cargo install cargo-ndk --locked
           sdkmanager 'ndk;27.1.12297006' 'cmake;3.22.1' 'platforms;android-36' 'build-tools;36.0.0'
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@v2
       - run: npm run rust:android
       - run: npx expo prebuild --platform android --no-install
       - name: Check native text measurement and drawing

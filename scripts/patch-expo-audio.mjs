@@ -2,14 +2,24 @@ import { readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const expectedVersion = '57.0.5';
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+const rootPackage = JSON.parse(await readFile(join(repoRoot, 'package.json'), 'utf8'));
+const declaredExpoAudio = rootPackage.dependencies?.['expo-audio'];
+const expectedVersion = typeof declaredExpoAudio === 'string' ? declaredExpoAudio.replace(/^[\^~>=<\s]+/, '') : '';
+if (!expectedVersion) {
+  throw new Error(
+    'package.json must declare an exact "expo-audio" version in dependencies; the playlist patch cannot know which source to patch.',
+  );
+}
 const packagePath = join(repoRoot, 'node_modules/expo-audio/package.json');
 const sourcePath = join(repoRoot, 'node_modules/expo-audio/ios/AudioPlaylist.swift');
 
 const packageJson = JSON.parse(await readFile(packagePath, 'utf8'));
 if (packageJson.version !== expectedVersion) {
-  throw new Error(`Expected expo-audio ${expectedVersion}, found ${packageJson.version ?? 'unknown'}`);
+  throw new Error(
+    `Expected expo-audio ${expectedVersion} (from package.json "${declaredExpoAudio}"), found ${packageJson.version ?? 'unknown'}. ` +
+      'Run "npm ci" so node_modules matches package.json, or if the expo-audio pin changed on purpose, re-check and update the patch hunks in scripts/patch-expo-audio.mjs for the new version before installing it.',
+  );
 }
 
 const patches = [
