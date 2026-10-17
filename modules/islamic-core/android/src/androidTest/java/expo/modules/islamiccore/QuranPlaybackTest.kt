@@ -39,15 +39,16 @@ class QuranPlaybackTest {
   }
 
   @Test fun finalSurahsAdvanceThroughAnNasAndStopWithMediaSession() {
-    // The reported recording crosses Al-Ikhlas -> Al-Falaq -> An-Nas.
+    // Source-audio timing in the report matches 1.25x playback through these
+    // surahs. Exercise pitch-preserving speed changes as well as the queue.
     assertRecordings((112..114).flatMap { surah ->
       (1..when (surah) { 112 -> 4; 113 -> 5; else -> 6 }).map { verse ->
         "$surah${verse.toString().padStart(3, '0')}"
       }
-    })
+    }, playbackRate = 1.25f)
   }
 
-  private fun assertRecordings(keys: List<String>) {
+  private fun assertRecordings(keys: List<String>, playbackRate: Float = 1f) {
     val context = InstrumentationRegistry.getInstrumentation().targetContext
     val urls = keys.map { "https://everyayah.com/data/Ghamadi_40kbps/$it.mp3" }
     val files = keys.map { File(context.cacheDir, "ghamdi-test-$it.mp3") }
@@ -57,15 +58,15 @@ class QuranPlaybackTest {
         connection.getInputStream().use { input -> file.outputStream().use { output -> input.copyTo(output) } }
         assertTrue("Empty source recording", file.length() > 1000)
       }
-      assertQueue(files.map { MediaItem.fromUri(it.toURI().toString()) })
-      assertQueue(urls.map { MediaItem.fromUri(it) })
+      assertQueue(files.map { MediaItem.fromUri(it.toURI().toString()) }, playbackRate)
+      assertQueue(urls.map { MediaItem.fromUri(it) }, playbackRate)
     } finally {
       // Test recitations stay in private cache; no audio is bundled or uploaded.
       files.forEach { it.delete() }
     }
   }
 
-  private fun assertQueue(items: List<MediaItem>) {
+  private fun assertQueue(items: List<MediaItem>, playbackRate: Float = 1f) {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     val finished = CountDownLatch(1)
     val transitions = mutableListOf<Int>()
@@ -79,6 +80,7 @@ class QuranPlaybackTest {
         val queue = ExoPlayer.Builder(instrumentation.targetContext).build()
         player = queue
         configureQuranPlayback(queue)
+        queue.setPlaybackSpeed(playbackRate)
         session = MediaSession.Builder(instrumentation.targetContext,
           QuranMetadataPlayer(queue, items.indices.map { "Ayah $it" }, "Test reciter") {}).build()
         queue.addAnalyticsListener(object : AnalyticsListener {
