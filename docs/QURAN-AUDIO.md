@@ -1,5 +1,7 @@
 # Quran audio
 
+Version 0.6.2 aligns Android's Media3 dependencies, including those used by Expo's precompiled player, on **1.9.3**. Upstream fixes include MP3 duration changes removing prepared queue periods (1.9.2), audio-output initialization retries (1.9.2), and gapless compressed-offload playlist stalls (1.9.3). See the [upstream release notes](https://github.com/androidx/media/blob/1.9.3/RELEASENOTES.md). The regression suite exercises Al-Ikhlas → Al-Falaq → An-Nas with the app's metadata player and media session, both from private downloads and streams, and checks audio underruns as well as queue transitions. See [0.6.2 verification](RELEASE-0.6.2.md) for results and device limitations. Source recordings are unchanged.
+
 In 0.6.0, playback stops at the current surah's end by default. Choose Next surah or Repeat surah in the reader's player to change that saved behavior. A selected ayah range takes precedence. Android's native Media3 player now prepares up to ten seconds of the next media source ahead of a transition; this applies to downloaded and streamed files. Source recordings and natural pauses are unchanged. Physical-device listening remains necessary to verify the reported gap across Android models.
 
 # Quran recitation audio
@@ -34,6 +36,8 @@ Ten more distinct Hafs voices bring the catalogue to twenty. Al-Husary is the in
 The primary EveryAyah catalogue, each new directory's coverage of all 6,236 canonical filenames, and first/last ayah HTTP responses were checked on 12 October 2026. The checked metadata is in `assets/quran/reciter-verification-2026-10-12.json`. This verifies source listing/endpoint availability, not the decoding or contents of every recording. No MP3 is bundled or published. Simulator test downloads are placed only in that simulator's private document directory and excluded from CI artifacts.
 
 Native playback failures include the current recording URI/time so retries resume the failed ayah, independent from download failures. A network reconnection gets one recovery attempt while playback is still requested. Explicit pause/stop, including supported system transport commands, cancels recovery. The download manager measures saved final ayah files across voices, identifies partial surahs, and supports continuation and confirmed removal. Selecting a download voice does not change the current playback voice.
+
+Since 0.6.2, Android playback bridge commands report runtime exceptions through that same failure event even when posted asynchronously to the main handler. These failures cannot be caught by the JavaScript caller after the native call returns; without the native guard they could terminate the process. This guard does not claim to catch every decoder, OS or service failure.
 
 ## 0.4.1 full Quran downloads
 

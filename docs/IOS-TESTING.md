@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use the **`v0.6.1`** release source or **`codex/release-0.6.1`** for the new **0.6.1 / build 24** test source. The previous release is **`v0.6.0`**. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
+Use the **`v0.6.2`** release source or **`codex/release-0.6.2`** for the current **0.6.2 / build 25** source. The previous release is **`v0.6.1`**. Version 0.6.2 updates Android playback libraries; iOS native/device testing is deferred at the user's request. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
 
 ## Requirements
 
@@ -85,7 +85,7 @@ Re-select the development team in the generated workspace for a physical iPhone.
 
 ## Current status
 
-Version **0.6.1**, iOS build **24**, on `codex/release-0.6.1` and tag `v0.6.1`. See [0.6.1 release notes](RELEASE-0.6.1.md) for this build’s validation. The previous release is `v0.6.0`. This update adds the complete two-sheet closing dua with stable outlined Arabic text, plus Salawat phrase/window controls and reminder fixes. This version adds the **أذكار وأدعية / Adhkar & dua** tab with three fixed offline collections, optional الصلاة على النبي and morning/evening reminders with retained chosen times, Short Adhan as the fresh default with the four full recordings retained, playback that stops at the current surah’s end with Next/Repeat surah; frequent Salawat reminders shorten the iOS Adhan horizon to fit the system notification limit, so reopen the app daily when using them. Physical-device and native iOS verification remain pending. The source includes one initial Quran copy with additions up to six, shared landscape spreads, twenty Quran reciters, Short Adhan and four cleaned Adhan recordings, per-salah sound choices, the download manager, playback recovery, light/dark themes and retained screen layers. Local iOS prayer notifications use 29-second excerpts; no APNs entitlement is requested. Current iOS native compilation/runtime status must be checked in the release notes and its linked workflow; successful JavaScript exports do not establish native behavior.
+Version **0.6.2**, iOS source build **25**, on `codex/release-0.6.2` and tag `v0.6.2`. See [0.6.2 release notes](RELEASE-0.6.2.md). This release updates Android playback dependencies and native error handling. iOS native/device testing is deferred at the user's request; JavaScript export success does not establish native behavior. It retains the 0.6.1 closing dua, Salawat phrase/window controls and reminder fixes, alongside the Adhkar tab, saved books, twenty reciters, audio downloads and prayer notification settings. Physical-device signing, playback, interruptions, notifications and the existing book-name/full-download follow-up remain for the Mac tester.
 
 The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated, so name/relaunch checks were not completed. Those two failures remain unresolved.
 

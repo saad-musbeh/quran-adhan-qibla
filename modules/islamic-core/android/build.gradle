@@ -27,7 +27,17 @@ repositories {
 dependencies {
   implementation 'com.facebook.react:react-android'
   implementation 'expo.modules.audio:expo.modules.audio:57.0.5'
-  def androidxMedia3Version = "1.9.0"
+  // Keep Expo's precompiled player on the same patched Media3 family. 1.9.2
+  // fixes MP3 duration updates discarding queued periods; 1.9.3 fixes an
+  // additional gapless/offload playlist stall. No Expo source fork is needed.
+  def androidxMedia3Version = "1.9.3"
+  constraints {
+    ['common', 'container', 'database', 'datasource', 'datasource-okhttp',
+     'decoder', 'exoplayer', 'exoplayer-dash', 'exoplayer-hls',
+     'exoplayer-smoothstreaming', 'extractor', 'session', 'ui'].each { artifact ->
+      api("androidx.media3:media3-$artifact:$androidxMedia3Version")
+    }
+  }
   implementation "androidx.media3:media3-session:$androidxMedia3Version"
   implementation "androidx.media3:media3-exoplayer:$androidxMedia3Version"
   testImplementation 'junit:junit:4.13.2'

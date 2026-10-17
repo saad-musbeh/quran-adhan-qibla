@@ -6,6 +6,7 @@ This app includes an offline Arabic Quran reader with verse audio, Arabic/Englis
 
 ## What is ready
 
+- **0.6.2:** updates Android's native audio libraries to Media3 1.9.3 for MP3 queue and audio-output fixes, with regression coverage across Al-Ikhlas, Al-Falaq and An-Nas. See [release notes](docs/RELEASE-0.6.2.md) for verification limits. iOS device testing is deferred.
 - **0.6.1:** adds the complete **دعاء ختم القرآن** after page 604, with stable Arabic lettering and clear row spacing, and fixes Android text clipping across the app. Salawat reminders gain recorded phrase choices and daytime repeat controls; reminder reconciliation and native audio cleanup are hardened. See [release notes](docs/RELEASE-0.6.1.md).
 - **0.6.0:** a fourth **أذكار وأدعية / Adhkar & dua** tab with 54 offline Arabic entries from حصن المسلم, in three fixed collections. Scrolling is the default; source references open on demand. Optional الصلاة على النبي reminders offer a daytime repeat window, selectable recorded speech and retained chosen times, and morning/evening reminders open their collections. Counters, single-entry reading, other notification styles and scheduling experiments are under Extra testing settings. See [sources and behavior](docs/ADHKAR.md).
 - Quran playback stops at the current surah's end by default. The reader's player also offers Next surah and Repeat surah. Android enables native next-file preloading; recorded pauses remain. Physical-phone listening still needs follow-up.
@@ -97,7 +98,7 @@ See [Android APK size and validation](docs/ANDROID-SIZE.md) for measured before/
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use the `v0.6.1` release source or `codex/release-0.6.1` for the current source (0.6.1 / build 24). The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use the `v0.6.2` release source or `codex/release-0.6.2` for the current source (0.6.2 / build 25). The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
