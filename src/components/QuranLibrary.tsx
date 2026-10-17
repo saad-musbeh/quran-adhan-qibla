@@ -9,7 +9,7 @@ import { ScreenLayer } from './ScreenLayer';
 import { QuranScreen, type QuranReaderSettings } from './QuranScreen';
 import { addQuranBook, MAX_QURAN_BOOKS, createQuranBooks, readQuranBooks, readLegacyQuranBooks, LEGACY_QURAN_KEYS, QURAN_BOOKS_KEY, type QuranBook } from '../domain/quran-books';
 import { getVerse, getSurah } from '../domain/quran';
-import { getMushafPageVerses } from '../data/mushaf';
+import { getMushafPageVerses, KHATM_DUA_PAGE, LAST_READER_PAGE } from '../data/mushaf';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
 import { preloadMushafResources } from './MushafPageView';
 import { bilingual, isRTL, localeFor, type Language } from '../i18n';
@@ -66,13 +66,17 @@ export function QuranLibrary(props: Props) {
         <Text style={[styles.heading,rtl&&styles.rtl]}>{bilingual(language,'مكتبتي القرآنية','My Quran library')}</Text>
         {!ready&&<ActivityIndicator color={colors.accent}/>}
         <View style={[styles.grid,rtl&&styles.reverse]}>{books.map(book => {
-          const [s,a] = (getMushafPageVerses(book.page)[0]??'1:1').split(':').map(Number);
-          const verse = getVerse(s,a), surah = verse ? getSurah(verse.surah) : undefined;
+          const isKhatm=book.page>=KHATM_DUA_PAGE&&book.page<=LAST_READER_PAGE;
+          const [s,a] = (isKhatm?'1:1':getMushafPageVerses(book.page)[0]??'1:1').split(':').map(Number);
+          const verse = isKhatm?undefined:getVerse(s,a), surah = verse ? getSurah(verse.surah) : undefined;
           const name = nameOf(book);
+          const position=isKhatm
+            ? `${bilingual(language,'دعاء ختم القرآن','Khatm dua')} · ${(book.page-KHATM_DUA_PAGE+1).toLocaleString(localeFor(language),{useGrouping:false})}/${(LAST_READER_PAGE-KHATM_DUA_PAGE+1).toLocaleString(localeFor(language),{useGrouping:false})}`
+            : `${surah?.arabicName} · ${bilingual(language,'صفحة {n}','Page {n}',{n:book.page.toLocaleString(localeFor(language))})}`;
           return <View key={book.id} style={[styles.card,{width:cardWidth,maxWidth:cardWidth,flexBasis:cardWidth,flexGrow:0}]}>
-            <Pressable testID={`open-${book.id}`} accessibilityRole="button" accessibilityLabel={`${name} · ${surah?.arabicName} · ${book.page}`} disabled={!ready} onPressIn={()=>{void preloadMushafResources(MUSHAF_PAGE_ASSETS[book.page]).catch(()=>undefined);}} onPress={()=>choose(book.id)} style={styles.cover}>
+            <Pressable testID={`open-${book.id}`} accessibilityRole="button" accessibilityLabel={`${name} · ${position}`} disabled={!ready} onPressIn={()=>{void preloadMushafResources(MUSHAF_PAGE_ASSETS[book.page]).catch(()=>undefined);}} onPress={()=>choose(book.id)} style={styles.cover}>
               <View pointerEvents="none" style={styles.coverFrame}><Ionicons name="book-outline" size={32} color={colors.accent}/><Text numberOfLines={2} style={styles.bookName}>{name}</Text></View>
-              <Text style={styles.position}>{surah?.arabicName} · {bilingual(language,'صفحة {n}','Page {n}',{n:book.page.toLocaleString(localeFor(language))})}</Text>
+              <Text style={styles.position}>{position}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language,'تسمية {name}','Rename {name}',{name})} testID={`rename-${book.id}`} style={styles.rename} onPress={()=>{setEditing(book);setName(book.name)}}><Ionicons name="pencil-outline" size={15} color={colors.accent}/><Text style={styles.renameText}>{bilingual(language,'تسمية المصحف','Rename book')}</Text></Pressable>
           </View>;

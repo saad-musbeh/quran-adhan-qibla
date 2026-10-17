@@ -34,6 +34,12 @@ test('existing six-copy libraries retain all names, pages and bookmarks', () => 
   assert.deepEqual(readQuranBooks(JSON.stringify(books)), books);
 });
 
+test('both khatm dua sheets persist as reader pages and bookmarks', () => {
+  const [book] = readQuranBooks(JSON.stringify([{ id:'book-1', page:606, bookmarks:[604,605,606,606], verseBookmarks:[] }]));
+  assert.equal(book.page,606);
+  assert.deepEqual(book.bookmarks,[604,605,606]);
+});
+
 test('sparse saved IDs retain their shelf order and additions use an unused ID', () => {
   const books = readQuranBooks(JSON.stringify([
     { id: 'book-5', page: 500 }, { id: 'book-2', page: 201 },
@@ -47,7 +53,7 @@ test('sparse saved IDs retain their shelf order and additions use an unused ID',
 test('invalid and duplicate saved entries cannot add books or corrupt Quran positions', () => {
   const books = readQuranBooks(JSON.stringify([
     null, 4, 'book-1', {},
-    { id: 'book-1', page: 605, name: '  Friday  ', bookmarks: [293, 2, 293, -1, 605, 1.2, '2'], verseBookmarks: ['18:1', '18:1', '999:1'] },
+    { id: 'book-1', page: 607, name: '  Friday  ', bookmarks: [293, 2, 293, -1, 607, 1.2, '2'], verseBookmarks: ['18:1', '18:1', '999:1'] },
     { id: 'book-1', page: 42 }, { id: 'book-2', page: 0, name: 'x'.repeat(50) },
     { id: 'book-3', page: '30' }, { id: 'book-7', page: 42 }, { id: 'foreign', page: 42 },
   ]));

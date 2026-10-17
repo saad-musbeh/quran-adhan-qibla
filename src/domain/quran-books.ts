@@ -1,4 +1,5 @@
 import { readVerseBookmarks } from './quran-bookmarks.ts';
+import { LAST_READER_PAGE } from '../data/mushaf.ts';
 
 export type QuranBook = { id: string; name: string; page: number; bookmarks: number[]; verseBookmarks: string[] };
 export const QURAN_BOOKS_KEY = 'quran.reader.books.v1';
@@ -41,8 +42,8 @@ export function readQuranBooks(json: string | null): QuranBook[] {
       return [{
         ...book,
         name: typeof saved.name === 'string' ? saved.name.trim().slice(0, 40) : '',
-        page: Number.isInteger(saved.page) && saved.page >= 1 && saved.page <= 604 ? saved.page : 1,
-        bookmarks: Array.isArray(saved.bookmarks) ? [...new Set<number>(saved.bookmarks.filter((n: unknown) => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 604))].sort((a, b) => a - b) : [],
+        page: Number.isInteger(saved.page) && saved.page >= 1 && saved.page <= LAST_READER_PAGE ? saved.page : 1,
+        bookmarks: Array.isArray(saved.bookmarks) ? [...new Set<number>(saved.bookmarks.filter((n: unknown) => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= LAST_READER_PAGE))].sort((a, b) => a - b) : [],
         verseBookmarks: readVerseBookmarks(JSON.stringify(saved.verseBookmarks)),
       }];
     });

@@ -40,6 +40,10 @@ with zipfile.ZipFile(args.apk) as apk:
     for name, expected in manifest['bundledZstdSha256'].items():
         if expected not in hashes:
             raise SystemExit(f'Missing or altered offline Quran page: {name}')
+    dua_pages = [ROOT / f'assets/mushaf/pages/{page}.svg.zst' for page in (605, 606)]
+    for page in dua_pages:
+        if hashlib.sha256(page.read_bytes()).hexdigest() not in hashes:
+            raise SystemExit(f'Missing or altered closing dua sheet: {page.name}')
     sounds = next(plugin[1]['sounds'] for plugin in json.loads((ROOT / 'app.json').read_text())['expo']['plugins'] if isinstance(plugin, list) and plugin[0] == './plugins/withPlatformNotificationSounds.cjs')
     android_sounds = [ROOT / sound for sound in sounds if sound.endswith('.ogg')]
     for sound in android_sounds:
@@ -53,7 +57,8 @@ with zipfile.ZipFile(args.apk) as apk:
 size = args.apk.stat().st_size
 report = {'apk': str(args.apk), 'bytes': size, 'MiB': round(size / 1024**2, 2),
           'architectures': sorted(abis), 'packagedBytes': dict(groups),
-          'verifiedOfflinePages': len(manifest['bundledZstdSha256']), 'verifiedNotificationSounds': len(android_sounds)}
+          'verifiedOfflinePages': len(manifest['bundledZstdSha256']), 'verifiedDuaPages': len(dua_pages),
+          'verifiedNotificationSounds': len(android_sounds)}
 if args.baseline:
     baseline = args.baseline.stat().st_size
     report.update(baselineBytes=baseline, savedBytes=baseline-size, reductionPercent=round((baseline-size) / baseline * 100, 1))

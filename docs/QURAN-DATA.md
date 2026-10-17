@@ -48,6 +48,38 @@ The source SVG export crops the printed text block and omits the outer page fram
 
 The Al-Fatiha and opening Al-Baqarah pages use an original geometric navy-and-gold frame. It leaves the source text clear and uses nested rules, corner stars, and top/bottom medallions. Its primary historical reference is The Met's [Opening Folio of the 26th Volume of the “Anonymous Baghdad Qur'an”](https://www.metmuseum.org/art/collection/search/451015?searchField=All), whose collection record describes distinct geometric schemes prefacing the volumes. This is a design reference only: no museum image or ornament was copied. Later surah headings use the separate sparse banner frame. The Quran calligraphy remains the pinned source artwork. Source SVG assets retain their exact original bytes inside lossless Zstandard assets, with both compressed and original checksums recorded. See [Mushaf artwork provenance](../assets/mushaf/PROVENANCE.md) and the complete upstream license there. All 604 assets are bundled for offline use.
 
+## Closing khatm dua appendix
+
+After the 604 Quran pages, turning forward opens **دعاء ختم القرآن**, with
+two closing sheets matching the two user-supplied photos. The first begins
+«اللهم ارحمني بالقرآن»; the second continues «وأسألك العلا من الجنة» and
+ends with the photographed salawat. Both sheets are standalone in portrait
+and landscape, support zoom and back/forward turns, and can be saved as the
+book's last position or a page bookmark. Manual Quran page entry remains
+1–604. The interface names the appendix rather than displaying “605 / 604”.
+
+The full Arabic text is transcribed without vowel marks in
+`assets/mushaf/pages-src/khatm-dua.json`. The app provides original vector
+layout, not embedded photographs. See the [artwork provenance](../assets/mushaf/PROVENANCE.md)
+for the source references and build command. This compilation is presented as
+a closing supplication; it is not attributed as a complete Prophetic hadith.
+The Quran text, 604-page corpus and verse index remain unchanged. The dua
+sheets have no verse audio, highlighting or tafsir targets; following live
+recitation returns to the relevant Quran page.
+
+Verification on 2026-10-17: `npm run check` passes 160 TypeScript tests and
+20 Rust tests; Android/iOS exports pass. A temporary Chromium harness exercised
+the production offline reader with 64 combinations of both sheets, Arabic/English
+UI, light/dark appearance, four viewport sizes and two zoom levels. It found no
+text outside the artwork, no overlapping Arabic rows, and no verse targets in
+the appendix. The dua lettering is stored as paths fitted to actual ink
+bounds, so runtime font substitution cannot move words between rows. Thirteen real
+touch swipe transitions were checked against the app's page-turn controller,
+including portrait/landscape boundaries, reopening either sheet, and the final
+page limit. The ARM64 release APK builds successfully; its content audit verifies
+all 604 Quran pages, both dua sheets and 12 notification sounds. Native phone
+and iOS runtime checks remain pending.
+
 ## Optional Arabic tafsir library
 
 The app does not bundle tafsir text in its runtime. The library offers two QuranEnc editions for optional private downloads: **التفسير الميسر** (`arabic_moyassar`), published by مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة, V1.0.0 dated 15 February 2017; and **المختصر في تفسير القرآن الكريم** (`arabic_mokhtasar`), published by مركز تفسير للدراسات القرآنية, V1.0.0 dated 15 February 2017. Each catalog entry links to its [Moyassar](https://quranenc.com/ar/browse/arabic_moyassar) or [Mokhtasar](https://quranenc.com/ar/browse/arabic_mokhtasar) source page and identifies the publisher and pinned release.
