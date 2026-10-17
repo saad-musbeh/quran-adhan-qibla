@@ -62,7 +62,9 @@ pub fn qibla_bearing(latitude: f64, longitude: f64) -> Result<f64, QiblaError> {
 /// Allocation-free C ABI for Swift. NaN signals invalid or singular input.
 #[no_mangle]
 pub extern "C" fn islamic_core_qibla_bearing(latitude: f64, longitude: f64) -> f64 {
-    qibla_bearing(latitude, longitude).unwrap_or(f64::NAN)
+    // Guard the ABI from dependency panics; never unwind through Kotlin or Swift.
+    std::panic::catch_unwind(|| qibla_bearing(latitude, longitude).unwrap_or(f64::NAN))
+        .unwrap_or(f64::NAN)
 }
 
 /// Magnetic declination (degrees, east-positive) from NOAA WMM2025.
@@ -76,7 +78,11 @@ pub extern "C" fn islamic_core_magnetic_declination(
     month: i32,
     day: i32,
 ) -> f64 {
-    geomagnetic::magnetic_declination(latitude, longitude, year, month, day).unwrap_or(f64::NAN)
+    // Guard the ABI from dependency panics; never unwind through Kotlin or Swift.
+    std::panic::catch_unwind(|| {
+        geomagnetic::magnetic_declination(latitude, longitude, year, month, day).unwrap_or(f64::NAN)
+    })
+    .unwrap_or(f64::NAN)
 }
 
 /// JNI entry point for the Kotlin Expo module. No JNI object access is needed.
@@ -178,5 +184,33 @@ mod tests {
         assert_eq!(islamic_core_qibla_bearing(40.0, KAABA_LONGITUDE), 180.0);
         assert!(islamic_core_qibla_bearing(91.0, 0.0).is_nan());
         assert!(islamic_core_qibla_bearing(KAABA_LATITUDE, KAABA_LONGITUDE).is_nan());
+
+        // Both guarded entry points keep the mirror-and-NaN contract of the
+        // underlying Rust functions after the panic guard is added.
+        let bearing = islamic_core_qibla_bearing(-33.8688, 151.2093);
+        assert_eq!(bearing, qibla_bearing(-33.8688, 151.2093).unwrap());
+
+        // NOAA WMM2025 official test vector surfaced through the C ABI.
+        let declination = islamic_core_magnetic_declination(-80.0, -120.0, 2025, 1, 1);
+        assert!((declination - 68.78).abs() < 0.02, "{declination}");
+    }
+
+    #[test]
+    fn c_abi_reports_nan_for_invalid_geomagnetic_requests() {
+        for (latitude, longitude, year, month, day) in [
+            (f64::NAN, 0.0, 2026, 1, 1),
+            (91.0, 0.0, 2026, 1, 1),
+            (0.0, 181.0, 2026, 1, 1),
+            (0.0, 0.0, 2024, 12, 31),
+            (0.0, 0.0, 2030, 1, 1),
+            (0.0, 0.0, 2025, 2, 29),
+            (86.0, -135.0, 2026, 1, 1),
+        ] {
+            assert!(
+                islamic_core_magnetic_declination(latitude, longitude, year, month, day).is_nan(),
+                "{latitude},{longitude},{year}-{month}-{day}"
+            );
+        }
+        assert!(islamic_core_magnetic_declination(-33.4489, -70.6693, 2026, 6, 21).is_finite());
     }
 }
