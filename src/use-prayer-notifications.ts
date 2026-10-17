@@ -10,7 +10,7 @@ import { adhanSoundForPrayer, prayerSoundChannelId, type PrayerSoundSettings } f
 import { isPrayerTimesAvailable, prayerTimes } from '../modules/islamic-core';
 import { allowsPrayerNotifications, prayerSoundMuted } from './domain/notification-permission';
 import { canScheduleExactAlarms } from './prayer-notification-permissions';
-import { buildPrayerNotificationSchedule, isPrayerNotificationOwned, PRAYER_NOTIFICATION_NAMESPACE, type NotifiablePrayer, NOTIFIABLE_PRAYERS } from './domain/prayer-notifications';
+import { buildPrayerNotificationSchedule, isPrayerNotificationOwned, isPrayerTestNotification, IOS_PENDING_NOTIFICATION_LIMIT, PRAYER_NOTIFICATION_NAMESPACE, type NotifiablePrayer, NOTIFIABLE_PRAYERS } from './domain/prayer-notifications';
 
 if (Platform.OS === 'android' || Platform.OS === 'ios') {
   Notifications.setNotificationHandler({
@@ -108,7 +108,7 @@ export function usePrayerNotifications(input: Inputs) {
       try {
         const pending = await Notifications.getAllScheduledNotificationsAsync();
         if (!current()) return;
-        owned = pending.filter(isPrayerNotificationOwned);
+        owned = pending.filter(item => isPrayerNotificationOwned(item) && !isPrayerTestNotification(item));
         const cancelOwned = async () => {
           for (const item of owned) {
             if (!current()) return;
@@ -154,7 +154,7 @@ export function usePrayerNotifications(input: Inputs) {
         // Old devotional slots can still be pending while their replacement is queued.
         // Expand to the desired horizon again after devotional reconciliation completes.
         const remaining = Platform.OS === 'ios' ? await Notifications.getAllScheduledNotificationsAsync() : [];
-        const limit = Platform.OS === 'ios' ? Math.min(value.notificationLimit ?? 40, Math.max(0, 62 - remaining.length)) : 40;
+        const limit = Platform.OS === 'ios' ? Math.min(value.notificationLimit ?? 40, Math.max(0, IOS_PENDING_NOTIFICATION_LIMIT - remaining.length)) : 40;
         let count = 0;
         for (const item of schedule.slice(0, limit)) {
           if (!current()) {
@@ -288,7 +288,7 @@ export function usePrayerNotifications(input: Inputs) {
       const channelId = await ensureSoundChannel(sound, value.labels.channelName);
       const pending = await Notifications.getAllScheduledNotificationsAsync();
       for (const item of pending) {
-        if (isPrayerNotificationOwned(item) && item.content.data?.test === true) await Notifications.cancelScheduledNotificationAsync(item.identifier);
+        if (isPrayerTestNotification(item)) await Notifications.cancelScheduledNotificationAsync(item.identifier);
       }
       await Notifications.scheduleNotificationAsync({
         content: {

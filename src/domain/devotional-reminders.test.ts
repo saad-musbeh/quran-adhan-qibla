@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { devotionalSchedule, DEVOTIONAL_NAMESPACE, isDevotionalNotification, normalizeDevotionalPreferences, parseClock, salawatMinutes, prayerNotificationLimit, SALAWAT_PHRASES } from './devotional-reminders.ts';
+import { IOS_PENDING_NOTIFICATION_LIMIT } from './prayer-notifications.ts';
 
 test('daily time entry accepts Arabic and Persian digits, rejecting impossible times',()=>{
   assert.equal(parseClock('٠٧:٣٠'),450);assert.equal(parseClock('۲۳:۵۹'),1439);
@@ -72,6 +73,13 @@ test('shorter windows preserve a full iOS budget for Adhan; dense windows reserv
   assert.equal(salawatMinutes(dense.salawat).length,48);assert.equal(prayerNotificationLimit(dense),12);
   const defaultWindow=normalizeDevotionalPreferences({salawat:{enabled:true}});
   assert.equal(devotionalSchedule(defaultWindow).length,25);assert.equal(prayerNotificationLimit(defaultWindow),37);
+});
+
+test('dense devotional windows and the shared iOS budget never overflow the reservation',()=>{
+  const dense=normalizeDevotionalPreferences({testing:{schedules:true},salawat:{enabled:true,start:'00:00',end:'23:30',intervalMinutes:30},morning:{enabled:true},evening:{enabled:true}});
+  const reserved=devotionalSchedule(dense).length;
+  assert.ok(reserved>=3);
+  assert.equal(reserved+prayerNotificationLimit(dense),IOS_PENDING_NOTIFICATION_LIMIT);
 });
 
 test('phrase choices survive saving; old preferences retain chosen times and get the default phrase',()=>{

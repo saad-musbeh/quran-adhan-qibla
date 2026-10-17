@@ -1,4 +1,4 @@
-import type { NotifiablePrayer } from './prayer-notifications.ts';
+import { IOS_PENDING_NOTIFICATION_LIMIT, type NotifiablePrayer } from './prayer-notifications.ts';
 
 export const DEVOTIONAL_NAMESPACE = 'quran-adhan-qibla.devotional.v1';
 export const DEVOTIONAL_SOUNDS = { spoken: { android: 'reminder_salawat_rasul.ogg', ios: 'reminder_salawat_rasul.wav' }, tone: { android: 'reminder_chime.ogg', ios: 'reminder_chime.wav' } } as const;
@@ -81,9 +81,9 @@ export function isDevotionalNotification(value: { content?: { data?: Record<stri
   return value.content?.data?.namespace === DEVOTIONAL_NAMESPACE || value.content?.data?.namespace === `${DEVOTIONAL_NAMESPACE}.test`;
 }
 
-/** Reserve two independent test alerts inside iOS's 64 pending notification slots. */
+/** Reserve two independent test alerts inside iOS's pending notification budget. */
 export function prayerNotificationLimit(settings: DevotionalPreferences): number {
   const reserved = settings.salawat.enabled && settings.salawat.mode === 'prayers'
     ? 18 : devotionalSchedule(settings).length;
-  return Math.min(40, 62 - reserved);
+  return Math.min(40, IOS_PENDING_NOTIFICATION_LIMIT - reserved);
 }
