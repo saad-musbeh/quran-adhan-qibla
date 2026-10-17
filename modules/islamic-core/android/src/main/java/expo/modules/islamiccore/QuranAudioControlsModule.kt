@@ -40,7 +40,16 @@ class QuranAudioControlsModule : Module() {
   }
 
   private fun runOnMain(block: () -> Unit) {
-    if (Looper.myLooper() == Looper.getMainLooper()) block() else mainHandler.post(block)
+    dispatchQuranAudioCommand(mainHandler, block) { error ->
+      // Posted main-thread work runs after the JS call returns. Letting it
+      // throw here kills the app instead of reaching JS playback recovery.
+      Log.e("QuranPlayback", "Native playback command failed", error)
+      sendEvent("playbackError", mapOf(
+        "message" to (error.message ?: "Audio playback failed."),
+        "uri" to runCatching { observedPlayer?.currentMediaItem?.localConfiguration?.uri?.toString() }.getOrNull(),
+        "time" to runCatching { (observedPlayer?.currentPosition ?: 0L).coerceAtLeast(0L) / 1000.0 }.getOrDefault(0.0)
+      ))
+    }
   }
 
   override fun definition() = ModuleDefinition {
@@ -92,4 +101,16 @@ class QuranAudioControlsModule : Module() {
       runOnMain { detach() }
     }
   }
+}
+
+/** Deliver synchronous and posted command failures through the same recovery path. */
+internal fun dispatchQuranAudioCommand(handler: Handler, block: () -> Unit, onError: (RuntimeException) -> Unit) {
+  val command = Runnable {
+    try {
+      block()
+    } catch (error: RuntimeException) {
+      onError(error)
+    }
+  }
+  if (Looper.myLooper() == handler.looper) command.run() else handler.post(command)
 }
