@@ -48,9 +48,20 @@ class QuranPlaybackTest {
     }, playbackRate = 1.25f)
   }
 
-  private fun assertRecordings(keys: List<String>, playbackRate: Float = 1f) {
+  @Test fun fullSurahsUseOneTrackEachAndStopBeforeTheNextSurah() {
+    // The reported phone cuts between ayah MP3s. Exercise the replacement
+    // whole-surah sources individually: there must be no ayah/file transition
+    // and no following surah in either the downloaded or streaming queue.
+    for (surah in 112..114) {
+      assertRecordings(listOf(surah.toString()), playbackRate = 1.25f,
+        baseUrl = "https://cdn.mp3quran.net/audio/saad-ghamdi/r1/")
+    }
+  }
+
+  private fun assertRecordings(keys: List<String>, playbackRate: Float = 1f,
+    baseUrl: String = "https://everyayah.com/data/Ghamadi_40kbps/") {
     val context = InstrumentationRegistry.getInstrumentation().targetContext
-    val urls = keys.map { "https://everyayah.com/data/Ghamadi_40kbps/$it.mp3" }
+    val urls = keys.map { "$baseUrl$it.mp3" }
     val files = keys.map { File(context.cacheDir, "ghamdi-test-$it.mp3") }
     try {
       urls.zip(files).forEach { (url, file) ->

@@ -48,6 +48,7 @@ export function CreditsSheet({language,visible,onClose}:{language:Language;visib
       {link('حصن المسلم · سعيد بن علي بن وهف القحطاني · Abdellah SELLAM',HISN_SOURCE)}
       <Text style={styles.notice}>{HISN_LICENSE}</Text>
       {link(bilingual(language,'تلاوات القرآن · EveryAyah.com','Quran recitations · EveryAyah.com'),'https://everyayah.com/')}
+      {link('MP3Quran.net','https://www.mp3quran.net/')}
       {ADHAN_VOICES.map(voice=><View key={voice.id} style={styles.book}>
         {link(`${language==='ar'?voice.nameAr:voice.name} · ${voice.author}`,voice.source)}
         {link(voice.license,voice.license==='CC0 1.0'?'https://creativecommons.org/publicdomain/zero/1.0/':voice.license.includes('CC BY 3.0')?'https://creativecommons.org/licenses/by/3.0/':'https://creativecommons.org/licenses/by-sa/4.0/')}

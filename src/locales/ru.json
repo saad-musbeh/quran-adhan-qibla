@@ -777,5 +777,10 @@
   "m776": "Enable reminder sound",
   "m777": "With frequent reminders, open the app daily to refresh upcoming Adhan alerts.",
   "m778": "Recordings are cleaned and volume-matched. Short Adhan uses licensed excerpts; Fajr joins two credited voices. Salawat sounds are recorded speech excerpts from the reference video supplied to this project.",
-  "m780": "Khatm dua"
+  "m780": "Khatm dua",
+  "m781": "Загрузки включают полную запись суры и файлы аятов для циклов. Для более старых загрузок выберите «Продолжить загрузку», чтобы добавить непрерывное воспроизведение.",
+  "m782": "Воспроизвести суру",
+  "m783": "Воспроизвести полную суру",
+  "m784": "Воспроизводите суру как одну запись без переходов между файлами аятов. Загрузите суру для непрерывного воспроизведения в автономном режиме.",
+  "m785": "Полная аудиосура и данные о времени аятов обращайтесь в MP3Quran."
 }

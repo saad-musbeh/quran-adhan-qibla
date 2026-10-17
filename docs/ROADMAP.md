@@ -34,6 +34,8 @@
 - [x] Put shared light/dark appearance in the banner, simplify reader tools, enlarge search, and enter page/juz numbers inline.
 - [x] Keep landscape pages, turns, zoom and panning together in one book spread.
 Quran verse translations are permanently out of scope and will not be added.
+- [x] Add complete-surah recordings for continuous main-button playback and optional offline downloads; reset surah-end behavior to Stop each app session.
+- [ ] Confirm continuous full-surah playback, natural pauses and stopping on the reporting physical phone.
 - [ ] Verify Quran audio interruptions and lock-screen behavior on physical Android/iOS devices.
 
 ## Prayer times and Adhan
