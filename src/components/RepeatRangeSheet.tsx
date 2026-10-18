@@ -2,7 +2,7 @@ import { Pressable as NativePressable } from 'react-native';
 import { Pressable } from './Pressable';
 import { Text, TextInput } from '../text-size';
 import { parseLocalizedInteger } from '../domain/localized-number';
-import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from '../i18n';
+import { localizeCopy, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Modal, ScrollView, StyleSheet, View } from 'react-native';

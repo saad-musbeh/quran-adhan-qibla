@@ -35,6 +35,18 @@ Validation:
 
 The physical Honor device was not connected; this is recording-based diagnosis plus browser and Android emulator confirmation. Native iOS compilation/runtime behavior for this change remains unverified.
 
+### Running the optional browser checks
+
+`npm run test:reader` needs Playwright and its Chromium browser, installed separately from the mobile app dependencies. For an isolated local installation:
+
+```sh
+npm install --prefix /tmp/quran-reader-qa --no-save --package-lock=false playwright
+node /tmp/quran-reader-qa/node_modules/playwright/cli.js install chromium
+PLAYWRIGHT_MODULE=/tmp/quran-reader-qa/node_modules/playwright npm run test:reader
+```
+
+Alternatively, set `PLAYWRIGHT_MODULE` to an existing compatible Playwright installation. These browser checks exercise the embedded reader; native WebView and audio behavior still require platform validation.
+
 ## 0.3.6 — six reading copies and reader polish
 
 The Quran tab now opens six reading copies. All new copies start at Al-Fatiha. Each copy has its own name, last printed page, page bookmarks and ayah bookmarks; the model rejects malformed/out-of-range saved state. The reader stays mounted between the library and other app sections, with its expensive assets warmed from the library. Saved tafsir books are loaded only when the tafsir library is opened. Android Back returns from reading to the library. Section tabs are hidden while a Quran copy is open.

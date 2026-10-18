@@ -1,5 +1,5 @@
 import { Text, useTextScale } from '../text-size';
-import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from '../i18n';
+import { bilingual, type Language } from '../i18n';
 import type { QuranTheme } from '../domain/quran-theme';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';

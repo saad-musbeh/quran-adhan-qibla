@@ -17,7 +17,7 @@ import { bilingual, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import type { QuranAudioController } from '../use-quran-audio';
 
-type Props = { headerHeight?: number; navigationHeight?: number; homeRequest: number; onHome: () => void; tafsirLibrary: ReturnType<typeof useTafsirLibrary>; onBookOpenChange: (open:boolean)=>void; active: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onReadingChromeChange: (visible: boolean) => void; onSettingsChange: (settings: QuranReaderSettings) => void };
+type Props = { headerHeight?: number; navigationHeight?: number; homeRequest: number; tafsirLibrary: ReturnType<typeof useTafsirLibrary>; onBookOpenChange: (open:boolean)=>void; active: boolean; language: Language; audio: QuranAudioController; settings: QuranReaderSettings; onReadingChromeChange: (visible: boolean) => void; };
 
 export function QuranLibrary(props: Props) {
   const textScale = useTextScale();

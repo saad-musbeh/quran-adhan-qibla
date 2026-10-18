@@ -165,9 +165,8 @@ function Main() {
           onChangeLocation={()=>setShowLocation(true)}/>
       </ScreenLayer>
       <ScreenLayer testID="screen-quran" active={!homeVisible&&tab === 'quran'} background={quranTheme.theme.appBackground}>
-        <ConnectedQuranLibrary headerHeight={headerHeight} navigationHeight={navigationHeight} homeRequest={homeRequest} onHome={goHome} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} settings={{...reader, nightMode:quranTheme.mode === 'dark'}}
-          onReadingChromeChange={setReadingChromeVisible}
-          onSettingsChange={reader => setPreferences(value => ({ ...value, reader }))} />
+        <ConnectedQuranLibrary headerHeight={headerHeight} navigationHeight={navigationHeight} homeRequest={homeRequest} tafsirLibrary={tafsirLibrary} onBookOpenChange={setReadingBook} active={!homeVisible&&tab === 'quran'} language={language} settings={{...reader, nightMode:quranTheme.mode === 'dark'}}
+          onReadingChromeChange={setReadingChromeVisible} />
       </ScreenLayer>
       <ScreenLayer testID="screen-adhkar" active={!homeVisible&&tab==='adhkar'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
         <AdhkarScreen language={language} active={!homeVisible&&tab==='adhkar'&&!showSettings&&!showReminders} testing={preferences.devotional.testing} request={adhkarRequest} onReadingChange={setAdhkarReading} onReminders={()=>setShowReminders(true)}/>
