@@ -104,7 +104,11 @@ final class QuranUITests: XCTestCase {
     revealReader()
     XCUIDevice.shared.orientation = .landscapeLeft
     defer { XCUIDevice.shared.orientation = .portrait }
-    let spread=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in self.app.webViews.count==1 },object:app)
+    // WebKit can expose nested WebView accessibility nodes for one native view.
+    let spread=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+      self.app.descendants(matching: .any).matching(identifier: "mushaf-page").count == 1 &&
+      self.app.windows.firstMatch.frame.width > self.app.windows.firstMatch.frame.height
+    },object:app)
     XCTAssertEqual(XCTWaiter.wait(for:[spread],timeout:15),.completed)
     revealReader()
     expectSpread("١–٢")
