@@ -1,4 +1,4 @@
-import { bilingual, localizeCopy, message, isRTL, localeFor, type Language } from './i18n';
+import { bilingual, type Language } from './i18n';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import { createQuranLoopRange } from './domain/quran-loop';

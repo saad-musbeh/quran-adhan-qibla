@@ -52,8 +52,10 @@ class QuranAudioService : MediaSessionService() {
   override fun onTaskRemoved(rootIntent: Intent?) {
     // Swiping the app task away is a user-visible stop: without this override
     // the foreground media notification would outlive the task with no JS host
-    // left to call detach(). Tear down like detach(), then drop foreground state.
+    // left to call detach(). MediaSession.release() does not stop its player;
+    // stop the Expo-owned player without releasing it, then remove controls.
     synchronized(lock) {
+      activePlayer?.stop()
       releaseSession()
       activePlayer = null
       activeTitles = emptyList()

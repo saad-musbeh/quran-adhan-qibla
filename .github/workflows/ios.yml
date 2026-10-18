@@ -66,7 +66,8 @@ jobs:
   simulator:
     if: ${{ !inputs.diagnostic_run }}
     runs-on: macos-26
-    timeout-minutes: 60
+    # Cold builds and the iPhone/iPad smoke checks can take 55 minutes before the full UI suite starts.
+    timeout-minutes: 90
     env:
       CI: '1'
       NODE_ENV: production
@@ -197,12 +198,16 @@ jobs:
             -destination "platform=iOS Simulator,id=$QURAN_SIMULATOR" \
             -derivedDataPath target/ios-build -resultBundlePath target/ios-ui.xcresult \
             CODE_SIGNING_ALLOWED=NO 2>&1 | tee target/ios-ui.log | xcbeautify
-      - name: Export UI screenshots
+      - name: Export UI summaries and screenshots
         if: always()
         run: |
-          if [ -d target/ios-ui.xcresult ]; then
-            xcrun xcresulttool export attachments --path target/ios-ui.xcresult --output-path target/ios-screenshots
-          fi
+          mkdir -p target/ios-screenshots
+          for result in target/ios-polish-ui.xcresult target/ipad-ui.xcresult target/ios-ui.xcresult; do
+            if [ ! -d "$result" ]; then continue; fi
+            name="$(basename "$result" .xcresult)"
+            xcrun xcresulttool get test-results summary --path "$result" > "target/$name-summary.json"
+            xcrun xcresulttool export attachments --path "$result" --output-path "target/ios-screenshots/$name"
+          done
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -215,6 +220,7 @@ jobs:
             target/ipad-ui.xcresult
             target/ios-ui.xcresult
             target/ios-screenshots
+            target/*-summary.json
           if-no-files-found: ignore
           retention-days: 14
       - uses: actions/upload-artifact@v6

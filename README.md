@@ -6,6 +6,7 @@ This app includes an offline Arabic Quran reader with verse audio, Arabic/Englis
 
 ## What is ready
 
+- **0.6.5:** protects saved books/settings after failed reads, fixes stale audio queues and partial-download cleanup, stops Android audio on task removal, retries failed location fixes, and cancels pending test alerts when Adhan is disabled. See [release notes and deferred iOS verification](docs/RELEASE-0.6.5.md).
 - **0.6.4:** main Play starts one complete surah recording, removing per-ayah file transitions; offline downloads include that full recording alongside ayah files. Surah-end behavior starts at Stop each app session. All twenty Al-Fatiha sources received a machine-assisted review; source-specific ends address closing responses in five full recordings and Shuraym’s final-ayah file, including offline and repeated playback. Physical-phone confirmation remains pending. See [verification and limitations](docs/RELEASE-0.6.4.md).
 - **0.6.2:** updates Android's native audio libraries to Media3 1.9.3 for MP3 queue and audio-output fixes, with regression coverage across Al-Ikhlas, Al-Falaq and An-Nas. See [release notes](docs/RELEASE-0.6.2.md) for verification limits. iOS device testing is deferred.
 - **0.6.1:** adds the complete **دعاء ختم القرآن** after page 604, with stable Arabic lettering and clear row spacing, and fixes Android text clipping across the app. Salawat reminders gain recorded phrase choices and daytime repeat controls; reminder reconciliation and native audio cleanup are hardened. See [release notes](docs/RELEASE-0.6.1.md).
@@ -151,7 +152,7 @@ Privacy is available offline in **Settings → Privacy** and documented in [PRIV
 
 ## Contributing and license
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Code is licensed under [MIT](LICENSE). Rust prayer, GeoNames, and Leaflet notices are in [third-party-notices.txt](modules/islamic-core/assets/third-party-notices.txt) and included in the native app assets. Quran text and font notices are separate from the code license. Recitation files are streamed or downloaded for listening; no MP3 files are distributed in the repository/APK. Quran verse translations are permanently out of scope and will not be added. Interface localization remains supported. Tafsir books are downloaded on demand from QuranEnc and saved in app-private storage. The Moyassar source fixture is retained for development provenance and integrity tests; the app runtime does not load or bundle that tafsir text.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Code is licensed under [MIT](LICENSE). Rust prayer, GeoNames, and Leaflet notices are in [third-party-notices.txt](modules/islamic-core/assets/third-party-notices.txt) and included in the native app assets. Quran text and font notices are separate from the code license. Recitation files are streamed or downloaded for listening; no MP3 files are distributed in the repository/APK. Quran verse translations are permanently out of scope and will not be added. Interface localization remains supported. Tafsir books are downloaded on demand from the published sources and mirrors listed in [TAFSIR.md](docs/TAFSIR.md), including QuranEnc and Quranpedia editions, and saved in app-private storage. The Moyassar source fixture is retained for development provenance and integrity tests; the app runtime does not load or bundle that tafsir text.
 
 ## References
 

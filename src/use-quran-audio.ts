@@ -148,6 +148,9 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
   const downloadingRef = useRef(false);
   const downloadGenerationRef = useRef(0);
   const inventoryRevision = useRef(0);
+  // Inventory cleanup and user deletions finish before a download can reuse a
+  // path. Invalidating a scan alone cannot cancel an already-started deletion.
+  const inventoryMaintenance = useRef<Promise<void>>(Promise.resolve());
   const queuePositionsRef = useRef<QuranQueuePosition[]>([]);
   const queueTitlesRef = useRef<string[]>([]);
   const queueLoadingRef = useRef(false);
@@ -321,6 +324,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
       const sources = await resolveSources(positions, activeReciter, generation);
       if (!sources || generation !== generationRef.current || !mountedRef.current) return;
       if (requestedInfo?.exists && !requestedLocalAvailable) await FileSystem.deleteAsync(requestedLocal, { idempotent: true }).catch(() => undefined);
+      if (generation !== generationRef.current || !mountedRef.current) return;
       playlist.playbackRate = rateRef.current;
       queuePositionsRef.current = positions;
       queueTitlesRef.current = positions.map(titleFor);
@@ -749,6 +753,7 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
     let completedVerses = 0;
     let completedSurahs = 0;
     try {
+      await inventoryMaintenance.current;
       for (const chapter of chapters) {
         if (downloadCanceledRef.current) break;
         const surah = chapter.number;
@@ -854,11 +859,16 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
     inventoryRevision.current++;
     const known = items.filter(item => reciterById.has(item.reciter as ReciterId) && Boolean(getSurah(item.surah)));
     if (known.some(item => item.reciter === reciterRef.current && queuePositionsRef.current.some(position => position.surah === item.surah))) stop();
-    for (const item of known) {
-      await FileSystem.deleteAsync(surahUri(item.reciter as ReciterId, item.surah), {idempotent:true});
-      setDownloadsByReciter(existing => ({...existing,[item.reciter]:existing[item.reciter as ReciterId].filter(surah => surah !== item.surah)}));
-      setSavedAudio(existing => existing.filter(saved => saved.reciter !== item.reciter || saved.surah !== item.surah));
-    }
+    const removal = inventoryMaintenance.current.then(async () => {
+      for (const item of known) {
+        await FileSystem.deleteAsync(surahUri(item.reciter as ReciterId, item.surah), {idempotent:true});
+        if (!mountedRef.current) continue;
+        setDownloadsByReciter(existing => ({...existing,[item.reciter]:existing[item.reciter as ReciterId].filter(surah => surah !== item.surah)}));
+        setSavedAudio(existing => existing.filter(saved => saved.reciter !== item.reciter || saved.surah !== item.surah));
+      }
+    });
+    inventoryMaintenance.current = removal.catch(() => undefined);
+    await removal;
   }, [stop]);
   const deleteSurahDownload = useCallback(async (surah: number) => {
     await removeSavedAudio([{reciter:reciterRef.current,surah,bytes:0,verses:0,total:0,complete:false}]);
@@ -866,26 +876,41 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
   const refreshDownloads = useCallback(async () => {
     if (downloadingRef.current) return;
     const revision = ++inventoryRevision.current;
-    const inventory: AudioDownload[] = [];
-    for (const voice of RECITERS) {
-      const directories = await FileSystem.readDirectoryAsync(`${AUDIO_ROOT}${voice.id}/`).catch(() => [] as string[]);
-      for (const directory of directories) {
-        if (!/^\d{3}$/.test(directory)) continue;
-        const chapter = getSurah(Number(directory));
-        if (!chapter) continue;
-        const base = surahUri(voice.id, chapter.number);
-        const names = await FileSystem.readDirectoryAsync(base);
-        const files = await Promise.all(names.filter(name => name === 'surah.mp3' || /^\d{6}\.mp3$/.test(name)).map(async name => {
-          const info = await FileSystem.getInfoAsync(base + name);
-          return {name,size:info.exists ? info.size : 0};
-        }));
-        const entry = summarizeAudioDownload(voice.id, chapter.number, chapter.verseCount, files);
-        if (entry.bytes) inventory.push(entry);
+    const scan = inventoryMaintenance.current.then(async () => {
+      const isCurrent = () => revision === inventoryRevision.current && !downloadingRef.current && mountedRef.current;
+      const inventory: AudioDownload[] = [];
+      for (const voice of RECITERS) {
+        if (!isCurrent()) return;
+        const directories = await FileSystem.readDirectoryAsync(`${AUDIO_ROOT}${voice.id}/`).catch(() => [] as string[]);
+        for (const directory of directories) {
+          if (!isCurrent()) return;
+          if (!/^\d{3}$/.test(directory)) continue;
+          const chapter = getSurah(Number(directory));
+          if (!chapter) continue;
+          const base = surahUri(voice.id, chapter.number);
+          const names = await FileSystem.readDirectoryAsync(base);
+          for (const name of names) {
+            if (!isCurrent()) return;
+            // Both the old fixed partial name and job-specific names may be
+            // left behind by process death. No downloader runs during cleanup.
+            if (/^(?:surah|\d{6})\.mp3(?:\.\d+)?\.part$/.test(name)) {
+              await FileSystem.deleteAsync(base + name, { idempotent: true });
+            }
+          }
+          const files = await Promise.all(names.filter(name => name === 'surah.mp3' || /^\d{6}\.mp3$/.test(name)).map(async name => {
+            const info = await FileSystem.getInfoAsync(base + name);
+            return {name,size:info.exists ? info.size : 0};
+          }));
+          const entry = summarizeAudioDownload(voice.id, chapter.number, chapter.verseCount, files);
+          if (entry.bytes) inventory.push(entry);
+        }
       }
-    }
-    if (revision !== inventoryRevision.current || downloadingRef.current || !mountedRef.current) return;
-    setSavedAudio(inventory);
-    setDownloadsByReciter(Object.fromEntries(RECITERS.map(voice => [voice.id,inventory.filter(item => item.reciter === voice.id && item.complete).map(item => item.surah).sort((a,b)=>a-b)])) as Record<ReciterId,number[]>);
+      if (!isCurrent()) return;
+      setSavedAudio(inventory);
+      setDownloadsByReciter(Object.fromEntries(RECITERS.map(voice => [voice.id,inventory.filter(item => item.reciter === voice.id && item.complete).map(item => item.surah).sort((a,b)=>a-b)])) as Record<ReciterId,number[]>);
+    });
+    inventoryMaintenance.current = scan.catch(() => undefined);
+    await scan;
   }, []);
 
   const retryPlayback = useCallback(async () => {

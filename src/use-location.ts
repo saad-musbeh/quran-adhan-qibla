@@ -7,6 +7,7 @@ import { SAVED_LOCATION_KEY, validateSavedLocation } from './domain/saved-locati
 import { hasSystemDeviceLocation, getSystemDeviceLocation } from './system-device-location';
 
 export type SelectedLocation = Coordinates & { source: LocationSource; label?: string; accuracy?: number | null; timestamp: number };
+const FAILED_LOCATION_RETRY_MS = 60 * 1000;
 function provider(allowPrompt: boolean): LocationProvider {
   return {
     getPermission: () => Location.getForegroundPermissionsAsync(),
@@ -27,7 +28,8 @@ export function useLocation(enabled: boolean) {
   const locationRef = useRef<SelectedLocation | null>(null);
   const pending = useRef(false);
   const mounted = useRef(true);
-  const lastAttempt = useRef(0);
+  const lastFixTimestamp = useRef(0);
+  const retryAfter = useRef(0);
   const userSelected = useRef(false);
   const permissionCheck = useRef(false);
   const writes = useRef<Promise<void>>(Promise.resolve());
@@ -78,7 +80,7 @@ export function useLocation(enabled: boolean) {
       if (!live || !mounted.current) return;
       if (!userSelected.current) {
         selectLocation(restored);
-        lastAttempt.current = restored?.source === 'device' ? restored.timestamp : 0;
+        lastFixTimestamp.current = restored?.source === 'device' ? restored.timestamp : 0;
         if (readSucceeded && (raw !== null && (!storedWasValid || restored === null))) save(null);
       }
       setReady(true);
@@ -90,7 +92,6 @@ export function useLocation(enabled: boolean) {
     if (allowPrompt) userSelected.current = true;
     if (pending.current) return;
     pending.current = true;
-    lastAttempt.current = Date.now();
     setLoading(true);
     setError(null);
     try {
@@ -99,12 +100,15 @@ export function useLocation(enabled: boolean) {
       if (!saved) throw new LocationAccessError('locationError');
       if (mounted.current) {
         selectLocation(saved);
+        lastFixTimestamp.current = saved.timestamp;
+        retryAfter.current = 0;
         save(saved);
       }
     } catch (failure) {
       if (mounted.current) {
         const reason = failure instanceof LocationAccessError ? failure.reason : 'locationError';
         setError(reason);
+        retryAfter.current = Date.now() + FAILED_LOCATION_RETRY_MS;
         // Do not keep or persist a device location after its permission is revoked.
         if (reason === 'denied' || reason === 'blocked') {
           if (locationRef.current?.source === 'device') {
@@ -141,7 +145,7 @@ export function useLocation(enabled: boolean) {
         }
       } catch { /* The regular location refresh can report provider failures. */ }
       finally { permissionCheck.current = false; }
-      if (shouldRefreshLocation(selected.source, lastAttempt.current, Date.now())) void locate(false);
+      if (shouldRefreshLocation(selected.source, lastFixTimestamp.current, Date.now()) && Date.now() >= retryAfter.current) void locate(false);
     }
     void refreshIfDue();
     const interval = setInterval(() => { void refreshIfDue(); }, 60 * 60 * 1000);

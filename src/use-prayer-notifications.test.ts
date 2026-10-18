@@ -4,6 +4,7 @@ import { Platform, AppState, Linking } from './test-support/stubs/react-native.t
 import * as Notifications from './test-support/stubs/expo-notifications.ts';
 import * as islamicCore from './test-support/stubs/islamic-core.ts';
 import { PRAYER_NOTIFICATION_NAMESPACE, IOS_PENDING_NOTIFICATION_LIMIT } from './domain/prayer-notifications.ts';
+import { DEVOTIONAL_NAMESPACE } from './domain/devotional-reminders.ts';
 import { HookHarness } from './test-support/react-hooks.ts';
 import { usePrayerNotifications } from './use-prayer-notifications.ts';
 
@@ -46,6 +47,14 @@ async function mountHook(props: Props): Promise<HookHarness> {
 
 function api(harness: HookHarness): HookApi {
   return harness.result as unknown as HookApi;
+}
+
+function prayerOwned() {
+  return Notifications.store.scheduled.filter(item => item.content.data?.namespace === PRAYER_NOTIFICATION_NAMESPACE);
+}
+
+function prayerTests() {
+  return prayerOwned().filter(item => item.content.data?.test === true);
 }
 
 function baseProps(): Props {
@@ -186,6 +195,45 @@ test('a wedged notification resolve cannot schedule stale prayers later on', asy
   assert.ok(!Notifications.store.scheduled.some(item =>
     (item.content.data?.namespace ?? '') === PRAYER_NOTIFICATION_NAMESPACE && typeof item.content.data?.date === 'string' && item.content.data.date.startsWith('2025')
   ));
+  harness.unmount();
+});
+
+test('disabling alerts cancels the pending test and every owned prayer, and protects foreign alerts', async () => {
+  Notifications.resetStore();
+  const props = baseProps();
+  const harness = await mountHook(props);
+  assert.ok(prayerOwned().length > 0, 'recurring prayers were scheduled');
+  assert.equal(await api(harness).testAlert('fajr'), true);
+  assert.equal(prayerTests().length, 1);
+  Notifications.store.scheduled.push(
+    foreignItem('foreign-1') as never,
+    ownedItem('devotional-1', { namespace: DEVOTIONAL_NAMESPACE, kind: 'salawat' }) as never,
+  );
+
+  props.enabled = false;
+  harness.render();
+  await harness.settle();
+
+  assert.equal(api(harness).status, 'disabled');
+  assert.equal(prayerOwned().length, 0, 'the master toggle cancels prayer and test alerts');
+  assert.ok(Notifications.store.scheduled.some(item => item.identifier === 'foreign-1'), 'foreign alerts are untouched');
+  assert.ok(Notifications.store.scheduled.some(item => item.identifier === 'devotional-1'), 'devotional alerts are untouched');
+  harness.unmount();
+});
+
+test('a disable that lands while a test alert is scheduling cancels the late test', async () => {
+  Notifications.resetStore();
+  const props = baseProps();
+  const harness = await mountHook(props);
+
+  const pending = api(harness).testAlert('fajr');
+  props.enabled = false;
+  harness.render();
+  await pending;
+  await harness.settle();
+
+  assert.equal(prayerTests().length, 0, 'no test reminder remains after a disable racing the async test');
+  assert.equal(api(harness).status, 'disabled');
   harness.unmount();
 });
 

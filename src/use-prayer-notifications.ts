@@ -108,7 +108,14 @@ export function usePrayerNotifications(input: Inputs) {
       try {
         const pending = await Notifications.getAllScheduledNotificationsAsync();
         if (!current()) return;
-        owned = pending.filter(item => isPrayerNotificationOwned(item) && !isPrayerTestNotification(item));
+        const allOwned = pending.filter(item => isPrayerNotificationOwned(item));
+        owned = allOwned.filter(item => !isPrayerTestNotification(item));
+        const cancelAllOwned = async () => {
+          for (const item of allOwned) {
+            if (!current()) return;
+            await Notifications.cancelScheduledNotificationAsync(item.identifier);
+          }
+        };
         const cancelOwned = async () => {
           for (const item of owned) {
             if (!current()) return;
@@ -116,7 +123,8 @@ export function usePrayerNotifications(input: Inputs) {
           }
         };
         if (!value.enabled) {
-          await cancelOwned();
+          // The master toggle cancels every owned reminder, including a pending test alert.
+          await cancelAllOwned();
           setStatus('disabled');
           return;
         }
@@ -290,7 +298,7 @@ export function usePrayerNotifications(input: Inputs) {
       for (const item of pending) {
         if (isPrayerTestNotification(item)) await Notifications.cancelScheduledNotificationAsync(item.identifier);
       }
-      await Notifications.scheduleNotificationAsync({
+      const identifier = await Notifications.scheduleNotificationAsync({
         content: {
           title: value.labels.testTitle ?? value.labels.title,
           body: value.labels.testBody ?? value.labels.body(prayer),
@@ -303,6 +311,11 @@ export function usePrayerNotifications(input: Inputs) {
           ...(Platform.OS === 'android' ? {channelId} : {}),
         },
       });
+      // A disable that lands while this async test was scheduling must still win.
+      if (inputs.current.enabled !== true) {
+        await Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {});
+        return false;
+      }
       return true;
     } catch { return false; }
   }, []);

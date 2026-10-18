@@ -1,7 +1,6 @@
 import { Pressable } from './Pressable';
 import { Text } from '../text-size';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, {useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import {LocationControl} from './LocationControl';
 import {highLatitudeCopy} from './HighLatitudeSettings';
@@ -27,8 +26,8 @@ type Props = {
 };
 
 const screenCopy = {
-  en: {prayerTimes: 'Prayer times', nextAdhan: 'Next Adhan', tomorrow: 'Tomorrow', changeLocation: 'Change location'},
-  ar: {prayerTimes: 'مواقيت الصلاة', nextAdhan: 'الأذان القادم', tomorrow: 'غدًا', changeLocation: 'تغيير الموقع'},
+  en: {prayerTimes: 'Prayer times', nextAdhan: 'Next Adhan', tomorrow: 'Tomorrow'},
+  ar: {prayerTimes: 'مواقيت الصلاة', nextAdhan: 'الأذان القادم', tomorrow: 'غدًا'},
 } as const;
 
 export function AdhanScreen({language, state, times, tomorrowTimes, error, calculationAvailable, now: scheduleNow, active, onChangeLocation, settings, onPrayerSettings}: Props) {
