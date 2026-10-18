@@ -6,7 +6,9 @@ final class QuranUITests: XCTestCase {
   override func setUpWithError() throws {
     continueAfterFailure = false
     app.launch()
-    if app.buttons["menu-quran"].waitForExistence(timeout: 3) { app.buttons["menu-quran"].tap() }
+    let quran = app.buttons["menu-quran"]
+    XCTAssertTrue(quran.waitForExistence(timeout: 45), "The home menu did not finish loading")
+    quran.tap()
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 45))
   }
 
@@ -124,8 +126,8 @@ final class QuranUITests: XCTestCase {
     screenshot("iPad home page landscape")
     app.buttons["menu-quran"].tap()
     XCTAssertTrue(app.buttons["open-book-6"].waitForExistence(timeout: 10))
-    XCTAssertTrue(app.buttons["open-book-6"].label.hasSuffix("3"))
-    XCTAssertTrue(app.buttons["open-book-5"].label.hasSuffix("1"))
+    XCTAssertTrue(app.buttons["open-book-6"].label.hasSuffix("٣"))
+    XCTAssertTrue(app.buttons["open-book-5"].label.hasSuffix("١"))
     app.buttons["open-main-menu"].tap()
     screenshot("iPad home page landscape")
   }
@@ -147,8 +149,8 @@ final class QuranUITests: XCTestCase {
     app.buttons["reader-library"].tap()
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 10))
     XCTAssertTrue(app.buttons["open-book-1"].label.contains("Simulator reading"))
-    XCTAssertTrue(app.buttons["open-book-1"].label.hasSuffix("2"))
-    XCTAssertTrue(app.buttons["open-book-2"].label.hasSuffix("1"))
+    XCTAssertTrue(app.buttons["open-book-1"].label.hasSuffix("٢"))
+    XCTAssertTrue(app.buttons["open-book-2"].label.hasSuffix("١"))
     app.buttons["open-book-2"].tap()
     revealReader()
     XCTAssertTrue(app.staticTexts["reader-page-number"].label.hasPrefix("١"))
@@ -156,12 +158,12 @@ final class QuranUITests: XCTestCase {
     app.buttons["reader-library"].tap()
     app.terminate()
     app.launch()
-    XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 10))
+    XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 45))
     app.buttons["menu-quran"].tap()
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 30))
     XCTAssertTrue(app.buttons["open-book-1"].label.contains("Simulator reading"))
-    XCTAssertTrue(app.buttons["open-book-1"].label.hasSuffix("2"))
-    XCTAssertTrue(app.buttons["open-book-2"].label.hasSuffix("1"))
+    XCTAssertTrue(app.buttons["open-book-1"].label.hasSuffix("٢"))
+    XCTAssertTrue(app.buttons["open-book-2"].label.hasSuffix("١"))
   }
 
   func testDefaultVoiceAndNativePlaybackControls() {
@@ -182,7 +184,10 @@ final class QuranUITests: XCTestCase {
     let playing=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in ["Playing","جارٍ التشغيل"].contains(status.label) },object:status)
     XCTAssertEqual(XCTWaiter.wait(for:[playing],timeout:20),.completed)
     let elapsed=app.staticTexts["audio-time"]
-    let advances=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in !elapsed.label.hasPrefix("0:00") },object:elapsed)
+    let advances=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+      let current = elapsed.label.split(separator: "/", maxSplits: 1).first ?? ""
+      return current.compactMap { $0.wholeNumberValue }.contains { $0 > 0 }
+    },object:elapsed)
     XCTAssertEqual(XCTWaiter.wait(for:[advances],timeout:10),.completed)
     app.buttons["audio-play-pause"].tap()
     let paused=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in ["Paused","متوقف مؤقتًا"].contains(status.label) },object:status)
@@ -239,7 +244,7 @@ final class QuranUITests: XCTestCase {
     downloads.tap()
     XCTAssertTrue(app.buttons["downloads-close"].waitForExistence(timeout: 10))
     XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].waitForExistence(timeout: 15))
-    XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].label.contains("7/7"))
+    XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].label.contains("٧/٧"))
     screenshot("Download manager")
     app.descendants(matching: .any)["downloads-audio"].tap()
     let wholeQuran = app.buttons["download-whole-quran"]
@@ -252,7 +257,7 @@ final class QuranUITests: XCTestCase {
     XCTAssertEqual(XCTWaiter.wait(for: [stopped], timeout: 20), .completed)
     app.descendants(matching: .any)["downloads-saved"].tap()
     XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].waitForExistence(timeout: 15))
-    XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].label.contains("7/7"))
+    XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].label.contains("٧/٧"))
     app.buttons["downloads-close"].tap()
     app.buttons["settings-close"].tap()
   }
