@@ -41,8 +41,11 @@ async function playerHarness(localFiles: string[] = [], timingRows: unknown = []
     documentDirectory:'file:///private/',
     async getInfoAsync(uri:string){ return {exists:files.has(uri),size:files.has(uri)?100:0}; },
     async readAsStringAsync(){ throw Error('No cached metadata'); },
+    async readDirectoryAsync(directory:string){
+      return [...new Set([...files].filter(uri=>uri.startsWith(directory)).map(uri=>uri.slice(directory.length).split('/')[0]))];
+    },
     async makeDirectoryAsync(){},async writeAsStringAsync(){},
-    async deleteAsync(uri:string){files.delete(uri);},
+    async deleteAsync(uri:string){for(const file of files)if(file===uri||file.startsWith(uri.endsWith('/')?uri:`${uri}/`))files.delete(file);},
     async moveAsync({from,to}:{from:string;to:string}){ files.delete(from);files.add(to); },
     createDownloadResumable(uri:string,destination:string){
       requested.push(uri);
@@ -106,6 +109,115 @@ test('starting at ayah one uses a full-surah file, ignores saved Next, resumes, 
     assert.equal(h.controller.fullSurah,112);
     assert.equal(h.tracks.length,1);
   } finally {await h.close();}
+});
+
+test('a superseded ayah request cannot append its queue after corrupt-file deletion', async()=>{
+  const corrupt='file:///private/quran-audio/ghamdi/002/002002.mp3';
+  const h=await playerHarness([corrupt]);
+  let release!:()=>void;
+  const pendingDeletion=new Promise<void>(resolve=>{release=resolve;});
+  try {
+    const originalInfo=h.fs.getInfoAsync;
+    h.fs.getInfoAsync=async uri=>uri===corrupt?{exists:true,size:0}:originalInfo(uri);
+    const originalDelete=h.fs.deleteAsync;
+    h.fs.deleteAsync=async uri=>{if(uri===corrupt)await pendingDeletion;await originalDelete(uri);};
+    let oldRequest!:Promise<void>;
+    await h.command(()=>{oldRequest=h.controller.playVerse(2,2);});
+    await h.command(()=>h.controller.playVerse(3,2));
+    const expected=[...h.tracks];
+    assert.equal(expected.length,199);
+    await h.command(async()=>{release();await oldRequest;});
+    assert.deepEqual(h.tracks,expected);
+    assert.equal(h.controller.currentVerseKey,'3:2');
+  } finally {release();await h.close();}
+});
+
+test('download inventory removes abandoned partials while preserving completed files and metadata', async()=>{
+  const base='file:///private/quran-audio/ghamdi/112/';
+  const completed=[`${base}surah.mp3`,...Array.from({length:4},(_,index)=>`${base}11200${index+1}.mp3`)];
+  const retained=[...completed,`${base}timings.json`,`${base}notes.part`];
+  const abandoned=[`${base}surah.mp3.2.part`,`${base}112002.mp3.79.part`,`${base}112004.mp3.part`];
+  const h=await playerHarness([...retained,...abandoned]);
+  try {
+    await h.command(()=>h.controller.refreshDownloads());
+    assert.deepEqual([...h.files].sort(),retained.sort());
+    assert.equal(h.controller.savedAudio.length,1);
+    assert.equal(h.controller.savedAudio[0].complete,true);
+  } finally {await h.close();}
+});
+
+test('a download waits for in-flight inventory cleanup and keeps its new partial file', async()=>{
+  const base='file:///private/quran-audio/ghamdi/112/';
+  const abandoned=`${base}surah.mp3.1.part`;
+  const h=await playerHarness([abandoned]);
+  let release!:()=>void;
+  const pendingDeletion=new Promise<void>(resolve=>{release=resolve;});
+  try {
+    const originalDelete=h.fs.deleteAsync;
+    let cleanupStarted=false;
+    h.fs.deleteAsync=async uri=>{
+      if(uri===abandoned&&!cleanupStarted){cleanupStarted=true;await pendingDeletion;}
+      await originalDelete(uri);
+    };
+    let inventory!:Promise<void>;
+    await h.command(()=>{inventory=h.controller.refreshDownloads();});
+    assert.equal(cleanupStarted,true);
+    let download!:Promise<void>;
+    await h.command(()=>{download=h.controller.downloadSurah(112);});
+    assert.equal(h.requested.length,0);
+    await h.command(async()=>{release();await Promise.all([inventory,download]);});
+    assert.ok(h.files.has(`${base}surah.mp3`));
+    assert.equal(h.controller.downloadError,null);
+    assert.equal([...h.files].some(uri=>uri.endsWith('.part')),false);
+  } finally {release();await h.close();}
+});
+
+test('inventory refresh preserves the partial file of an active download', async()=>{
+  const h=await playerHarness();
+  let release!:()=>void;
+  const pendingDownload=new Promise<void>(resolve=>{release=resolve;});
+  try {
+    const originalCreate=h.fs.createDownloadResumable;
+    let activePartial='';
+    h.fs.createDownloadResumable=(uri,destination)=>{
+      const task=originalCreate(uri,destination);
+      return {...task,async downloadAsync(){
+        h.files.add(destination);
+        if(!activePartial){activePartial=destination;await pendingDownload;}
+        return task.downloadAsync();
+      }};
+    };
+    let download!:Promise<void>;
+    await h.command(()=>{download=h.controller.downloadSurah(112);});
+    assert.ok(activePartial.endsWith('.part'));
+    await h.command(()=>h.controller.refreshDownloads());
+    assert.ok(h.files.has(activePartial));
+    await h.command(async()=>{release();await download;});
+    assert.equal(h.controller.downloadError,null);
+    assert.ok(h.files.has('file:///private/quran-audio/ghamdi/112/surah.mp3'));
+  } finally {release();await h.close();}
+});
+
+test('a download waits for a requested saved-surah deletion before writing that surah', async()=>{
+  const base='file:///private/quran-audio/ghamdi/112/';
+  const h=await playerHarness([`${base}surah.mp3`]);
+  let release!:()=>void;
+  const pendingDeletion=new Promise<void>(resolve=>{release=resolve;});
+  try {
+    await h.command(()=>h.controller.refreshDownloads());
+    const item=h.controller.savedAudio[0];
+    const originalDelete=h.fs.deleteAsync;
+    h.fs.deleteAsync=async uri=>{if(uri===base)await pendingDeletion;await originalDelete(uri);};
+    let removal!:Promise<void>;
+    await h.command(()=>{removal=h.controller.removeSavedAudio([item]);});
+    let download!:Promise<void>;
+    await h.command(()=>{download=h.controller.downloadSurah(112);});
+    assert.equal(h.requested.length,0);
+    await h.command(async()=>{release();await Promise.all([removal,download]);});
+    assert.ok(h.files.has(`${base}surah.mp3`));
+    assert.equal(h.controller.downloadError,null);
+    assert.ok(h.controller.downloadedSurahs.includes(112));
+  } finally {release();await h.close();}
 });
 
 test('Ghamdi Fatiha uses the audited native end for streams, downloads, repeats and Next', async()=>{
