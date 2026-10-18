@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use the **`v0.6.2`** release source or **`codex/release-0.6.2`** for the current **0.6.2 / build 25** source. The previous release is **`v0.6.1`**. Version 0.6.2 updates Android playback libraries; iOS native/device testing is deferred at the user's request. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**; its release assets are unchanged.
+Use **`v0.6.4`** or **`codex/release-0.6.4`** for the **0.6.4 / build 27** source. This version adds continuous-surah playback and native recording-end limits. Full Al-Fatiha playback, repeat and lock-screen ending behavior still require iPhone listening checks. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ If the developer directory is `/Library/Developer/CommandLineTools`, select the 
 ## Current source and development build
 
 ```sh
-git clone --branch v0.6.1 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
+git clone --branch v0.6.4 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
 cd quran-adhan-qibla
 git log -1 --oneline
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
