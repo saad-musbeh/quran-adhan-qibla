@@ -1,13 +1,14 @@
 import { Pressable } from './Pressable';
 import { Text, TextInput, useTextScale } from '../text-size';
-import { useEffect, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { useTafsirLibrary } from '../use-tafsir-library';
 import { ScreenLayer } from './ScreenLayer';
 import { QuranScreen, type QuranReaderSettings } from './QuranScreen';
-import { addQuranBook, MAX_QURAN_BOOKS, createQuranBooks, readQuranBooks, readLegacyQuranBooks, LEGACY_QURAN_KEYS, QURAN_BOOKS_KEY, type QuranBook } from '../domain/quran-books';
+import { addQuranBook, MAX_QURAN_BOOKS, type QuranBook } from '../domain/quran-books';
+import { useQuranBooks } from '../use-quran-books';
+import { SavedDataError } from './SavedDataError';
 import { getVerse, getSurah } from '../domain/quran';
 import { getMushafPageVerses, KHATM_DUA_PAGE, LAST_READER_PAGE } from '../data/mushaf';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
@@ -26,29 +27,11 @@ export function QuranLibrary(props: Props) {
   const [shelfWidth,setShelfWidth]=useState(window.width);
   const columns=shelfWidth>=720?3:2;
   const cardWidth=(Math.min(shelfWidth,1100)-32-(columns-1)*12)/columns;
-  const [books, setBooks] = useState(createQuranBooks);
-  const [ready, setReady] = useState(false);
+  const { books, setBooks, ready, loadFailed, retry } = useQuranBooks();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
   const [editing, setEditing] = useState<QuranBook | null>(null), [name, setName] = useState('');
-  const writes = useRef(Promise.resolve());
   const nameOf = (book: QuranBook) => book.name || bilingual(language, 'المصحف {n}', 'Quran {n}', { n: (books.indexOf(book) + 1).toLocaleString(localeFor(language)) });
-  useEffect(() => {
-    let alive = true;
-    void AsyncStorage.getItem(QURAN_BOOKS_KEY).then(async json => {
-      // Stored libraries take precedence over pre-library reading data.
-      if (json !== null) { if (alive) setBooks(readQuranBooks(json)); return; }
-      const legacy = await AsyncStorage.multiGet([...LEGACY_QURAN_KEYS]);
-      if (alive) setBooks(readLegacyQuranBooks(legacy[0][1], legacy[1][1], legacy[2][1]));
-    }).catch(() => undefined).finally(() => { if (alive) setReady(true); });
-    return () => { alive = false; };
-  }, []);
-  useEffect(() => {
-    if (!ready) return;
-    const json = JSON.stringify(books);
-    writes.current = writes.current.catch(() => undefined).then(() => AsyncStorage.setItem(QURAN_BOOKS_KEY, json));
-    void writes.current.catch(() => undefined);
-  }, [books, ready]);
   useEffect(()=>{
     if (!ready) return;
     const timer=setTimeout(()=>{void preloadMushafResources(MUSHAF_PAGE_ASSETS[books[0].page]).catch(()=>undefined);},60);
@@ -64,7 +47,7 @@ export function QuranLibrary(props: Props) {
     <ScreenLayer active={!selectedId} background={colors.appBackground}>
       <ScrollView onLayout={event=>setShelfWidth(event.nativeEvent.layout.width)} contentContainerStyle={[styles.shelf,{paddingTop:(props.headerHeight??Math.max(48,48*textScale))+10,paddingBottom:Math.max(80,80*textScale,(props.navigationHeight??64)+16)}]}>
         <Text style={[styles.heading,rtl&&styles.rtl]}>{bilingual(language,'مكتبتي القرآنية','My Quran library')}</Text>
-        {!ready&&<ActivityIndicator color={colors.accent}/>}
+        {loadFailed ? <SavedDataError language={language} onRetry={retry}/> : !ready && <ActivityIndicator color={colors.accent}/>}
         <View style={[styles.grid,rtl&&styles.reverse]}>{books.map(book => {
           const isKhatm=book.page>=KHATM_DUA_PAGE&&book.page<=LAST_READER_PAGE;
           const [s,a] = (isKhatm?'1:1':getMushafPageVerses(book.page)[0]??'1:1').split(':').map(Number);
@@ -78,7 +61,7 @@ export function QuranLibrary(props: Props) {
               <View pointerEvents="none" style={styles.coverFrame}><Ionicons name="book-outline" size={32} color={colors.accent}/><Text numberOfLines={2} style={styles.bookName}>{name}</Text></View>
               <Text style={styles.position}>{position}</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language,'تسمية {name}','Rename {name}',{name})} testID={`rename-${book.id}`} style={styles.rename} onPress={()=>{setEditing(book);setName(book.name)}}><Ionicons name="pencil-outline" size={15} color={colors.accent}/><Text style={styles.renameText}>{bilingual(language,'تسمية المصحف','Rename book')}</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language,'تسمية {name}','Rename {name}',{name})} disabled={!ready} testID={`rename-${book.id}`} style={styles.rename} onPress={()=>{setEditing(book);setName(book.name)}}><Ionicons name="pencil-outline" size={15} color={colors.accent}/><Text style={styles.renameText}>{bilingual(language,'تسمية المصحف','Rename book')}</Text></Pressable>
           </View>;
         })}
         {books.length < MAX_QURAN_BOOKS && <Pressable testID="add-quran-book" accessibilityRole="button" accessibilityLabel={bilingual(language,'إضافة مصحف','Add Quran')} disabled={!ready} onPress={()=>setBooks(addQuranBook)} style={[styles.cover,{width:cardWidth,justifyContent:'center',alignItems:'center'}]}>

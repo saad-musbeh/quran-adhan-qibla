@@ -7,7 +7,7 @@ import { QuranThemeContext } from './src/quran-theme-context';
 import { useQuranTheme } from './src/use-quran-theme';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { AppState, BackHandler, StyleSheet, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Pressable } from './src/components/Pressable';
 import { bilingual, isRTL } from './src/i18n';
 import { AdhkarScreen } from './src/components/AdhkarScreen';
@@ -27,6 +27,7 @@ import { LanguagePicker } from './src/components/LanguagePicker';
 import { useLocation } from './src/use-location';
 import { AppBanner } from './src/components/AppBanner';
 import { SettingsSheet } from './src/components/SettingsSheet';
+import { SavedDataError } from './src/components/SavedDataError';
 import { QuranSettings } from './src/components/QuranScreen';
 import { QuranLibrary } from './src/components/QuranLibrary';
 import { useTafsirLibrary } from './src/use-tafsir-library';
@@ -46,7 +47,7 @@ function Main() {
   const insets = useSafeAreaInsets();
   const {width,height}=useWindowDimensions();
   const largeScreen=width>=720||Math.min(width,height)>=600;
-  const { preferences, setPreferences, ready: preferencesReady } = usePreferences();
+  const { preferences, setPreferences, ready: preferencesReady, loadFailed: preferencesLoadFailed, retry: retryPreferences } = usePreferences();
   const { language, prayer: settings, reader, compassMode } = preferences;
   const textScale = textScaleForSize(reader.fontSize);
   const [bannerHeight,setBannerHeight] = useState(48);
@@ -143,6 +144,9 @@ function Main() {
 
   return <TextSizeContext.Provider value={textScale}><QuranThemeContext.Provider value={quranTheme}><SafeAreaView style={[styles.screen, { backgroundColor: quranTheme.theme.appBackground }]}>
     <StatusBar style={quranTheme.mode==='light'?'dark':'light'} />
+    {!preferencesReady ? <View style={styles.loading}>
+      {preferencesLoadFailed ? <SavedDataError language={language} onRetry={retryPreferences}/> : <ActivityIndicator color={quranTheme.theme.accent}/>}
+    </View> : <>
     <AppBanner onHeightChange={setBannerHeight} language={language} top={insets.top} showHome={menuEnabled||tab==='quran'} onHome={goHome}
       onLanguages={() => setShowLanguages(true)} onSettings={() => setShowSettings(true)} />
     <SwipeTabs onDockHeightChange={setDockHeight} hideNavigation={homeVisible||(tab === 'quran' && readingBook)} language={language} tab={tab} reading={homeVisible||(tab === 'quran' && readingBook)} chromeVisible={readingChromeVisible} onChange={chooseSection}>
@@ -189,6 +193,7 @@ function Main() {
     <LanguagePicker extraTesting={preferences.testingLanguages} language={language} visible={showLanguages} onChoose={language => setPreferences(value => ({ ...value, language }))} onClose={() => setShowLanguages(false)} />
     <LocationSheet language={language} visible={showLocation} state={locationState} onClose={() => setShowLocation(false)} />
     <DevotionalSettings visible={showReminders} onClose={()=>setShowReminders(false)} language={language} preferences={preferences.devotional} onChange={devotional=>setPreferences(value=>({...value,devotional}))} reminders={devotional}/>
+    </>}
   </SafeAreaView></QuranThemeContext.Provider></TextSizeContext.Provider>;
 }
 
@@ -201,4 +206,5 @@ function ConnectedQuranSettings(props: Omit<React.ComponentProps<typeof QuranSet
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0B211D' },
+  loading: { flex: 1, justifyContent: 'center', padding: 24 },
 });
