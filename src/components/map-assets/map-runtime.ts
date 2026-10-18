@@ -16,6 +16,6 @@ tileLayer.on('tileerror',()=>{if(tileFailed)return;tileErrors+=1;if(tileErrors>=
 let marker=null,enabled=true;
 function applyMapInteraction(){const active=enabled&&!tileFailed;if(active){map.dragging.enable();map.touchZoom.enable();map.doubleClickZoom.enable();map.scrollWheelZoom.enable();map.keyboard.enable();map.zoomControl.addTo(map);}else{map.dragging.disable();map.touchZoom.disable();map.doubleClickZoom.disable();map.scrollWheelZoom.disable();map.keyboard.disable();map.zoomControl.remove();}}
 window.setMapEnabled=value=>{enabled=!!value;applyMapInteraction();};
-function choose(latlng){if(!enabled||tileFailed)return;const point=map.wrapLatLng(latlng);const latitude=point.lat,longitude=point.lng;if(marker)marker.setLatLng(point);else marker=L.circleMarker(point,{radius:8,color:'#fff',weight:3,fillColor:${fill},fillOpacity:1}).addTo(map);window.ReactNativeWebView.postMessage(JSON.stringify({type:'select',latitude,longitude}));}
+function choose(latlng){if(!enabled||tileFailed)return;const point=map.wrapLatLng(latlng);const latitude=point.lat,longitude=point.lng;if(marker)marker.setLatLng(latlng);else marker=L.circleMarker(latlng,{radius:8,color:'#fff',weight:3,fillColor:${fill},fillOpacity:1}).addTo(map);window.ReactNativeWebView.postMessage(JSON.stringify({type:'select',latitude,longitude}));}
 ${initial}`;
 }

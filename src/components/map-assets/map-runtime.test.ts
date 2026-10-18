@@ -46,7 +46,8 @@ function createHarness(): Harness {
     },
     L: {
       latLng: (lat: number, lng: number) => ({ lat, lng }),
-      circleMarker: () => {
+      circleMarker: (point: MarkerPoint) => {
+        markerPoints.push(point);
         const marker = { addTo: () => marker, setLatLng: (point: MarkerPoint) => { markerPoints.push(point); } };
         return marker;
       },
@@ -120,14 +121,14 @@ test('disabled maps ignore selection until re-enabled', () => {
   assert.deepEqual(types(harness.messages), ['select']);
 });
 
-test('a marker crossing the antimeridian is wrapped before selecting and moving', () => {
+test('antimeridian selections keep the marker in the visible world and emit canonical coordinates', () => {
   const harness = createHarness();
   vm.runInContext(buildMapRuntimeScript({ accent: '#DBAB68' }), harness.sandbox);
-  vm.runInContext('window.setMapEnabled(true);choose({lat:10,lng:179});choose({lat:10,lng:181});', harness.sandbox);
+  vm.runInContext('window.setMapEnabled(true);choose({lat:10,lng:181});choose({lat:10,lng:182});', harness.sandbox);
   const picks = harness.messages.filter(message => message.type === 'select');
-  assert.deepEqual(picks.map(pick => pick.longitude), [179, -179]);
-  assert.equal(harness.markerPoints.at(-1)?.lng, -179);
+  assert.deepEqual(picks.map(pick => pick.longitude), [-179, -178]);
+  assert.deepEqual(harness.markerPoints.map(point => point.lng), [181, 182]);
   let selected: SelectedCoordinates | null = null;
   for (const pick of picks) selected = parseMapMessage(JSON.stringify(pick)) ?? selected;
-  assert.deepEqual(selected, { latitude: 10, longitude: -179 });
+  assert.deepEqual(selected, { latitude: 10, longitude: -178 });
 });
