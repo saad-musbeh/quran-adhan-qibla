@@ -1,10 +1,11 @@
 import { Pressable } from './Pressable';
 import { Text, useTextScale } from '../text-size';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { LEAFLET_CSS, LEAFLET_JS, LEAFLET_LICENSE } from './map-assets/leaflet-runtime';
 import { parseMapMessage, type SelectedCoordinates } from './map-assets/map-message';
+import { buildMapRuntimeScript } from './map-assets/map-runtime';
 import { isRTL, localizeCopy, bilingual, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 
@@ -34,12 +35,8 @@ window.setTextScale=value=>document.documentElement.style.setProperty('--text-sc
 const map=L.map('map',{zoomControl:false,attributionControl:true,preferCanvas:true,worldCopyJump:false}).setView([${initial.latitude},${initial.longitude}],${center ? 12 : 2});
 map.zoomControl=L.control.zoom({zoomInTitle:${JSON.stringify(bilingual(language,'تكبير الخريطة','Zoom in')).replace(/</g,'\\u003c')},zoomOutTitle:${JSON.stringify(bilingual(language,'تصغير الخريطة','Zoom out')).replace(/</g,'\\u003c')}}).addTo(map);
 const tileLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{minZoom:2,maxZoom:19,updateWhenIdle:true,keepBuffer:2,detectRetina:false,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-let tileErrors=0,tileFailed=false,tileReady=false;const tileTimeout=setTimeout(()=>{if(!tileReady){tileFailed=true;window.setMapEnabled(false);window.ReactNativeWebView.postMessage(JSON.stringify({type:'map-error'}));}},15000);
-tileLayer.on('tileload',()=>{tileErrors=0;if(!tileReady){tileReady=true;clearTimeout(tileTimeout);window.ReactNativeWebView.postMessage(JSON.stringify({type:'map-ready'}));}});tileLayer.on('tileerror',()=>{if(tileFailed)return;tileErrors+=1;if(tileErrors>=3){tileFailed=true;clearTimeout(tileTimeout);window.setMapEnabled(false);window.ReactNativeWebView.postMessage(JSON.stringify({type:'map-error'}));}});
-let marker=null,enabled=true;window.setMapEnabled=value=>{enabled=!!value;if(enabled){map.dragging.enable();map.touchZoom.enable();map.doubleClickZoom.enable();map.scrollWheelZoom.enable();map.keyboard.enable();map.zoomControl.addTo(map);}else{map.dragging.disable();map.touchZoom.disable();map.doubleClickZoom.disable();map.scrollWheelZoom.disable();map.keyboard.disable();map.zoomControl.remove();}};
-function choose(latlng){if(!enabled)return;const p={latitude:latlng.lat,longitude:latlng.lng};if(marker)marker.setLatLng(latlng);else marker=L.circleMarker(latlng,{radius:8,color:'#fff',weight:3,fillColor:'${theme.accent}',fillOpacity:1}).addTo(map);window.ReactNativeWebView.postMessage(JSON.stringify({type:'select',latitude:p.latitude,longitude:p.longitude}));}
+${buildMapRuntimeScript({ accent: theme.accent, center: center ? initial : null })}
 map.on('click',event=>choose(event.latlng));
-${center ? `choose(L.latLng(${initial.latitude},${initial.longitude}));` : ''}
 </script></body></html>`;
 }
 
