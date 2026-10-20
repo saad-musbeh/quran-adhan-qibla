@@ -89,15 +89,19 @@ final class QuranUITests: XCTestCase {
   }
 
   private func expectSpread(_ pages: String) {
-    let number = app.staticTexts["reader-page-number"]
-    let spread = XCTNSPredicateExpectation(predicate: NSPredicate { _,_ in number.label.hasPrefix(pages) }, object: number)
-    XCTAssertEqual(XCTWaiter.wait(for: [spread], timeout: 15), .completed)
+    // The native page-number toolbar hides after six seconds. Inspect the
+    // rendered spread's persistent WebKit region instead; its source label
+    // uses ASCII page numbers, with WebKit optionally appending ", region".
+    let label = "الصفحة \(pages)"
+    let spread = app.webViews.firstMatch.descendants(matching: .any)
+      .matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", label, "\(label),"))
+      .firstMatch
+    XCTAssertTrue(spread.waitForExistence(timeout: 30), "The rendered spread did not show pages \(pages)")
   }
 
   private func turnSpread(onRightPage: Bool, forward: Bool) {
     let start = app.webViews.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: onRightPage ? 0.75 : 0.25, dy: 0.5))
     start.press(forDuration: 0.01, thenDragTo: start.withOffset(CGVector(dx: 0, dy: forward ? -90 : 90)))
-    revealReader()
   }
 
   func testTabletMainMenuAndLandscapeReading() throws {
@@ -116,7 +120,7 @@ final class QuranUITests: XCTestCase {
     screenshot("iPad home page portrait")
     app.buttons["menu-quran"].tap()
     app.buttons["open-book-6"].tap()
-    revealReader()
+    XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 30))
     XCUIDevice.shared.orientation = .landscapeLeft
     defer { XCUIDevice.shared.orientation = .portrait }
     // WebKit can expose nested WebView accessibility nodes for one native view.
@@ -125,15 +129,14 @@ final class QuranUITests: XCTestCase {
       self.app.windows.firstMatch.frame.width > self.app.windows.firstMatch.frame.height
     },object:app)
     XCTAssertEqual(XCTWaiter.wait(for:[spread],timeout:15),.completed)
-    revealReader()
-    expectSpread("١–٢")
+    expectSpread("1–2")
     screenshot("iPad landscape two-page Mushaf")
     turnSpread(onRightPage: false, forward: true)
-    expectSpread("٣–٤")
+    expectSpread("3–4")
     turnSpread(onRightPage: true, forward: false)
-    expectSpread("١–٢")
+    expectSpread("1–2")
     turnSpread(onRightPage: true, forward: true)
-    expectSpread("٣–٤")
+    expectSpread("3–4")
     app.buttons["open-main-menu"].tap()
     XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 5))
     screenshot("iPad home page landscape")
