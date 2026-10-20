@@ -21,6 +21,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    if: ${{ !inputs.diagnostic_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --include=dev
+      - name: Check TypeScript and the iOS test harness before the Mac build
+        run: npm run typecheck && npm run test:ios:harness
   previous-diagnostics:
     if: ${{ inputs.diagnostic_run != '' }}
     runs-on: macos-26
@@ -67,6 +82,7 @@ jobs:
           path: previous-diagnostics
           retention-days: 7
   simulator:
+    needs: preflight
     if: ${{ !inputs.diagnostic_run }}
     runs-on: macos-26
     # Compile once, then run isolated iPhone/iPad checks without rebuilding.
@@ -85,6 +101,13 @@ jobs:
           cache: npm
       - name: Install dependencies and apply the iOS audio patch
         run: npm ci --include=dev
+      - name: Check native source syntax before compiling dependencies
+        run: |
+          ruby -c scripts/prepare-ios-ui-tests.rb
+          xcrun swiftc -frontend -parse scripts/ios/QuranUITests.swift modules/islamic-core/ios/*.swift node_modules/expo-audio/ios/AudioPlaylist.swift
+      - name: Prepare sourced audio fixtures before the native build
+        timeout-minutes: 5
+        run: node scripts/ios-ui-tests.mjs --prepare-fixtures
       - name: Create iPhone simulator
         run: |
           QURAN_SIMULATOR="$(python3 - <<'PY'

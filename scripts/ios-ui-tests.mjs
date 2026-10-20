@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { RECITERS } from '../src/data/reciters.ts';
@@ -115,5 +116,13 @@ export async function runSuite(device, suite, { run = command, seed = seedAudio,
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  runSuite(process.argv[2], process.argv[3]).catch(error => { console.error(error.message); process.exitCode = 1; });
+  const main = async () => {
+    if (process.argv[2] === '--prepare-fixtures') {
+      const container = await mkdtemp(path.join(tmpdir(), 'quran-ios-fixture-check-'));
+      try { await seedAudio(container); }
+      finally { await rm(container, { recursive: true, force: true }); }
+      console.log('Sourced iOS audio fixtures are ready');
+    } else await runSuite(process.argv[2], process.argv[3]);
+  };
+  main().catch(error => { console.error(error.message); process.exitCode = 1; });
 }
