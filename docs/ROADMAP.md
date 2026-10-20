@@ -12,7 +12,8 @@
 - [x] Verify the Android Rust bridge on an API 36 emulator.
 - [x] Compile and package a bundled Release iOS simulator app on macOS with the Rust XCFramework.
 - [x] Verify iOS Rust prayer calculations through simulator notification scheduling, and check saved audio inventory and tab changes.
-- [ ] Complete iOS book-name/relaunch and full-download runtime checks; native playback and tab transitions passed in 0.4.1.
+- [x] Verify iOS book-name/relaunch and iPad landscape page turns in the 0.6.5 follow-up simulator run.
+- [x] Verify current iOS native playback and whole-Quran download start/cancel in the 0.6.5 follow-up simulator run; see [iOS testing status](IOS-TESTING.md).
 - [ ] Check RTL, accessibility, and large text on real devices.
 - [ ] Resolve inherited Expo/Metro/Xcode dependency audit advisories as compatible upstream fixes become available.
 

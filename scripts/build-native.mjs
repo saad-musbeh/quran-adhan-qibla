@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const targetDir = path.join(root, 'target');
+const targetDir = path.resolve(root, process.env.CARGO_TARGET_DIR ?? 'target');
 const platform = process.argv[2];
 
 function run(command, args) {

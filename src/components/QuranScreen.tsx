@@ -229,7 +229,7 @@ function AudioDock({language,audio,part,visible,onClose}:{language:Language;audi
       <Text style={[styles.modalTitle,{flex:1}]}>{shown?`${getSurah(shown.surah)?.arabicName}${audio.fullSurah&&!current?'':` · ${localDigits(shown.number,language)}`}`:c.listening}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={c.close} style={styles.close} onPress={onClose}><Ionicons name="close" color={colors.accent} size={25}/></Pressable>
      </View>
-     <Pressable accessibilityRole="button" accessibilityLabel={`${c.reciter}: ${language==='ar'?reciter.arabicName:reciter.name}`} accessibilityState={{expanded:choosingReciter}} onPress={()=>setChoosingReciter(v=>!v)} style={[styles.reciterPicker,rtl&&styles.reverse]}>
+     <Pressable testID="audio-reciter-picker" accessibilityRole="button" accessibilityLabel={`${c.reciter}: ${language==='ar'?reciter.arabicName:reciter.name}`} accessibilityState={{expanded:choosingReciter}} onPress={()=>setChoosingReciter(v=>!v)} style={[styles.reciterPicker,rtl&&styles.reverse]}>
       <Ionicons name="mic-outline" size={20} color={colors.accent}/>
       <View style={styles.flex}><Text style={[styles.settingNote,rtl&&styles.rtl]}>{c.reciter}</Text><Text style={[styles.settingText,rtl&&styles.rtl]}>{language==='ar'?reciter.arabicName:reciter.name}</Text></View>
       <Ionicons name={choosingReciter?'chevron-up':'chevron-down'} size={19} color={colors.accent}/>

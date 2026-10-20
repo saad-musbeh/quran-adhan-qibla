@@ -5,11 +5,24 @@ final class QuranUITests: XCTestCase {
 
   override func setUpWithError() throws {
     continueAfterFailure = false
+    XCUIDevice.shared.orientation = .portrait
     app.launch()
     let quran = app.buttons["menu-quran"]
     XCTAssertTrue(quran.waitForExistence(timeout: 45), "The home menu did not finish loading")
     quran.tap()
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 45))
+  }
+
+  override func tearDownWithError() throws {
+    if let run = testRun, run.failureCount > 0 {
+      screenshot("Failure: \(name)")
+      let hierarchy = XCTAttachment(string: app.debugDescription)
+      hierarchy.name = "Accessibility hierarchy"
+      hierarchy.lifetime = .keepAlways
+      add(hierarchy)
+    }
+    app.terminate()
+    XCUIDevice.shared.orientation = .portrait
   }
 
   private func screenshot(_ name: String) {
@@ -76,15 +89,19 @@ final class QuranUITests: XCTestCase {
   }
 
   private func expectSpread(_ pages: String) {
-    let number = app.staticTexts["reader-page-number"]
-    let spread = XCTNSPredicateExpectation(predicate: NSPredicate { _,_ in number.label.hasPrefix(pages) }, object: number)
-    XCTAssertEqual(XCTWaiter.wait(for: [spread], timeout: 15), .completed)
+    // The native page-number toolbar hides after six seconds. Inspect the
+    // rendered spread's persistent WebKit region instead; its source label
+    // uses ASCII page numbers, with WebKit optionally appending ", region".
+    let label = "الصفحة \(pages)"
+    let spread = app.webViews.firstMatch.descendants(matching: .any)
+      .matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", label, "\(label),"))
+      .firstMatch
+    XCTAssertTrue(spread.waitForExistence(timeout: 30), "The rendered spread did not show pages \(pages)")
   }
 
   private func turnSpread(onRightPage: Bool, forward: Bool) {
     let start = app.webViews.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: onRightPage ? 0.75 : 0.25, dy: 0.5))
     start.press(forDuration: 0.01, thenDragTo: start.withOffset(CGVector(dx: 0, dy: forward ? -90 : 90)))
-    revealReader()
   }
 
   func testTabletMainMenuAndLandscapeReading() throws {
@@ -103,7 +120,7 @@ final class QuranUITests: XCTestCase {
     screenshot("iPad home page portrait")
     app.buttons["menu-quran"].tap()
     app.buttons["open-book-6"].tap()
-    revealReader()
+    XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 30))
     XCUIDevice.shared.orientation = .landscapeLeft
     defer { XCUIDevice.shared.orientation = .portrait }
     // WebKit can expose nested WebView accessibility nodes for one native view.
@@ -112,15 +129,14 @@ final class QuranUITests: XCTestCase {
       self.app.windows.firstMatch.frame.width > self.app.windows.firstMatch.frame.height
     },object:app)
     XCTAssertEqual(XCTWaiter.wait(for:[spread],timeout:15),.completed)
-    revealReader()
-    expectSpread("١–٢")
+    expectSpread("1–2")
     screenshot("iPad landscape two-page Mushaf")
     turnSpread(onRightPage: false, forward: true)
-    expectSpread("٣–٤")
+    expectSpread("3–4")
     turnSpread(onRightPage: true, forward: false)
-    expectSpread("١–٢")
+    expectSpread("1–2")
     turnSpread(onRightPage: true, forward: true)
-    expectSpread("٣–٤")
+    expectSpread("3–4")
     app.buttons["open-main-menu"].tap()
     XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 5))
     screenshot("iPad home page landscape")
@@ -139,7 +155,15 @@ final class QuranUITests: XCTestCase {
     let name = app.textFields["book-name-input"]
     XCTAssertTrue(name.waitForExistence(timeout: 5))
     name.tap()
-    name.typeText("Simulator reading")
+    // Wait for each controlled-input update before XCTest sends another key.
+    // This also fails at entry if the simulator keyboard drops a character.
+    var entered = ""
+    for character in "Simulator reading" {
+      name.typeText(String(character))
+      entered.append(character)
+      let value = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", entered), object: name)
+      XCTAssertEqual(XCTWaiter.wait(for: [value], timeout: 5), .completed)
+    }
     app.buttons["save-book-name"].tap()
     app.buttons["open-book-1"].tap()
     revealReader()
@@ -173,6 +197,10 @@ final class QuranUITests: XCTestCase {
     let selector = app.buttons["reader-audio-controls"]
     XCTAssertEqual(selector.label, "القارئ")
     selector.tap()
+    let picker = app.buttons["audio-reciter-picker"]
+    XCTAssertTrue(picker.waitForExistence(timeout: 10))
+    XCTAssertTrue(picker.label.contains("محمود خليل الحصري"))
+    // Opening the microphone selector already expands the reciter list.
     let defaultVoice = app.descendants(matching: .any)["reciter-husary"]
     XCTAssertTrue(defaultVoice.waitForExistence(timeout: 10))
     XCTAssertEqual(defaultVoice.label, "محمود خليل الحصري")
@@ -193,11 +221,26 @@ final class QuranUITests: XCTestCase {
     let paused=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in ["Paused","متوقف مؤقتًا"].contains(status.label) },object:status)
     XCTAssertEqual(XCTWaiter.wait(for:[paused],timeout:5),.completed)
     screenshot("Al-Husary native playback paused")
-    app.buttons["audio-next"].tap()
     app.buttons["audio-replay"].tap()
     app.buttons["audio-stop"].tap()
     let stopped = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: status)
     XCTAssertEqual(XCTWaiter.wait(for: [stopped], timeout: 5), .completed)
+
+    // Husary's current timing endpoint lacks canonical seven-ayah coverage.
+    // Verify timed navigation with Ghamdi's complete, source-hosted timings.
+    picker.tap()
+    let ghamdi = app.descendants(matching: .any)["reciter-ghamdi"]
+    XCTAssertTrue(ghamdi.waitForExistence(timeout: 10))
+    ghamdi.tap()
+    app.buttons["audio-play-pause"].tap()
+    let next = app.buttons["audio-next"]
+    let timedAyah = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: next)
+    XCTAssertEqual(XCTWaiter.wait(for: [timedAyah], timeout: 30), .completed)
+    next.tap()
+    app.buttons["audio-replay"].tap()
+    app.buttons["audio-stop"].tap()
+    let ended = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: status)
+    XCTAssertEqual(XCTWaiter.wait(for: [ended], timeout: 5), .completed)
     app.terminate()
   }
 
@@ -249,12 +292,16 @@ final class QuranUITests: XCTestCase {
     app.descendants(matching: .any)["downloads-audio"].tap()
     let wholeQuran = app.buttons["download-whole-quran"]
     XCTAssertTrue(wholeQuran.waitForExistence(timeout: 5))
+    let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: wholeQuran)
+    XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 20), .completed)
     wholeQuran.tap()
     XCTAssertTrue(app.staticTexts["whole-quran-progress"].waitForExistence(timeout: 10))
-    screenshot("Whole Quran download progress")
-    app.buttons["audio-download-cancel"].tap()
+    let cancelDownload = app.buttons["audio-download-cancel"]
+    XCTAssertTrue(cancelDownload.waitForExistence(timeout: 10))
+    cancelDownload.tap()
     let stopped = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.staticTexts["whole-quran-progress"])
     XCTAssertEqual(XCTWaiter.wait(for: [stopped], timeout: 20), .completed)
+    screenshot("Whole Quran download cancelled")
     app.descendants(matching: .any)["downloads-saved"].tap()
     XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].waitForExistence(timeout: 15))
     XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].label.contains("٧/٧"))

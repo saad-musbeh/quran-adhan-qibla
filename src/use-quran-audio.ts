@@ -780,7 +780,9 @@ export function useQuranAudio(): QuranAudioController & QuranAudioTiming {
           temporaryDownloadRef.current = temporary;
           if ((await FileSystem.getInfoAsync(temporary)).exists) await FileSystem.deleteAsync(temporary, { idempotent: true });
           if (downloadCanceledRef.current) break;
-          const task = FileSystem.createDownloadResumable(verse === 0 ? fullSurahUri(activeReciter, surah) : audioUri(activeReciter, surah, verse), temporary, {}, ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
+          // Jobs require the app to stay open. Avoid the iOS background daemon,
+          // which is unavailable to the unsigned simulator build.
+          const task = FileSystem.createDownloadResumable(verse === 0 ? fullSurahUri(activeReciter, surah) : audioUri(activeReciter, surah, verse), temporary, { sessionType: FileSystem.FileSystemSessionType.FOREGROUND }, ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
             if (totalBytesExpectedToWrite > 0) progress(verse + Math.min(1, Math.max(0, totalBytesWritten / totalBytesExpectedToWrite)));
           });
           downloadTaskRef.current = task;
