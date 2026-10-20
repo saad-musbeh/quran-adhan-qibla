@@ -35,12 +35,11 @@ jobs:
       - name: Export previous simulator diagnostics
         run: |
           mkdir -p previous-diagnostics
-          for result in previous-ui/*.xcresult; do
-            [ -d "$result" ] || continue
-            name="$(basename "$result" .xcresult)"
+          while IFS= read -r result; do
+            name="$(basename "$(dirname "$result")")-$(basename "$result" .xcresult)"
             xcrun xcresulttool get test-results summary --path "$result" > "previous-diagnostics/$name-summary.json" || true
             xcrun xcresulttool export diagnostics --path "$result" --output-path "previous-diagnostics/$name" || true
-          done
+          done < <(find previous-ui -type d -name '*.xcresult' -prune)
           python3 - <<'PY'
           import pathlib, zipfile
           root=pathlib.Path('previous-diagnostics')
@@ -75,6 +74,7 @@ jobs:
     env:
       CI: '1'
       NODE_ENV: production
+      CARGO_TARGET_DIR: target/rust
     steps:
       - uses: actions/checkout@v7
         with:
@@ -104,6 +104,10 @@ jobs:
           xcrun simctl boot "$QURAN_SIMULATOR"
           open -a Simulator
       - uses: Swatinem/rust-cache@v2
+        with:
+          # Xcode builds/results must never be restored from the Rust cache.
+          prefix-key: v1-ios-native-rust
+          workspaces: '. -> target/rust'
       - name: Build Rust device and simulator libraries
         run: |
           rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -179,9 +183,9 @@ jobs:
         if: always()
         run: |
           mkdir -p target/ios-screenshots
-          for result in target/*.xcresult; do
+          for result in target/ios-ui-results/*/*.xcresult; do
             if [ ! -d "$result" ]; then continue; fi
-            name="$(basename "$result" .xcresult)"
+            name="$(basename "$(dirname "$result")")-$(basename "$result" .xcresult)"
             xcrun xcresulttool get test-results summary --path "$result" > "target/$name-summary.json" || true
             xcrun xcresulttool export attachments --path "$result" --output-path "target/ios-screenshots/$name" || true
             xcrun xcresulttool export diagnostics --path "$result" --output-path "target/ios-diagnostics/$name" || true
@@ -191,8 +195,7 @@ jobs:
         with:
           name: ios-ui-checks
           path: |
-            target/*-test*.log
-            target/*.xcresult
+            target/ios-ui-results
             target/ios-screenshots
             target/ios-diagnostics
             target/*-summary.json

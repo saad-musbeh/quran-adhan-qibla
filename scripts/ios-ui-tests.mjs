@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { RECITERS } from '../src/data/reciters.ts';
@@ -79,8 +79,12 @@ export async function seedAudio(container) {
   }
 }
 
-export async function runSuite(device, suite, { run = command, seed = seedAudio } = {}) {
+export async function runSuite(device, suite, { run = command, seed = seedAudio, resultsRoot = path.join(root, 'target/ios-ui-results') } = {}) {
   if (!device || !Object.hasOwn(suites, suite)) throw new Error('Usage: node scripts/ios-ui-tests.mjs <simulator-UDID> <polish|iphone|ipad>');
+  await mkdir(resultsRoot, { recursive: true });
+  // Xcode refuses to overwrite even an empty .xcresult directory. Preserve
+  // previous diagnostics while giving every invocation fresh result paths.
+  const results = await mkdtemp(path.join(resultsRoot, `${suite}-`));
   const failures = [];
   for (const method of suites[suite]) {
     try {
@@ -100,8 +104,8 @@ export async function runSuite(device, suite, { run = command, seed = seedAudio 
         '-test-timeouts-enabled', 'YES', '-default-test-execution-time-allowance', '240',
         '-maximum-test-execution-time-allowance', '360',
         `-only-testing:QuranUITests/QuranUITests/${method}`,
-        '-derivedDataPath', 'target/ios-build', '-resultBundlePath', `target/${suite}-${method}.xcresult`,
-        'CODE_SIGNING_ALLOWED=NO'], { log: path.join(root, `target/${suite}-${method}.log`) });
+        '-derivedDataPath', 'target/ios-build', '-resultBundlePath', path.join(results, `${method}.xcresult`),
+        'CODE_SIGNING_ALLOWED=NO'], { log: path.join(results, `${method}.log`) });
     } catch (error) {
       console.error(`${method}: ${error.message}`);
       failures.push(method);
