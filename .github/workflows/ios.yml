@@ -16,10 +16,6 @@ permissions:
   contents: read
   actions: read
 
-concurrency:
-  group: ios-${{ github.ref }}-${{ inputs.diagnostic_run || 'build' }}
-  cancel-in-progress: false
-
 jobs:
   preflight:
     if: ${{ !inputs.diagnostic_run }}
@@ -84,6 +80,10 @@ jobs:
   simulator:
     needs: preflight
     if: ${{ !inputs.diagnostic_run }}
+    # Queue expensive Mac work only; preflight must not wait behind an older build.
+    concurrency:
+      group: ios-${{ github.ref }}-build
+      cancel-in-progress: false
     runs-on: macos-26
     # Compile once, then run isolated iPhone/iPad checks without rebuilding.
     timeout-minutes: 90
