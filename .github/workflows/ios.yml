@@ -108,6 +108,26 @@ jobs:
       - name: Prepare sourced audio fixtures before the native build
         timeout-minutes: 5
         run: node scripts/ios-ui-tests.mjs --prepare-fixtures
+      - name: Initialize iPad before compiling dependencies
+        # Finish and shut down the iPad before booting the iPhone.
+        # Avoid concurrent first-boot migrations on the hosted Mac runner.
+        timeout-minutes: 5
+        run: |
+          QURAN_IPAD="$(python3 - <<'PYIPAD'
+          import json,subprocess,os
+          def sim(*args):return subprocess.check_output(['xcrun','simctl',*args],text=True)
+          runtimes=json.loads(sim('list','runtimes','--json'))['runtimes']
+          runtime=max((r for r in runtimes if r.get('isAvailable') and '.iOS-' in r['identifier']),key=lambda r:tuple(map(int,r['version'].split('.'))))
+          types=json.loads(sim('list','devicetypes','--json'))['devicetypes']
+          device=next(t for t in types if 'SimDeviceType.iPad-Pro-' in t['identifier'])
+          identifier=sim('create','Quran tablet checks',device['identifier'],runtime['identifier']).strip()
+          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('QURAN_IPAD='+identifier+'\n')
+          print(identifier)
+          PYIPAD
+          )"
+          xcrun simctl boot "$QURAN_IPAD"
+          xcrun simctl bootstatus "$QURAN_IPAD" -b
+          xcrun simctl shutdown "$QURAN_IPAD"
       - name: Create iPhone simulator
         run: |
           QURAN_SIMULATOR="$(python3 - <<'PY'
@@ -126,25 +146,6 @@ jobs:
           defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false
           xcrun simctl boot "$QURAN_SIMULATOR"
           open -a Simulator
-      - name: Initialize iPad before compiling dependencies
-        # Complete first-boot migration early instead of immediately before XCTest.
-        timeout-minutes: 5
-        run: |
-          QURAN_IPAD="$(python3 - <<'PYIPAD'
-          import json,subprocess,os
-          def sim(*args):return subprocess.check_output(['xcrun','simctl',*args],text=True)
-          runtimes=json.loads(sim('list','runtimes','--json'))['runtimes']
-          runtime=max((r for r in runtimes if r.get('isAvailable') and '.iOS-' in r['identifier']),key=lambda r:tuple(map(int,r['version'].split('.'))))
-          types=json.loads(sim('list','devicetypes','--json'))['devicetypes']
-          device=next(t for t in types if 'SimDeviceType.iPad-Pro-' in t['identifier'])
-          identifier=sim('create','Quran tablet checks',device['identifier'],runtime['identifier']).strip()
-          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('QURAN_IPAD='+identifier+'\n')
-          print(identifier)
-          PYIPAD
-          )"
-          xcrun simctl boot "$QURAN_IPAD"
-          xcrun simctl bootstatus "$QURAN_IPAD" -b
-          xcrun simctl shutdown "$QURAN_IPAD"
       - uses: Swatinem/rust-cache@v2
         with:
           # Xcode builds/results must never be restored from the Rust cache.
