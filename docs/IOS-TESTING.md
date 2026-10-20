@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use **`v0.6.4`** or **`codex/release-0.6.4`** for the **0.6.4 / build 27** source. This version adds continuous-surah playback and native recording-end limits. Full Al-Fatiha playback, repeat and lock-screen ending behavior still require iPhone listening checks. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**.
+Use **`main`** for the current **0.6.5 / build 28** source, or **`codex/fix-ios-testing`** for the test-harness fixes described below. This includes continuous-surah playback and native recording-end limits. Full Al-Fatiha playback, repeat and lock-screen ending behavior still require iPhone listening checks. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ If the developer directory is `/Library/Developer/CommandLineTools`, select the 
 ## Current source and development build
 
 ```sh
-git clone --branch v0.6.4 --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
+git clone --branch main --single-branch https://github.com/saad-musbeh/quran-adhan-qibla.git
 cd quran-adhan-qibla
 git log -1 --oneline
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
@@ -61,7 +61,7 @@ For a bundled device build, use `npx expo run:ios --device --configuration Relea
 
 ## Updating from an older test source
 
-After checking out `v0.6.1`, regenerate the native project so the Short Adhan and Salawat reminder resources replace the old ones:
+After checking out the current source, regenerate the native project so the Short Adhan and Salawat reminder resources replace the old ones:
 
 ```sh
 npm ci
@@ -85,9 +85,30 @@ Re-select the development team in the generated workspace for a physical iPhone.
 
 ## Current status
 
-Version **0.6.2**, iOS source build **25**, on `codex/release-0.6.2` and tag `v0.6.2`. See [0.6.2 release notes](RELEASE-0.6.2.md). This release updates Android playback dependencies and native error handling. iOS native/device testing is deferred at the user's request; JavaScript export success does not establish native behavior. It retains the 0.6.1 closing dua, Salawat phrase/window controls and reminder fixes, alongside the Adhkar tab, saved books, twenty reciters, audio downloads and prayer notification settings. Physical-device signing, playback, interruptions, notifications and the existing book-name/full-download follow-up remain for the Mac tester.
+The current source is **0.6.5 / build 28**. See [0.6.5 release notes](RELEASE-0.6.5.md). iOS native verification was deferred for that release. The latest completed failing [CI run](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/39129564231) passed the two language/reminder tests, then failed in iPad startup before reaching the shelf. Its source used a three-second Home wait; the current test waits up to 45 seconds. Later runs were cancelled, so they do not verify this fix.
 
-The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated, so name/relaunch checks were not completed. Those two failures remain unresolved.
+The follow-up harness fixes isolate every test with a fresh install, seed both ayah files and full-surah recordings from the app's documented sources, open the reciter picker before selecting a voice, and wait for each book-name input update. CI builds the app and tests once with `build-for-testing`, then uses `test-without-building` without parallel simulator clones. Each test keeps its own result bundle/log; failures retain a screenshot and accessibility hierarchy. Subsequent tests and device groups still run after a test failure. The CocoaPods cache key uses tracked dependency/configuration inputs instead of a generated lockfile that may not exist yet.
+
+These harness changes have host regression coverage, but require a new macOS run to establish native success. Book-name/relaunch, full-download start/cancel, iPad landscape and current native playback remain pending until that run passes. Physical-device signing, playback, interruptions, compass accuracy and notification sound policy still require an iPhone/iPad.
+
+To reproduce the CI UI suite on a Mac, after building Rust and generating/installing the native project:
+
+```sh
+ruby scripts/prepare-ios-ui-tests.rb
+xcodebuild build-for-testing -workspace ios/QuranAdhanQibla.xcworkspace \
+  -scheme QuranAdhanQibla -configuration Release \
+  -destination "platform=iOS Simulator,id=$QURAN_SIMULATOR" \
+  -derivedDataPath target/ios-build CODE_SIGNING_ALLOWED=NO
+node scripts/ios-ui-tests.mjs "$QURAN_SIMULATOR" polish
+node scripts/ios-ui-tests.mjs "$QURAN_SIMULATOR" iphone
+node scripts/ios-ui-tests.mjs "$QURAN_IPAD" ipad
+```
+
+Set `QURAN_SIMULATOR` and `QURAN_IPAD` to booted, disposable iPhone/iPad simulator UDIDs from `xcrun simctl list devices available`. Each test uninstalls this app from its selected simulator, clearing its saved data and permissions. Within the book-persistence test, relaunch preserves data as usual. Audio fixtures are downloaded to ignored `target/ios-test-audio/` and copied into the simulator's private storage, never into the distributed app or CI artifacts. The whole-Quran start/cancel check still uses the real download service and needs internet access; it does not download all 114 surahs.
+
+Run `npm run test:ios:harness` on any supported Node host to check test isolation, fixture ordering, simulator selection and failure propagation without Xcode. CI's `ios-ui-checks` artifact retains per-test `.xcresult` bundles, raw logs, summaries, screenshots and exported simulator diagnostics; `diagnostic_run` accepts old and new artifact layouts.
+
+The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated. These historical results do not establish current native behavior.
 
 Version 0.4.2 replaces the calendar option that crashed Android with one correctly formed Hijri locale extension. The Arabic prayer-date Gregorian extension is removed before adding the Hijri extension, avoiding the earlier iOS duplicate-extension crash. Hidden tafsir catalogues no longer format dates at reader startup; optional digital-date failures retain the documented publication year. The 0.4.3 source inherits this fix; send its updated source ZIP to the Mac tester. Its native runtime run is pending in the [iOS native build workflow](https://github.com/saad-musbeh/quran-adhan-qibla/actions/workflows/ios.yml). Physical-device signing, compass accuracy, lock-screen audio, interruptions and notification sound policy remain for the tester.
 
@@ -111,7 +132,7 @@ The 0.4.4 simulator app compiled, but its iPad landscape UI check timed out wait
 - Open the أذكار وأدعية tab and read one entry from each fixed collection (morning, evening, after prayer). Scrolling is the default, source references open on demand, and counters or single-entry reading stay under Extra testing settings; morning/evening reminders open their collections.
 - Add a الصلاة على النبي reminder and a morning/evening reminder at chosen times with a recorded phrase, then restart and confirm the chosen times remain. All recurring reminders start off on a fresh install, enabling one asks for notification permission only in that explicit action, and cancelling the schedule dialog must leave the stored times unchanged.
 - Short Adhan should be the fresh default voice with Makkah, Al-Madinah, Andrewler and Original still selectable; saved per-salah voice and mute choices must survive an upgrade. Check that the recorded Salawat phrases play instead of the retired synthetic voice.
-- In Quran reading, playback should stop at the current surah’s end by default, Next surah and Repeat surah remain in the player, and the saved choice is restored after restart. Hold/release header, navigation, playback and settings buttons: feedback should be small and quick, and iOS Reduce Motion should not break them.
+- In Quran reading, playback should stop at the current surah’s end by default, Next surah and Repeat surah remain in the player, and a new app session returns to Stop. Hold/release header, navigation, playback and settings buttons: feedback should be small and quick, and iOS Reduce Motion should not break them.
 - Read/turn pages during Quran playback, switch tabs, and return. Check that the clock and ayah highlight still advance, audio continues in the background, and saved screen state survives tab changes. Compare launch responsiveness and scrolling on the same physical phone; no device performance numbers are claimed from host tests.
 
 The [iOS native build workflow](https://github.com/saad-musbeh/quran-adhan-qibla/actions/workflows/ios.yml) runs `QuranUITests/testPolishLanguageMenuAndRepeatControls` and `QuranUITests/testAdhkarCollectionsAndReminders` against this source. `testAdhkarCollectionsAndReminders` was added with 0.6.0, so a run against earlier source cannot execute it.

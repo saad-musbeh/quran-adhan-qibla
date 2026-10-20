@@ -100,7 +100,7 @@ See [Android APK size and validation](docs/ANDROID-SIZE.md) for measured before/
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use `v0.6.4` or `codex/release-0.6.4` for the 0.6.4 / build 27 source. This includes continuous-surah playback and native, source-specific ending limits; iOS device listening remains unverified. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use `main` for the current 0.6.5 / build 28 source; `codex/fix-ios-testing` contains the iOS test-harness follow-up. This includes continuous-surah playback and native, source-specific ending limits; iOS device listening remains unverified. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios

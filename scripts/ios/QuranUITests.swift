@@ -5,11 +5,24 @@ final class QuranUITests: XCTestCase {
 
   override func setUpWithError() throws {
     continueAfterFailure = false
+    XCUIDevice.shared.orientation = .portrait
     app.launch()
     let quran = app.buttons["menu-quran"]
     XCTAssertTrue(quran.waitForExistence(timeout: 45), "The home menu did not finish loading")
     quran.tap()
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 45))
+  }
+
+  override func tearDownWithError() throws {
+    if let run = testRun, run.failureCount > 0 {
+      screenshot("Failure: \(name)")
+      let hierarchy = XCTAttachment(string: app.debugDescription)
+      hierarchy.name = "Accessibility hierarchy"
+      hierarchy.lifetime = .keepAlways
+      add(hierarchy)
+    }
+    app.terminate()
+    XCUIDevice.shared.orientation = .portrait
   }
 
   private func screenshot(_ name: String) {
@@ -139,7 +152,15 @@ final class QuranUITests: XCTestCase {
     let name = app.textFields["book-name-input"]
     XCTAssertTrue(name.waitForExistence(timeout: 5))
     name.tap()
-    name.typeText("Simulator reading")
+    // Wait for each controlled-input update before XCTest sends another key.
+    // This also fails at entry if the simulator keyboard drops a character.
+    var entered = ""
+    for character in "Simulator reading" {
+      name.typeText(String(character))
+      entered.append(character)
+      let value = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", entered), object: name)
+      XCTAssertEqual(XCTWaiter.wait(for: [value], timeout: 5), .completed)
+    }
     app.buttons["save-book-name"].tap()
     app.buttons["open-book-1"].tap()
     revealReader()
@@ -173,6 +194,10 @@ final class QuranUITests: XCTestCase {
     let selector = app.buttons["reader-audio-controls"]
     XCTAssertEqual(selector.label, "القارئ")
     selector.tap()
+    let picker = app.buttons["audio-reciter-picker"]
+    XCTAssertTrue(picker.waitForExistence(timeout: 10))
+    XCTAssertTrue(picker.label.contains("محمود خليل الحصري"))
+    picker.tap()
     let defaultVoice = app.descendants(matching: .any)["reciter-husary"]
     XCTAssertTrue(defaultVoice.waitForExistence(timeout: 10))
     XCTAssertEqual(defaultVoice.label, "محمود خليل الحصري")
@@ -249,6 +274,8 @@ final class QuranUITests: XCTestCase {
     app.descendants(matching: .any)["downloads-audio"].tap()
     let wholeQuran = app.buttons["download-whole-quran"]
     XCTAssertTrue(wholeQuran.waitForExistence(timeout: 5))
+    let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: wholeQuran)
+    XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 20), .completed)
     wholeQuran.tap()
     XCTAssertTrue(app.staticTexts["whole-quran-progress"].waitForExistence(timeout: 10))
     screenshot("Whole Quran download progress")

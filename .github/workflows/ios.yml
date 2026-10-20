@@ -35,12 +35,16 @@ jobs:
       - name: Export previous simulator diagnostics
         run: |
           mkdir -p previous-diagnostics
-          xcrun xcresulttool get test-results summary --path previous-ui/ios-ui.xcresult > previous-diagnostics/summary.json
-          xcrun xcresulttool export diagnostics --path previous-ui/ios-ui.xcresult --output-path previous-diagnostics
+          for result in previous-ui/*.xcresult; do
+            [ -d "$result" ] || continue
+            name="$(basename "$result" .xcresult)"
+            xcrun xcresulttool get test-results summary --path "$result" > "previous-diagnostics/$name-summary.json" || true
+            xcrun xcresulttool export diagnostics --path "$result" --output-path "previous-diagnostics/$name" || true
+          done
           python3 - <<'PY'
           import pathlib, zipfile
           root=pathlib.Path('previous-diagnostics')
-          print((root/'summary.json').read_text())
+          for summary in root.glob('*-summary.json'): print(str(summary)+'\n'+summary.read_text())
           for path in root.rglob('*'):
             if path.is_file() and path.suffix in ('.ips','.crash','.txt','.log'):
               report=path.read_text(errors='replace')
@@ -66,7 +70,7 @@ jobs:
   simulator:
     if: ${{ !inputs.diagnostic_run }}
     runs-on: macos-26
-    # Cold builds and the iPhone/iPad smoke checks can take 55 minutes before the full UI suite starts.
+    # Compile once, then run isolated iPhone/iPad checks without rebuilding.
     timeout-minutes: 90
     env:
       CI: '1'
@@ -96,6 +100,7 @@ jobs:
           print(identifier)
           PY
           )"
+          defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false
           xcrun simctl boot "$QURAN_SIMULATOR"
           open -a Simulator
       - uses: Swatinem/rust-cache@v2
@@ -105,26 +110,26 @@ jobs:
           npm run rust:ios
       - name: Generate iOS project
         run: npx expo prebuild --platform ios --no-install
-      - name: Read the CocoaPods cache key
-        id: pods-key
-        run: echo "checksum=$(shasum -a 256 ios/Podfile.lock | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
         with:
           path: |
             ios/Pods
             ~/Library/Caches/CocoaPods
-          key: ${{ runner.os }}-pods-${{ steps.pods-key.outputs.checksum }}
+          key: ${{ runner.os }}-pods-${{ hashFiles('package-lock.json', 'app.json', 'ios/Podfile', 'ios/Podfile.properties.json', 'modules/islamic-core/ios/*.podspec') }}
           restore-keys: |
             ${{ runner.os }}-pods-
       - name: Install CocoaPods
         working-directory: ios
         run: pod install
-      - name: Compile a bundled simulator app without signing
+      - name: Add native UI tests to the generated project
+        run: ruby scripts/prepare-ios-ui-tests.rb
+      - name: Compile the bundled simulator app and UI tests once
+        id: build
         run: |
           set -o pipefail
-          xcodebuild -workspace ios/QuranAdhanQibla.xcworkspace \
+          xcodebuild build-for-testing -workspace ios/QuranAdhanQibla.xcworkspace \
             -scheme QuranAdhanQibla -configuration Release \
-            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -sdk iphonesimulator -destination "platform=iOS Simulator,id=$QURAN_SIMULATOR" \
             -derivedDataPath target/ios-build CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee target/ios-build.log | xcbeautify
       - name: Package simulator app
@@ -138,22 +143,23 @@ jobs:
           name: ios-simulator
           path: target/quran-adhan-qibla-ios-simulator.zip
           retention-days: 14
-      - name: Add native UI tests to the generated project
-        run: ruby scripts/prepare-ios-ui-tests.rb
       - name: Check testing languages and Quran repeat controls
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           set -o pipefail
           xcrun simctl bootstatus "$QURAN_SIMULATOR" -b
-          xcodebuild test -workspace ios/QuranAdhanQibla.xcworkspace \
-            -scheme QuranAdhanQibla -configuration Release \
-            -destination "platform=iOS Simulator,id=$QURAN_SIMULATOR" \
-            -only-testing:QuranUITests/QuranUITests/testPolishLanguageMenuAndRepeatControls \
-            -only-testing:QuranUITests/QuranUITests/testAdhkarCollectionsAndReminders \
-            -derivedDataPath target/ios-build -resultBundlePath target/ios-polish-ui.xcresult \
-            CODE_SIGNING_ALLOWED=NO 2>&1 | tee target/ios-polish-ui.log | xcbeautify
-      - name: Emulate iPad portrait and landscape
+          node scripts/ios-ui-tests.mjs "$QURAN_SIMULATOR" polish 2>&1 | xcbeautify
+      - name: Run the iPhone native UI checks
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           set -o pipefail
+          xcrun simctl ui "$QURAN_SIMULATOR" appearance dark
+          node scripts/ios-ui-tests.mjs "$QURAN_SIMULATOR" iphone 2>&1 | xcbeautify
+      - name: Emulate iPad portrait and landscape
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          xcrun simctl shutdown "$QURAN_SIMULATOR"
           QURAN_IPAD="$(python3 - <<'PYIPAD'
           import json,subprocess
           def sim(*args):return subprocess.check_output(['xcrun','simctl',*args],text=True)
@@ -164,62 +170,31 @@ jobs:
           print(sim('create','Quran tablet checks',device['identifier'],runtime['identifier']).strip())
           PYIPAD
           )"
+          trap 'xcrun simctl shutdown "$QURAN_IPAD"' EXIT
           xcrun simctl boot "$QURAN_IPAD"
           xcrun simctl bootstatus "$QURAN_IPAD" -b
           xcrun simctl ui "$QURAN_IPAD" appearance dark
-          xcodebuild test -workspace ios/QuranAdhanQibla.xcworkspace \
-            -scheme QuranAdhanQibla -configuration Release \
-            -destination "platform=iOS Simulator,id=$QURAN_IPAD" \
-            -only-testing:QuranUITests/QuranUITests/testTabletMainMenuAndLandscapeReading \
-            -derivedDataPath target/ios-build -resultBundlePath target/ipad-ui.xcresult \
-            CODE_SIGNING_ALLOWED=NO 2>&1 | tee target/ipad-ui.log | xcbeautify
-          xcrun simctl shutdown "$QURAN_IPAD"
-      - name: Run the app and native UI checks
-        run: |
-          set -o pipefail
-          xcrun simctl bootstatus "$QURAN_SIMULATOR" -b
-          xcrun simctl ui "$QURAN_SIMULATOR" appearance dark
-          xcrun simctl install "$QURAN_SIMULATOR" target/ios-build/Build/Products/Release-iphonesimulator/QuranAdhanQibla.app
-          QURAN_TEST_CONTAINER="$(xcrun simctl get_app_container "$QURAN_SIMULATOR" org.saadmusbeh.quranadhanqibla data)" python3 - <<'PY'
-          # Test downloads live only in the simulator's private user storage.
-          # No recitation MP3 is bundled or uploaded as an artifact.
-          import os, pathlib, urllib.request
-          for voice,source in [('ghamdi','Ghamadi_40kbps'),('husary','Husary_128kbps')]:
-            directory=pathlib.Path(os.environ['QURAN_TEST_CONTAINER'])/f'Documents/quran-audio/{voice}/001'
-            directory.mkdir(parents=True,exist_ok=True)
-            for verse in range(1,8):
-              filename=f'001{verse:03d}.mp3'
-              with urllib.request.urlopen(f'https://everyayah.com/data/{source}/'+filename,timeout=30) as response:
-                if response.status!=200: raise RuntimeError('Test audio download failed')
-                (directory/filename).write_bytes(response.read())
-          PY
-          xcodebuild test -workspace ios/QuranAdhanQibla.xcworkspace \
-            -scheme QuranAdhanQibla -configuration Release \
-            -destination "platform=iOS Simulator,id=$QURAN_SIMULATOR" \
-            -derivedDataPath target/ios-build -resultBundlePath target/ios-ui.xcresult \
-            CODE_SIGNING_ALLOWED=NO 2>&1 | tee target/ios-ui.log | xcbeautify
+          node scripts/ios-ui-tests.mjs "$QURAN_IPAD" ipad 2>&1 | xcbeautify
       - name: Export UI summaries and screenshots
         if: always()
         run: |
           mkdir -p target/ios-screenshots
-          for result in target/ios-polish-ui.xcresult target/ipad-ui.xcresult target/ios-ui.xcresult; do
+          for result in target/*.xcresult; do
             if [ ! -d "$result" ]; then continue; fi
             name="$(basename "$result" .xcresult)"
-            xcrun xcresulttool get test-results summary --path "$result" > "target/$name-summary.json"
-            xcrun xcresulttool export attachments --path "$result" --output-path "target/ios-screenshots/$name"
+            xcrun xcresulttool get test-results summary --path "$result" > "target/$name-summary.json" || true
+            xcrun xcresulttool export attachments --path "$result" --output-path "target/ios-screenshots/$name" || true
+            xcrun xcresulttool export diagnostics --path "$result" --output-path "target/ios-diagnostics/$name" || true
           done
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: ios-ui-checks
           path: |
-            target/ios-ui.log
-            target/ios-polish-ui.log
-            target/ios-polish-ui.xcresult
-            target/ipad-ui.log
-            target/ipad-ui.xcresult
-            target/ios-ui.xcresult
+            target/*-test*.log
+            target/*.xcresult
             target/ios-screenshots
+            target/ios-diagnostics
             target/*-summary.json
           if-no-files-found: ignore
           retention-days: 14
