@@ -197,7 +197,7 @@ final class QuranUITests: XCTestCase {
     let picker = app.buttons["audio-reciter-picker"]
     XCTAssertTrue(picker.waitForExistence(timeout: 10))
     XCTAssertTrue(picker.label.contains("محمود خليل الحصري"))
-    picker.tap()
+    // Opening the microphone selector already expands the reciter list.
     let defaultVoice = app.descendants(matching: .any)["reciter-husary"]
     XCTAssertTrue(defaultVoice.waitForExistence(timeout: 10))
     XCTAssertEqual(defaultVoice.label, "محمود خليل الحصري")
@@ -218,11 +218,26 @@ final class QuranUITests: XCTestCase {
     let paused=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in ["Paused","متوقف مؤقتًا"].contains(status.label) },object:status)
     XCTAssertEqual(XCTWaiter.wait(for:[paused],timeout:5),.completed)
     screenshot("Al-Husary native playback paused")
-    app.buttons["audio-next"].tap()
     app.buttons["audio-replay"].tap()
     app.buttons["audio-stop"].tap()
     let stopped = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: status)
     XCTAssertEqual(XCTWaiter.wait(for: [stopped], timeout: 5), .completed)
+
+    // Husary's current timing endpoint lacks canonical seven-ayah coverage.
+    // Verify timed navigation with Ghamdi's complete, source-hosted timings.
+    picker.tap()
+    let ghamdi = app.descendants(matching: .any)["reciter-ghamdi"]
+    XCTAssertTrue(ghamdi.waitForExistence(timeout: 10))
+    ghamdi.tap()
+    app.buttons["audio-play-pause"].tap()
+    let next = app.buttons["audio-next"]
+    let timedAyah = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: next)
+    XCTAssertEqual(XCTWaiter.wait(for: [timedAyah], timeout: 30), .completed)
+    next.tap()
+    app.buttons["audio-replay"].tap()
+    app.buttons["audio-stop"].tap()
+    let ended = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: status)
+    XCTAssertEqual(XCTWaiter.wait(for: [ended], timeout: 5), .completed)
     app.terminate()
   }
 
@@ -278,10 +293,12 @@ final class QuranUITests: XCTestCase {
     XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 20), .completed)
     wholeQuran.tap()
     XCTAssertTrue(app.staticTexts["whole-quran-progress"].waitForExistence(timeout: 10))
-    screenshot("Whole Quran download progress")
-    app.buttons["audio-download-cancel"].tap()
+    let cancelDownload = app.buttons["audio-download-cancel"]
+    XCTAssertTrue(cancelDownload.waitForExistence(timeout: 10))
+    cancelDownload.tap()
     let stopped = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.staticTexts["whole-quran-progress"])
     XCTAssertEqual(XCTWaiter.wait(for: [stopped], timeout: 20), .completed)
+    screenshot("Whole Quran download cancelled")
     app.descendants(matching: .any)["downloads-saved"].tap()
     XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].waitForExistence(timeout: 15))
     XCTAssertTrue(app.staticTexts["saved-audio-ghamdi-1"].label.contains("٧/٧"))

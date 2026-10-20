@@ -38,6 +38,7 @@ async function playerHarness(localFiles: string[] = [], timingRows: unknown = []
     next(){},previous(){},remove(){},
   };
   const fs = {
+    FileSystemSessionType: { BACKGROUND: 0, FOREGROUND: 1 },
     documentDirectory:'file:///private/',
     async getInfoAsync(uri:string){ return {exists:files.has(uri),size:files.has(uri)?100:0}; },
     async readAsStringAsync(){ throw Error('No cached metadata'); },
@@ -47,7 +48,7 @@ async function playerHarness(localFiles: string[] = [], timingRows: unknown = []
     async makeDirectoryAsync(){},async writeAsStringAsync(){},
     async deleteAsync(uri:string){for(const file of files)if(file===uri||file.startsWith(uri.endsWith('/')?uri:`${uri}/`))files.delete(file);},
     async moveAsync({from,to}:{from:string;to:string}){ files.delete(from);files.add(to); },
-    createDownloadResumable(uri:string,destination:string){
+    createDownloadResumable(uri:string,destination:string,_options: {sessionType?:number} = {}){
       requested.push(uri);
       return {async downloadAsync(){ files.add(destination);return {uri:destination,status:200,mimeType:'audio/mpeg',headers:{}}; },async cancelAsync(){}};
     },
@@ -321,6 +322,27 @@ test('upgrading older downloads fetches only the missing full recording and play
     assert.ok(h.files.has(`${prefix}surah.mp3`));
     await h.command(()=>h.controller.playSurah(112));
     assert.deepEqual(h.tracks,[`${prefix}surah.mp3`]);
+  } finally {await h.close();}
+});
+
+test('full-surah and ayah downloads work when the iOS background session is unavailable', async()=>{
+  const h=await playerHarness();
+  try {
+    const originalCreate=h.fs.createDownloadResumable;
+    h.fs.createDownloadResumable=(uri,destination,options={})=>{
+      const task=originalCreate(uri,destination,options);
+      return {...task,async downloadAsync(){
+        if(options.sessionType!==h.fs.FileSystemSessionType.FOREGROUND)throw Error('Background NSURLSession is unavailable');
+        return task.downloadAsync();
+      }};
+    };
+    await h.command(()=>h.controller.downloadSurah(112));
+    assert.equal(h.controller.downloadError,null);
+    assert.equal(h.requested.length,5);
+    await h.command(()=>h.controller.refreshDownloads());
+    assert.equal(h.controller.savedAudio[0].complete,true);
+    await h.command(()=>h.controller.playSurah(112));
+    assert.deepEqual(h.tracks,['file:///private/quran-audio/ghamdi/112/surah.mp3']);
   } finally {await h.close();}
 });
 

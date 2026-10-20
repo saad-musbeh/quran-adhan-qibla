@@ -62,6 +62,20 @@ export async function seedAudio(container) {
       }
       await copyFile(cached, path.join(destination, name));
     }
+    // Ghamdi's source has complete canonical Al-Fatiha timings. Husary's
+    // current endpoint has only six numbered ayahs; the app rejects that data.
+    if (id !== 'ghamdi') continue;
+    // Keep timed navigation independent of a second live API request.
+    const timingCache = path.join(cache, 'timings.json');
+    if (!(await readFile(timingCache).catch(() => null))?.length) {
+      const url = `https://www.mp3quran.net/api/v3/ayat_timing?surah=1&read=${SURAH_RECITATIONS[id].read}`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      if (!response.ok) throw new Error(`Timing fixture ${url}: HTTP ${response.status}`);
+      const rows = await response.json();
+      if (!Array.isArray(rows) || !rows.some(row => row.ayah === 7)) throw new Error(`Incomplete timing fixture ${url}`);
+      await writeFile(timingCache, JSON.stringify(rows));
+    }
+    await copyFile(timingCache, path.join(destination, 'timings.json'));
   }
 }
 
