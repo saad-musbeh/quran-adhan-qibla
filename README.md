@@ -125,7 +125,7 @@ The 0.5.1 five-language addition and circular Qibla redesign pass host checks, m
 
 The 0.6.0 Adhkar & dua tab, salawat and morning/evening reminders, Short Adhan and end-of-surah playback stop have their `npm run check`, export and verification results recorded in [the 0.6.0 release notes](docs/RELEASE-0.6.0.md), including the Android code 23 / iOS build 23 artifacts and the checks still owed on physical devices. The Android text-clipping correction behind those layouts is documented with its Robolectric text-manager tests and browser layout harness in [TEXT-LAYOUT-QA.md](docs/TEXT-LAYOUT-QA.md); the reporting-device recheck and local emulator native runtime remain open there.
 
-The initial npm audit (10 October 2026) also reports inherited dependency advisories through Expo/Metro/Xcode tooling (`braces`, `node-forge`, and `uuid`). Compatible automatic updates did not resolve them. Updating upstream packages is follow-up work; functional checks do not imply a clean dependency audit.
+The dependency security follow-up (21 October 2026) updates Xcode tooling's `uuid` dependency to patched 11.1.1 and applies source-verified install-time patches for the unpublished `braces` nesting and `node-forge` RSA validation fixes. `npm run check` includes security regressions. The remaining upstream audit warnings stay visible until patched releases are published; see [dependency security](docs/DEPENDENCY-SECURITY.md) for scope, verification and removal conditions. Run `npm ci` with install scripts enabled so both these patches and the existing Expo Audio patch are applied.
 
 ## Layout
 

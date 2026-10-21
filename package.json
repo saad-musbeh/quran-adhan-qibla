@@ -58,10 +58,16 @@
     "rust:android": "node scripts/build-native.mjs android",
     "rust:ios": "node scripts/build-native.mjs ios",
     "test:ios:harness": "node --experimental-strip-types --test scripts/ios-ui-tests.test.mjs",
-    "check": "npm run typecheck && npm run localization:check && npm test && npm run test:ios:harness && npm run rust:check && npm run rust:test",
+    "check": "npm run test:security && npm run typecheck && npm run localization:check && npm test && npm run test:ios:harness && npm run rust:check && npm run rust:test",
     "export:mobile": "expo export --platform android --platform ios",
-    "postinstall": "node scripts/patch-expo-audio.mjs",
-    "localization:check": "node scripts/localization-audit.mjs"
+    "postinstall": "node scripts/patch-security-dependencies.mjs && node scripts/patch-expo-audio.mjs",
+    "localization:check": "node scripts/localization-audit.mjs",
+    "test:security": "node --test scripts/dependency-security.test.mjs"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "xcode": {
+      "uuid": "11.1.1"
+    }
+  }
 }
