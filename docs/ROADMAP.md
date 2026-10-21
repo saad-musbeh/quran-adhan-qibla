@@ -15,7 +15,8 @@
 - [x] Verify iOS book-name/relaunch and iPad landscape page turns in the 0.6.5 follow-up simulator run.
 - [x] Verify current iOS native playback and whole-Quran download start/cancel in the 0.6.5 follow-up simulator run; see [iOS testing status](IOS-TESTING.md).
 - [ ] Check RTL, accessibility, and large text on real devices.
-- [ ] Resolve inherited Expo/Metro/Xcode dependency audit advisories as compatible upstream fixes become available.
+- [x] Update the vulnerable Xcode-tooling `uuid` dependency and apply tested install-time mitigations for the inherited `braces` and `node-forge` advisories; see [dependency security](DEPENDENCY-SECURITY.md).
+- [ ] Replace temporary dependency security patches with fixed upstream releases when available; keep upstream audit warnings visible.
 
 ## Quran reader
 
