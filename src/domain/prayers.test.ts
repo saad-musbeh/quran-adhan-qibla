@@ -80,7 +80,8 @@ test('after Isha all salah countdowns roll to tomorrow without guessing missing 
   const now = new Date(601_000);
   for (const name of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] as const) {
     const occurrence = prayerOccurrenceFor(name, today, tomorrow, now);
-    assert.equal(occurrence?.tomorrow, true);
+    const index = { fajr: 0, dhuhr: 2, asr: 3, maghrib: 4, isha: 5 }[name];
+    assert.deepEqual(occurrence, { name, time: tomorrow[index], tomorrow: true });
     assert.equal(prayerOccurrenceFor(name, today, null, now), null);
   }
   assert.equal(prayerOccurrenceFor('fajr', today, [], now), null);

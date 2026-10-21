@@ -83,8 +83,8 @@ function memoryStorage(saved: unknown) {
 }
 
 async function resume(h: HookHarness) {
-  AppState.emit('background');
-  AppState.emit('active');
+  await h.change(() => AppState.emit('background'));
+  await h.change(() => AppState.emit('active'));
   await h.settle();
 }
 
@@ -100,7 +100,7 @@ test('a failed automatic refresh does not postpone the next attempt for six hour
     const harness = build(memoryStorage(fix), location);
     h = harness.h;
     const result = harness.result;
-    h.mount();
+    await h.mount();
     await h.settle();
     assert.equal(state.attempts, 1, 'a stale saved fix triggers one automatic refresh');
     assert.equal(result().error, 'locationError');
@@ -122,7 +122,7 @@ test('a failed automatic refresh does not postpone the next attempt for six hour
     await resume(h);
     assert.equal(state.attempts, 2, 'a fresh fix is reused without another attempt');
   } finally {
-    h?.unmount();
+    await h?.unmount();
     Date.now = realNow;
   }
 });
@@ -140,7 +140,7 @@ test('a successful device fix is reused for six hours and then refreshed once', 
     const harness = build(memoryStorage(fix), location);
     h = harness.h;
     const result = harness.result;
-    h.mount();
+    await h.mount();
     await h.settle();
     assert.equal(state.attempts, 0, 'a one-hour-old fix is not refreshed');
 
@@ -153,7 +153,7 @@ test('a successful device fix is reused for six hours and then refreshed once', 
     await resume(h);
     assert.equal(state.attempts, 1, 'the refreshed fix is reused without a prompt or extra attempt');
   } finally {
-    h?.unmount();
+    await h?.unmount();
     Date.now = realNow;
   }
 });
@@ -170,20 +170,20 @@ test('a manual locate retries immediately even while the failure backoff is pend
     const harness = build(memoryStorage(fix), location);
     h = harness.h;
     const result = harness.result;
-    h.mount();
+    await h.mount();
     await h.settle();
     assert.equal(state.attempts, 1);
     assert.equal(result().error, 'locationError');
 
     state.fail = false;
     state.now = clock.now;
-    await result().locate(true);
+    await h.change(() => result().locate(true));
     await h.settle();
     assert.equal(state.attempts, 2, 'a manual locate is not delayed by the failure backoff');
     assert.equal(result().error, null);
     assert.equal(result().location?.timestamp, clock.now);
   } finally {
-    h?.unmount();
+    await h?.unmount();
     Date.now = realNow;
   }
 });

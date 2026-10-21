@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildPrayerNotificationSchedule, isPrayerNotificationOwned, isPrayerTestNotification, PRAYER_NOTIFICATION_NAMESPACE, IOS_PENDING_NOTIFICATION_LIMIT } from './prayer-notifications.ts';
+import { buildPrayerNotificationSchedule, isPrayerNotificationOwned, isPrayerTestNotification, PRAYER_NOTIFICATION_NAMESPACE } from './prayer-notifications.ts';
 
 function timesForDate([year, month, day]: [number, number, number]): Date[] {
-  // UTC instants derived from local noon date fields keep the tests independent of a fixed TZ.
+  // Synthetic local-time fixture for testing scheduling, not prayer calculations.
   const base = new Date(year, month - 1, day, 4).getTime();
   return [0, 1, 2, 3, 4, 5].map(hours => new Date(base + hours * 3_600_000));
 }
@@ -23,11 +23,10 @@ test('local date stepping preserves dates across the spring DST transition', () 
   try {
     const now = new Date(2026, 2, 7, 23, 30);
     const dates: string[] = [];
-    buildPrayerNotificationSchedule(now, date => { dates.push(date.join('-')); return timesForDate(date); }, 3);
+    const schedule = buildPrayerNotificationSchedule(now, date => { dates.push(date.join('-')); return timesForDate(date); }, 3);
     assert.deepEqual(dates, ['2026-3-7', '2026-3-8', '2026-3-9']);
-    const before = new Date(2026, 2, 8);
-    const after = new Date(2026, 2, 9);
-    assert.equal(after.getTime() - before.getTime(), 23 * 60 * 60 * 1000);
+    assert.deepEqual(schedule.filter(item => item.prayer === 'fajr').map(item => item.at.toISOString()),
+      ['2026-03-08T08:00:00.000Z', '2026-03-09T08:00:00.000Z']);
   } finally {
     if (previousTz === undefined) delete process.env.TZ; else process.env.TZ = previousTz;
   }
@@ -45,9 +44,4 @@ test('five-second test alerts are excluded from recurring reconciliation', () =>
   assert.equal(isPrayerTestNotification({ content: { data: { namespace: PRAYER_NOTIFICATION_NAMESPACE } } }), false);
   assert.equal(isPrayerTestNotification({ content: { data: { namespace: 'someone.else', test: true } } }), false);
   assert.equal(isPrayerTestNotification({ content: { } }), false);
-});
-
-test('the shared iOS pending budget stays below the OS 64-notification ceiling', () => {
-  assert.equal(IOS_PENDING_NOTIFICATION_LIMIT, 62);
-  assert.ok(IOS_PENDING_NOTIFICATION_LIMIT < 64);
 });

@@ -8,6 +8,7 @@ export const store = {
   permissions: { status: 'granted', ios: { status: 2, allowsSound: true } },
   handler: null as unknown,
   getAllOverride: null as null | (() => Promise<unknown[]> | unknown[]),
+  scheduleGate: null as Promise<void> | null,
 };
 export function resetStore() {
   store.scheduled = [];
@@ -15,6 +16,7 @@ export function resetStore() {
   store.channels = new Map();
   store.log = [];
   store.getAllOverride = null;
+  store.scheduleGate = null;
 }
 export const setNotificationHandler = (handler: unknown) => { store.handler = handler; };
 export const getAllScheduledNotificationsAsync = async () =>
@@ -26,6 +28,7 @@ export const cancelScheduledNotificationAsync = async (identifier: string) => {
 };
 export const scheduleNotificationAsync = async (request: { content: { title?: string; body?: string; sound?: unknown; data?: Record<string, unknown> }; trigger: unknown }) => {
   store.log.push(['schedule', request.content?.data]);
+  if (store.scheduleGate) await store.scheduleGate;
   const identifier = `hook-id-${store.nextId++}`;
   store.scheduled.push({ identifier, content: request.content, trigger: request.trigger });
   return identifier;

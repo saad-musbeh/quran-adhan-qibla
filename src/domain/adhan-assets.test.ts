@@ -16,6 +16,7 @@ test('native notification sounds match their manifests, include Fajr, and obey i
   const files = [...manifest.recordings.flatMap((recording: { files: { file: string; sha256: string }[] }) => recording.files),...devotional.files,...phrases.files];
   assert.deepEqual(files.map((file: { file: string }) => file.file).sort(), expected);
   for (const file of files) {
+    assert.match(file.file.split('.')[0], /^[a-z][a-z0-9_]*$/, 'sound names must be valid Android resources');
     const bytes = readFileSync(new URL(`../../assets/adhan/${file.file}`, import.meta.url));
     assert.equal(createHash('sha256').update(bytes).digest('hex'), file.sha256, file.file);
     if (file.file.endsWith('.ogg')) { assert.equal(bytes.toString('ascii', 0, 4), 'OggS'); continue; }
@@ -24,6 +25,7 @@ test('native notification sounds match their manifests, include Fajr, and obey i
     let byteRate = 0, dataSize = 0;
     for (let offset = 12; offset + 8 <= bytes.length;) {
       const size = bytes.readUInt32LE(offset + 4), kind = bytes.toString('ascii', offset, offset + 4);
+      assert.ok(offset + 8 + size <= bytes.length, `${file.file}: WAV chunk must be complete`);
       if (kind === 'fmt ') {
         assert.equal(bytes.readUInt16LE(offset + 8), 1); // PCM
         assert.equal(bytes.readUInt16LE(offset + 10), 1); // Mono
@@ -34,7 +36,8 @@ test('native notification sounds match their manifests, include Fajr, and obey i
       if (kind === 'data') dataSize = size;
       offset += 8 + size + size % 2;
     }
-    assert.ok(dataSize / byteRate > 0 && dataSize / byteRate < 30, `${file.file}: custom iOS sound must remain below 30 seconds`);
+    assert.ok(byteRate > 0 && dataSize > 0, `${file.file}: WAV contains audio data`);
+    assert.ok(dataSize / byteRate < 30, `${file.file}: custom iOS sound must remain below 30 seconds`);
     if(file.file.includes('_clean_short'))assert.equal(dataSize/byteRate,29);
   }
 });

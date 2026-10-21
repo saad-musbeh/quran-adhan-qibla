@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 
@@ -10,8 +11,13 @@ test('bundled text and official Tanzil metadata cover the complete Quran', () =>
   assert.equal(verses.length, 6236);
   assert.equal(quranManifest.surahCount, 114);
   assert.equal(quranManifest.verseCount, 6236);
-  assert.match(quranManifest.textSha256, /^[a-f0-9]{64}$/);
-  assert.match(quranManifest.metadataSha256, /^[a-f0-9]{64}$/);
+  assert.equal(quranManifest.textSha256, 'af9311c521b5dadab01ea1ef259c281ffa83cf224bad24ee89469ce1c3c72916');
+  assert.equal(quranManifest.metadataSha256, '8867c1d88191472adec9db694b3cd9f135b1a2ef580574d32cf888dcb22c5c7a');
+  // Pin the imported 2026-10-11 snapshot documented in docs/QURAN-DATA.md.
+  // Source XML hashes alone do not detect edits to the bundled text/metadata.
+  // This is a regression guard, not a fresh verification of upstream XML.
+  assert.equal(createHash('sha256').update(JSON.stringify({ surahs, verses })).digest('hex'),
+    '19dc118ef84af374c38d7b4ddf0aaf381af4230b29329ff96581d0744a3b8968');
   assert.match(quranManifest.licenseNotice, /verbatim copies/);
   assert.match(quranManifest.licenseNotice, /tanzil\.net/);
 });

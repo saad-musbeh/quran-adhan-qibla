@@ -4,8 +4,16 @@ import { ADHAN_VOICES, DEFAULT_PRAYER_SOUNDS, adhanSoundForPrayer, normalizePray
 import { NOTIFIABLE_PRAYERS, buildPrayerNotificationSchedule } from './prayer-notifications.ts';
 
 test('legacy and malformed saved preferences use Short Adhan by default on all prayers', () => {
+  const expected = {
+    fajr: { enabled: true, voiceId: 'short' },
+    dhuhr: { enabled: true, voiceId: 'short' },
+    asr: { enabled: true, voiceId: 'short' },
+    maghrib: { enabled: true, voiceId: 'short' },
+    isha: { enabled: true, voiceId: 'short' },
+  };
+  assert.deepEqual(DEFAULT_PRAYER_SOUNDS, expected);
   for (const saved of [undefined, null, false, 'invalid', {}, { fajr: { enabled: 'false', voiceId: 'missing' }, dhuhr: null }]) {
-    assert.deepEqual(normalizePrayerSounds(saved), DEFAULT_PRAYER_SOUNDS);
+    assert.deepEqual(normalizePrayerSounds(saved), expected);
   }
   const normalized = normalizePrayerSounds({ fajr: { enabled: false, voiceId: 'madinah' }, dhuhr: { enabled: true, voiceId: 'original' }, sunrise: { enabled: false } });
   assert.deepEqual(normalized.fajr, { enabled: false, voiceId: 'madinah' });
