@@ -18,7 +18,12 @@ test('every language uses a Gregorian calendar and the correct swipe direction',
   assert.equal(new Set(LANGUAGES.map(item => item.id)).size, 40);
   for (const item of LANGUAGES) {
     assert.equal(new Intl.DateTimeFormat(localeFor(item.id)).resolvedOptions().calendar, 'gregory');
-    assert.equal(neighborForSwipe('quran', isRTL(item.id) ? 80 : -80, 0, item.id), 'adhan');
+    // Independent script-direction expectation: deriving the swipe from isRTL
+    // would pass if both the language metadata and navigation were reversed.
+    const rtl = ['ar', 'ur', 'fa', 'pa-Arab', 'ps', 'ckb', 'sd', 'skr', 'ug'].includes(item.id);
+    assert.equal(isRTL(item.id), rtl, item.id);
+    assert.equal(neighborForSwipe('quran', rtl ? 80 : -80, 0, item.id), 'adhan');
+    assert.equal(neighborForSwipe('quran', rtl ? -80 : 80, 0, item.id), null);
   }
 });
 test('new languages can be found by native name and use their script direction', () => {
