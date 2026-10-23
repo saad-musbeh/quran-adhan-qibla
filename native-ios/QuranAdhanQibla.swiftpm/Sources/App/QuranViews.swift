@@ -375,7 +375,7 @@ private struct ReaderAudioFooter: View {
 
 struct NightPaper: ViewModifier {
   let enabled: Bool
-  @ViewBuilder func body(content: Content) -> some View {
+  @ViewBuilder func body(content: SwiftUI._ViewModifier_Content<Self>) -> some View {
     if enabled { content.colorInvert() } else { content }
   }
 }

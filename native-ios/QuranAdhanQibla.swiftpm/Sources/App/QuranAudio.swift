@@ -451,7 +451,7 @@ struct Reciter: Codable, Identifiable, Hashable {
     for next in queuedTracks { player.insert(self.item(for: next), after: nil) }
     activate(replacement)
     error = nil
-    let resumeAfterSeek: (Bool) -> Void = { [weak self, weak replacement] _ in
+    let resumeAfterSeek: @Sendable (Bool) -> Void = { [weak self, weak replacement] _ in
       Task { @MainActor in
         guard let self, let replacement, self.player.currentItem === replacement else { return }
         if shouldResume {
