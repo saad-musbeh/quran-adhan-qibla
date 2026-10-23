@@ -4,6 +4,8 @@
 
 This app includes an offline Arabic Quran reader with verse audio, Arabic/English menus and 38 optional testing languages, saved foreground location, shared Rust calculations for Qibla and today’s prayer times, and optional local prayer notifications on Android and iOS with bundled Adhan sounds.
 
+A separate [Swift-only iPhone/iPad source port](native-ios/README.md) is prepared as an app playground for an iPad publishing workflow. It includes all main app areas and a complete offline resource archive; Apple-target compilation and physical-device behavior remain unverified. See [the bilingual iPad opening/publishing instructions](native-ios/IPAD-START-HERE.md).
+
 ## What is ready
 
 - **0.6.5:** protects saved books/settings after failed reads, fixes stale audio queues and partial-download cleanup, stops Android audio on task removal, retries failed location fixes, and cancels pending test alerts when Adhan is disabled. The iOS follow-up fixes and seven passing simulator UI tests are merged into `main`; physical-device checks remain open. See [release notes and verification limits](docs/RELEASE-0.6.5.md).

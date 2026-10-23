@@ -1,0 +1,81 @@
+name: Swift iPad port
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['codex/swift-ipad-port']
+    paths: ['native-ios/**', 'scripts/*swift*', '.github/workflows/swift-ipad.yml']
+  pull_request:
+    paths: ['native-ios/**', 'scripts/*swift*', '.github/workflows/swift-ipad.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test deterministic Swift calculations and scheduling rules
+        working-directory: native-ios/QuranAdhanQibla.swiftpm
+        run: swift test --jobs 4
+  apple-sdk:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Typecheck all app source against the Apple simulator SDK
+        run: bash scripts/check-swift-ios.sh
+  resources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y inkscape
+      - run: npm ci
+      - run: npm run swift:prepare
+      - run: node scripts/check-swift-port.mjs --assets-only
+      - uses: actions/upload-artifact@v6
+        with:
+          name: swift-resources
+          path: |
+            native-ios/QuranAdhanQibla.swiftpm/Sources/App/Resources
+            native-ios/QuranAdhanQibla.swiftpm/Sources/App/Assets.xcassets
+          retention-days: 3
+  simulator:
+    needs: [apple-sdk, resources]
+    runs-on: macos-26
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v6
+        with:
+          name: swift-resources
+          path: native-ios/QuranAdhanQibla.swiftpm/Sources/App
+      - name: Install XcodeGen if needed
+        run: command -v xcodegen >/dev/null || brew install xcodegen
+      - name: Build and run the Swift app on an iPad simulator
+        run: bash scripts/build-swift-ios.sh
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: swift-ipad-simulator-results
+          path: |
+            target/swift-port/ios-smoke.xcresult
+            target/swift-port/ios-build.log
+            target/swift-port/ci-project/project.json
+          retention-days: 7
