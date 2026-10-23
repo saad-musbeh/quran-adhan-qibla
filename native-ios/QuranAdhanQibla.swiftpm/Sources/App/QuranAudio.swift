@@ -252,7 +252,7 @@ struct Reciter: Codable, Identifiable, Hashable {
     }
     guard let url else { return nil }
     let endKey = verse.map { "\(surah):\($0)" } ?? "\(surah)"
-    let end = verse.map { reciter.verseEnds[endKey] } ?? reciter.fullEnds[endKey]
+    let end = verse == nil ? reciter.fullEnds[endKey] : reciter.verseEnds[endKey]
     return Track(surah: surah, verse: verse, url: url, reciterID: reciter.id, end: end)
   }
   private func item(for track: Track) -> AVPlayerItem {

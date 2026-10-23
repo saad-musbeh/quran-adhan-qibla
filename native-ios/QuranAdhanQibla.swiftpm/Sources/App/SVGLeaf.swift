@@ -366,7 +366,6 @@ struct SVGLeaf: UIViewRepresentable {
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-      guard let activeNavigation, navigation === activeNavigation else { return }
       showFailure()
     }
 
