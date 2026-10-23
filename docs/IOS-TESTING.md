@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use **`main`** for the current **0.6.5 / build 28** source, or **`codex/fix-ios-testing`** for the test-harness fixes described below. This includes continuous-surah playback and native recording-end limits. Full Al-Fatiha playback, repeat and lock-screen ending behavior still require iPhone listening checks. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**.
+Use **`main`** for the current **0.6.5 / build 28** source, including the merged iOS test-harness and foreground-download fixes. This includes continuous-surah playback and native recording-end limits. Full Al-Fatiha playback, repeat and lock-screen ending behavior still require iPhone listening checks. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**.
 
 ## Requirements
 
@@ -35,7 +35,7 @@ npm run ios
 
 This builds Rust for devices and both simulator architectures, creates the XCFramework, generates the Xcode project, installs Pods and starts a native development app with Metro. Keep the terminal running. Expo Go cannot test the Rust module or native audio controls.
 
-`npm ci` applies the pinned Expo Audio 57.0.5 playlist patch. Expo modules build from source to include that patch. Do not use `--ignore-scripts` or enable `usePrecompiledModules` for these checks. Internet is needed for dependency installation, streamed recitations and first-time tafsir downloads. Quran text/pages are bundled offline.
+`npm ci` applies the [dependency-security patches](DEPENDENCY-SECURITY.md) and the pinned Expo Audio 57.0.5 playlist patch. Expo modules build from source to include the audio patch. Do not use `--ignore-scripts` or enable `usePrecompiledModules` for these checks. Internet is needed for dependency installation, streamed recitations and first-time tafsir downloads. Quran text/pages are bundled offline.
 
 ## Standalone simulator build
 
@@ -79,7 +79,7 @@ Re-select the development team in the generated workspace for a physical iPhone.
 3. **Reader:** first opening, gold borders, night ayah numbers, long-press actions and enlarged reading. A deliberate up/right swipe advances; small movements return. Check down/left and zoom/pan. In landscape, either leaf must turn and zoom the whole spread together. Check the top Home button and microphone-labelled reciter selector. Fresh audio preferences should default to Al-Husary; saved choices must survive upgrades.
 4. **Audio:** reciter switching, previous/replay/play-pause/next/stop, speeds, multi-ayah loops across several cycles, downloaded audio in airplane mode, screen lock, lock-screen controls, headphones and interruptions.
 5. **Tafsir:** download/select each book, check publication dates and passage ranges, then read offline after restarting.
-6. **Prayer alerts:** choose a location, enable alerts in the Adhan alerts section of Settings, allow notifications and confirm upcoming alerts appear. Choose different voices for two prayers, test each, and mute one prayer to keep only its silent notification. Check all four voices: Makkah, Al-Madinah, Andrewler and Original. Disable the master switch to cancel all reminders. iOS plays a labelled 29-second Adhan excerpt; check Silent Mode, Focus and notification sound settings on the phone. Reopen at least weekly to refresh the eight-date schedule.
+6. **Prayer alerts:** choose a location, enable alerts in the Adhan alerts section of Settings, allow notifications and confirm upcoming alerts appear. Choose different voices for two prayers, test each, and mute one prayer to keep only its silent notification. Check all five choices: Short Adhan (including its Fajr variant), Makkah, Al-Madinah, Andrewler and Original. Disable the master switch to cancel prayer alerts and pending Adhan tests; devotional reminders have separate switches. The four full voices use labelled 29-second iOS excerpts; Short Adhan is shorter. Check Silent Mode, Focus and notification sound settings on the phone. Reopen at least weekly to refresh the eight-date schedule, or daily with frequent Salawat reminders because those share iOS's pending-notification budget.
 7. **Downloads:** download a surah, change voices, continue a partial download, then remove a saved surah. In Manage downloads → Recitations, start/cancel the whole-Quran job, then start it again to reuse saved files; keep the app open. Audio/tafsir totals and saved counts should follow the files. Confirm offline playback after restart.
 8. **Layout:** Arabic RTL, English, iPhone safe areas, iPad and larger text. Check Light and Dark for all five colors and saved appearance after restart. In landscape Adhan, the next prayer must stay on the right; after Isha it must show tomorrow’s separately calculated Fajr. Each salah should show a live remaining-time label, including Asr in the morning; completed prayers should show tomorrow explicitly. Check the prominent city label and tap it to change location. Fresh startup should show Home; a phone with Home disabled should open Adhan, never Quran.
 
@@ -114,15 +114,19 @@ CI initializes and shuts down the iPad before booting the iPhone or compiling de
 
 CI first runs a separate Linux preflight job for TypeScript and the harness, including repeated runs with existing result directories. The Mac job starts only after that succeeds, then checks Ruby/Swift syntax and prepares real audio fixtures before compiling Rust or Pods. Run `node scripts/ios-ui-tests.mjs --prepare-fixtures` to check and cache the sourced audio without a simulator. Network/source failures therefore surface before the expensive native build; runtime UI failures still require the compiled app.
 
+## Historical verification — 0.4.1–0.4.5
+
+These notes describe earlier revisions; use `main` and the current status above for new testing.
+
 The 0.4.1 Release simulator app compiled and passed native playback/control and repeated tab-transition checks. Prayer scheduling/cancellation and saved inventory assertions also passed before a whole-Quran download displayed an error. Book 1 reached page 2 independently of book 2, but the name typed by XCTest was truncated. These historical results do not establish current native behavior.
 
-Version 0.4.2 replaces the calendar option that crashed Android with one correctly formed Hijri locale extension. The Arabic prayer-date Gregorian extension is removed before adding the Hijri extension, avoiding the earlier iOS duplicate-extension crash. Hidden tafsir catalogues no longer format dates at reader startup; optional digital-date failures retain the documented publication year. The 0.4.3 source inherits this fix; send its updated source ZIP to the Mac tester. Its native runtime run is pending in the [iOS native build workflow](https://github.com/saad-musbeh/quran-adhan-qibla/actions/workflows/ios.yml). Physical-device signing, compass accuracy, lock-screen audio, interruptions and notification sound policy remain for the tester.
+Version 0.4.2 replaces the calendar option that crashed Android with one correctly formed Hijri locale extension. The Arabic prayer-date Gregorian extension is removed before adding the Hijri extension, avoiding the earlier iOS duplicate-extension crash. Hidden tafsir catalogues no longer format dates at reader startup; optional digital-date failures retain the documented publication year. The 0.4.3 source inherited this fix, but its native runtime verification was still pending when these historical notes were recorded. Physical-device signing, compass accuracy, lock-screen audio, interruptions and notification sound policy remain for the tester.
 
 TypeScript and Android/iOS bundle exports passed for 0.4.2. The Android APK is built with the same test signing certificate as 0.3.6. An Android API 36 emulator reproduced the 0.4.1 fatal calendar error, then opened the reader and tafsir catalogue on 0.4.2 without that error, including native Hijri edition dates. Simulator checks cannot establish physical compass accuracy or device sound/background behavior.
 
 ## Tablet and landscape follow-up
 
-For 0.4.3 use `codex/tablet-location` or its release source archive. Start on an iPad: the home page should show Quran, Adhan and Qibla buttons. Rotate portrait/landscape in each section; wide tablet reading should show two consecutive pages in Arabic reading order, preserving each book’s saved page. Verify Settings → Main menu on small screens on iPhone and Settings → Credits. Android’s new system-provider module is Android-only and does not replace iOS Core Location. Physical iPad GPS, compass and multitasking checks remain for the Mac tester.
+The 0.4.3 tablet follow-up used `codex/tablet-location` or its release source archive. Start on an iPad: the home page should show Quran, Adhan and Qibla buttons. Rotate portrait/landscape in each section; wide tablet reading should show two consecutive pages in Arabic reading order, preserving each book’s saved page. Verify Settings → Main menu on small screens on iPhone and Settings → Credits. Android’s new system-provider module is Android-only and does not replace iOS Core Location. Physical iPad GPS, compass and multitasking checks remain for the Mac tester.
 
 0.4.4 reduces the page-turn distance to 18% of the page dimension, capped at 64 CSS pixels (minimum 24). The iPad simulator check now uses a short 90-point drag rather than the next-page button. The 8 compact tafsir files remain pinned to the immutable 0.4.3-test assets.
 
