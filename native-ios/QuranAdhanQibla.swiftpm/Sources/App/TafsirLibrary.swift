@@ -185,7 +185,9 @@ public struct TafsirPassage: Hashable, Sendable {
   }
   private enum LibraryError: LocalizedError {
     case invalid(String)
-    var errorDescription: String? { if case .invalid(let message) = self { return message } }
+    var errorDescription: String? {
+      switch self { case .invalid(let message): return message }
+    }
   }
   private func path(_ e: TafsirEdition) -> URL { root.appendingPathComponent(e.id + ".json") }
   private func edition(_ id: String) -> TafsirEdition? { editions.first { $0.id == id } }
