@@ -106,9 +106,9 @@ def main() -> None:
                 "platform": "iOS",
                 "info": {"path": str(app_info_path), "properties": app_info},
                 "sources": [
-                    {"path": str(sources / "App"), "excludes": ["Resources/**", "Assets.xcassets/**", "PrivacyInfo.xcprivacy"]},
+                    {"path": str(sources / "App"), "excludes": ["OfflineContent/**", "Assets.xcassets/**", "PrivacyInfo.xcprivacy"]},
                     {"path": str(sources / "App" / "Assets.xcassets"), "buildPhase": "resources"},
-                    {"path": str(sources / "App" / "Resources"), "buildPhase": "resources", "type": "folder"},
+                    {"path": str(sources / "App" / "OfflineContent"), "buildPhase": "resources", "type": "folder"},
                     {"path": str(sources / "App" / "PrivacyInfo.xcprivacy"), "buildPhase": "resources"},
                 ],
                 "dependencies": [

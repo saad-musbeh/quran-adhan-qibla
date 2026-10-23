@@ -13,7 +13,7 @@ import { swiftPortIcon } from './swift-port-icon.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const app = path.join(root, 'native-ios/QuranAdhanQibla.swiftpm/Sources/App');
-const resources = path.join(app, 'Resources');
+const resources = path.join(app, 'OfflineContent');
 await fs.mkdir(resources, { recursive: true });
 const json = async (name, value) => fs.writeFile(path.join(resources, `${name}.json`), JSON.stringify(value));
 for (const name of ['quran', 'quran-manifest', 'mushaf-pages', 'mushaf-manifest', 'adhkar', 'adhkar-manifest', 'countries']) {

@@ -9,32 +9,32 @@ struct ResourceLocatorChecks {
     defer { try? manager.removeItem(at: temporary) }
 
     let direct = temporary.appendingPathComponent("direct", isDirectory: true)
-    try writeFixture(at: direct.appendingPathComponent("Resources", isDirectory: true))
-    try expect(ResourceLocator.resolve(in: [direct]) == direct.appendingPathComponent("Resources", isDirectory: true), "direct Resources folder")
+    try writeFixture(at: direct.appendingPathComponent("OfflineContent", isDirectory: true))
+    try expect(ResourceLocator.resolve(in: [direct]) == direct.appendingPathComponent("OfflineContent", isDirectory: true), "direct OfflineContent folder")
 
     let nested = temporary.appendingPathComponent("nested", isDirectory: true)
     let bundle = nested.appendingPathComponent("Payload.bundle", isDirectory: true)
-    try writeFixture(at: bundle.appendingPathComponent("Resources", isDirectory: true))
+    try writeFixture(at: bundle.appendingPathComponent("OfflineContent", isDirectory: true))
     try Data("<?xml version=\"1.0\"?><plist version=\"1.0\"><dict/></plist>".utf8).write(to: bundle.appendingPathComponent("Info.plist"))
-    try expect(ResourceLocator.resolve(in: [nested]) == bundle.appendingPathComponent("Resources", isDirectory: true), "nested .bundle/Resources")
+    try expect(ResourceLocator.resolve(in: [nested]) == bundle.appendingPathComponent("OfflineContent", isDirectory: true), "nested .bundle/OfflineContent")
 
     let flattened = temporary.appendingPathComponent("flattened", isDirectory: true)
     try writeFixture(at: flattened)
     try expect(ResourceLocator.resolve(in: [flattened]) == flattened, "flattened resource root")
 
     let incomplete = temporary.appendingPathComponent("incomplete", isDirectory: true)
-    try manager.createDirectory(at: incomplete.appendingPathComponent("Resources", isDirectory: true), withIntermediateDirectories: true)
-    try write("fixture", to: incomplete.appendingPathComponent("Resources/quran.json"))
+    try manager.createDirectory(at: incomplete.appendingPathComponent("OfflineContent", isDirectory: true), withIntermediateDirectories: true)
+    try write("fixture", to: incomplete.appendingPathComponent("OfflineContent/quran.json"))
     try expectMissing { try ResourceLocator.resolve(in: [incomplete]) }
 
     let first = temporary.appendingPathComponent("ambiguous-first", isDirectory: true)
     let second = temporary.appendingPathComponent("ambiguous-second", isDirectory: true)
-    let firstResources = first.appendingPathComponent("Resources", isDirectory: true)
-    try writeFixture(at: firstResources)
+    let firstOfflineContent = first.appendingPathComponent("OfflineContent", isDirectory: true)
+    try writeFixture(at: firstOfflineContent)
     try writeFixture(at: first)
     try writeFixture(at: second)
     for _ in 0..<5 {
-      try expect(ResourceLocator.resolve(in: [first, second]) == firstResources, "ambiguous roots resolve by input and candidate order")
+      try expect(ResourceLocator.resolve(in: [first, second]) == firstOfflineContent, "ambiguous roots resolve by input and candidate order")
     }
 
     try expectMissing { try ResourceLocator.resolve(in: [temporary.appendingPathComponent("missing", isDirectory: true)]) }
@@ -59,7 +59,7 @@ struct ResourceLocatorChecks {
 
   private static func expectMissing(_ operation: () throws -> URL) throws {
     do { _ = try operation(); throw CheckFailure(message: "Expected missing resources to throw") }
-    catch is ResourceLocator.MissingResources { return }
+    catch is ResourceLocator.MissingOfflineContent { return }
   }
 
   private struct CheckFailure: Error { let message: String }

@@ -50,7 +50,7 @@ jobs:
         with:
           name: swift-resources
           path: |
-            native-ios/QuranAdhanQibla.swiftpm/Sources/App/Resources
+            native-ios/QuranAdhanQibla.swiftpm/Sources/App/OfflineContent
             native-ios/QuranAdhanQibla.swiftpm/Sources/App/Assets.xcassets
           retention-days: 3
   simulator:

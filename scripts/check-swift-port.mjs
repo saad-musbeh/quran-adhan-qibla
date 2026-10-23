@@ -10,7 +10,7 @@ import { swiftPortIcon } from './swift-port-icon.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const project = path.join(root, 'native-ios/QuranAdhanQibla.swiftpm');
-const resources = path.join(project, 'Sources/App/Resources');
+const resources = path.join(project, 'Sources/App/OfflineContent');
 const expectedIcon = await swiftPortIcon(root);
 const bundledIcon = await fs.readFile(path.join(project, 'Sources/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png'));
 assert.deepEqual(
@@ -120,6 +120,6 @@ if (!spawnSync('swift', ['--version'], { stdio: 'ignore' }).error) {
   run('podman', [...base, 'swiftc', '-parse-as-library', 'Sources/App/ResourceLocator.swift', '../Verification/ResourceLocatorChecks.swift', '-o', '/work/target/swift-port/resource-check/resource-locator-check']);
   run('podman', [...base, '/work/target/swift-port/resource-check/resource-locator-check']);
   run('podman', [...base, 'swiftc', '-parse-as-library', '-I', '../Verification/CZlib', 'Sources/App/CompactPageData.swift', '../Verification/CompactPageChecks.swift', '-o', '/work/target/swift-port/resource-check/compact-page-check']);
-  run('podman', [...base, '/work/target/swift-port/resource-check/compact-page-check', '/work/native-ios/QuranAdhanQibla.swiftpm/Sources/App/Resources/Pages', '/work/target/swift-port/compact-fixtures']);
+  run('podman', [...base, '/work/target/swift-port/resource-check/compact-page-check', '/work/native-ios/QuranAdhanQibla.swiftpm/Sources/App/OfflineContent/Pages', '/work/target/swift-port/compact-fixtures']);
 } else { throw new Error('Install Swift 6 or Podman to run the Swift core tests and syntax checks.'); }
 console.log('Swift core tests, source syntax, resource locator, and compact page decoder checks passed. Apple SDK typechecking and device behavior require iPad Swift Playground or macOS/Xcode.');

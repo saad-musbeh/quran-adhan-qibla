@@ -16,7 +16,7 @@ enum ResourceLocator {
     var candidates: [URL] = []
     var seen = Set<String>()
     func add(_ base: URL) {
-      for candidate in [base.appendingPathComponent("Resources", isDirectory: true), base] {
+      for candidate in [base.appendingPathComponent("OfflineContent", isDirectory: true), base] {
         if seen.insert(candidate.standardizedFileURL.path).inserted { candidates.append(candidate) }
       }
     }
@@ -36,10 +36,10 @@ enum ResourceLocator {
     }) {
       return found
     }
-    throw MissingResources(searched: candidates.map(\.path))
+    throw MissingOfflineContent(searched: candidates.map(\.path))
   }
 
-  struct MissingResources: LocalizedError {
+  struct MissingOfflineContent: LocalizedError {
     let searched: [String]
     var errorDescription: String? {
       "موارد التطبيق غير موجودة. افتح المشروع الكامل بعد فك الضغط. / App resources were not found. Open the complete extracted project.\n"

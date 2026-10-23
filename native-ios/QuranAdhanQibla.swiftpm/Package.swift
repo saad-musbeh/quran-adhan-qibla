@@ -39,7 +39,7 @@ import PackageDescription
       .executableTarget(
         name: "AppModule", dependencies: ["IslamicCore"], path: "Sources/App",
         resources: [
-          .copy("Resources"), .process("Assets.xcassets"), .process("PrivacyInfo.xcprivacy"),
+          .copy("OfflineContent"), .process("Assets.xcassets"), .process("PrivacyInfo.xcprivacy"),
         ]
       ),
     ],

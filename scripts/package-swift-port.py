@@ -7,7 +7,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 project = root / 'native-ios/QuranAdhanQibla.swiftpm'
-resources = project / 'Sources/App/Resources'
+resources = project / 'Sources/App/OfflineContent'
 assert len(list((resources / 'Pages').glob('*.svgz'))) == 606, 'Run npm run swift:prepare first'
 destination = root / 'dist/swift-ios'
 destination.mkdir(parents=True, exist_ok=True)

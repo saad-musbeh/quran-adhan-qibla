@@ -44,6 +44,9 @@ swift - "$app_path" <<'SWIFTINFO'
 import Foundation
 let url = URL(fileURLWithPath: CommandLine.arguments[1])
 guard let bundle = Bundle(url: url) else { fatalError("Foundation cannot open app bundle") }
+guard bundle.bundleIdentifier == "org.saadmusbeh.quranadhanqibla.swift" else {
+  fatalError("Foundation cannot read the app identifier: \(bundle.infoDictionary ?? [:])")
+}
 print("Foundation app identifier:", bundle.bundleIdentifier ?? "nil")
 print("Foundation app metadata:", bundle.infoDictionary ?? [:])
 SWIFTINFO
