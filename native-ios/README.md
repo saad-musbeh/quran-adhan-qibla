@@ -26,7 +26,7 @@ The optional 38 machine-translated testing interface languages and experimental 
 
 ## Prepare and package from source
 
-Development prerequisites: Node 22/npm dependencies, Python 3 (ZIP packaging), and Inkscape (for opening-page drawing bounds). These tools are needed only to regenerate the distribution, never on the user's iPad.
+Development prerequisites: Node 22/npm dependencies, Python 3 for ZIP packaging. Opening-page artwork bounds are pinned to their exact source SHA-256. Inkscape is needed only if those source pages change; run `npm run swift:prepare -- --measure-opening-bounds` to refresh their measured bounds. These tools are needed only to regenerate the distribution, never on the user's iPad.
 
 ```sh
 npm ci

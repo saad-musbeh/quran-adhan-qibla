@@ -52,6 +52,9 @@ const manifest = JSON.parse(await fs.readFile(path.join(root, 'src/data/mushaf-m
 const outputHashes = {};
 const hitmaps = {};
 const renderedBoxes = {};
+const openingBoundsPath = path.join(root, 'scripts/swift-opening-bounds.json');
+const openingBounds = JSON.parse(await fs.readFile(openingBoundsPath, 'utf8'));
+const remeasure = process.argv.includes('--measure-opening-bounds');
 for (let page = 1; page <= 606; page++) {
   const stem = String(page).padStart(3, '0');
   const source = decompress(await fs.readFile(path.join(root, 'assets/mushaf/pages', `${stem}.svg.zst`)));
@@ -72,9 +75,16 @@ for (let page = 1; page <= 606; page++) {
   });
   let [x, y, width, height] = viewBox;
   if (page <= 2) {
-    const bounds = execFileSync('inkscape', ['--batch-process', '--app-id-tag=codex-swift-port', svgPath, '--query-x', '--query-y', '--query-width', '--query-height'], { encoding: 'utf8' }).trim().split(/\s+/).map(Number);
-    if (bounds.length !== 4 || !bounds.every(Number.isFinite)) throw new Error('Invalid opening-page artwork bounds');
-    x += bounds[0]; y += bounds[1]; width = bounds[2]; height = bounds[3];
+    if (remeasure) {
+      const bounds = execFileSync('inkscape', ['--batch-process', '--app-id-tag=codex-swift-port', svgPath, '--query-x', '--query-y', '--query-width', '--query-height'], { encoding: 'utf8' }).trim().split(/\s+/).map(Number);
+      if (bounds.length !== 4 || !bounds.every(Number.isFinite)) throw new Error('Invalid opening-page artwork bounds');
+      openingBounds[stem] = { sha256: hash, bounds: [x + bounds[0], y + bounds[1], bounds[2], bounds[3]] };
+    }
+    const measured = openingBounds[stem];
+    if (measured?.sha256 !== hash || measured.bounds.length !== 4 || !measured.bounds.every(Number.isFinite)) {
+      throw new Error('Opening artwork changed. Install Inkscape and rerun swift:prepare with --measure-opening-bounds.');
+    }
+    [x, y, width, height] = measured.bounds;
   }
   if (page <= 604) {
     const padX = width * .06 / .88, padY = height * .06 / .88;
@@ -86,6 +96,7 @@ for (let page = 1; page <= 606; page++) {
   renderedBoxes[stem] = renderedBox;
   hitmaps[page] = { viewBox: renderedBox, verses };
 }
+if (remeasure) await fs.writeFile(openingBoundsPath, JSON.stringify(openingBounds, null, 2) + '\n');
 // Remove only obsolete generated page representations after all new pages exist.
 for (const name of await fs.readdir(pageDir)) {
   if (/^\d{3}\.(pdf|sha256)$/.test(name)) await fs.unlink(path.join(pageDir, name));
