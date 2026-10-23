@@ -73,6 +73,7 @@ jobs:
         if: always()
         run: |
           if [ -d target/swift-port/ios-smoke.xcresult ]; then
+            xcrun xcresulttool export diagnostics --path target/swift-port/ios-smoke.xcresult --output-path target/swift-port/ios-diagnostics
             xcrun xcresulttool export attachments --path target/swift-port/ios-smoke.xcresult --output-path target/swift-port/ios-screenshots
             xcrun xcresulttool get test-results summary --path target/swift-port/ios-smoke.xcresult > target/swift-port/ios-test-summary.json
           fi
@@ -86,6 +87,7 @@ jobs:
             target/swift-port/built-app-info.plist
             target/swift-port/ci-project/AppInfo.plist
             target/swift-port/ios-screenshots
+            target/swift-port/ios-diagnostics
             target/swift-port/ios-test-summary.json
             target/swift-port/ci-project/project.json
           retention-days: 7

@@ -40,6 +40,16 @@ with open(sys.argv[1], 'rb') as source:
 assert info.get('CFBundleIdentifier') == 'org.saadmusbeh.quranadhanqibla.swift', info
 assert info.get('CFBundleExecutable') == 'QuranAdhanQibla', info
 PYINFO
+swift - "$app_path" <<'SWIFTINFO'
+import Foundation
+let url = URL(fileURLWithPath: CommandLine.arguments[1])
+guard let bundle = Bundle(url: url) else { fatalError("Foundation cannot open app bundle") }
+print("Foundation app identifier:", bundle.bundleIdentifier ?? "nil")
+print("Foundation app metadata:", bundle.infoDictionary ?? [:])
+SWIFTINFO
+xcrun simctl bootstatus "$simulator_id" -b
+xcrun simctl install "$simulator_id" "$app_path"
+xcrun simctl launch "$simulator_id" org.saadmusbeh.quranadhanqibla.swift
 xcodebuild test-without-building \
   -project "$project_path" -scheme SwiftPort \
   -destination "id=$simulator_id" \
