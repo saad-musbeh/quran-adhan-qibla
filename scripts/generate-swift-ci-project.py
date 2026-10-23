@@ -27,8 +27,8 @@ def main() -> None:
         {
             "CFBundleDevelopmentRegion": "ar",
             "CFBundleDisplayName": "قرآن · أذان · قبلة",
-            "CFBundleExecutable": "$(EXECUTABLE_NAME)",
-            "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
+            "CFBundleExecutable": "QuranAdhanQibla",
+            "CFBundleIdentifier": "org.saadmusbeh.quranadhanqibla.swift",
             "CFBundleInfoDictionaryVersion": "6.0",
             "CFBundleName": "QuranAdhanQibla",
             "CFBundlePackageType": "APPL",

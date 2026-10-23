@@ -25,12 +25,24 @@ print(devices[0]["udid"])
 ')"
 
 rm -rf "$result_path"
-set -o pipefail
-xcodebuild test \
-  -project "$project_path" \
-  -scheme SwiftPort \
+xcodebuild build-for-testing \
+  -project "$project_path" -scheme SwiftPort \
+  -destination "id=$simulator_id" \
+  -derivedDataPath "$output_root/derived-data" \
+  CODE_SIGNING_ALLOWED=NO 2>&1 | tee "$log_path"
+app_path="$output_root/derived-data/Build/Products/Debug-iphonesimulator/QuranAdhanQibla.app"
+cp "$app_path/Info.plist" "$output_root/built-app-info.plist"
+plutil -p "$output_root/built-app-info.plist"
+python3 - "$output_root/built-app-info.plist" <<'PYINFO'
+import plistlib, sys
+with open(sys.argv[1], 'rb') as source:
+    info = plistlib.load(source)
+assert info.get('CFBundleIdentifier') == 'org.saadmusbeh.quranadhanqibla.swift', info
+assert info.get('CFBundleExecutable') == 'QuranAdhanQibla', info
+PYINFO
+xcodebuild test-without-building \
+  -project "$project_path" -scheme SwiftPort \
   -destination "id=$simulator_id" \
   -derivedDataPath "$output_root/derived-data" \
   -resultBundlePath "$result_path" \
-  CODE_SIGNING_ALLOWED=NO \
-  2>&1 | tee "$log_path"
+  CODE_SIGNING_ALLOWED=NO 2>&1 | tee -a "$log_path"
