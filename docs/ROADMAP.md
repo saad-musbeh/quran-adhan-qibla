@@ -1,5 +1,7 @@
 # Roadmap
 
+Current source: **0.6.5 / Android code 28 / iOS build 28** on `main`, including the merged iOS, dependency-security and test-quality follow-ups. Checked items record implementation or the specific verification stated; physical-device validation remains separate. See [release notes](RELEASE-0.6.5.md) and [iOS testing status](IOS-TESTING.md#current-status).
+
 ## Foundation
 
 - [x] React Native / Expo TypeScript starter for iOS and Android.
@@ -24,21 +26,22 @@
 - [x] Import all 114 surahs with verse identifiers and offline storage.
 - [x] Build the reader, font-size controls, bookmarks, and one initial reading copy with additions up to six independently saved copies.
 - [x] Add verse search and selectable source-hosted recitations with private offline downloads.
-- [x] Add an optional four-book QuranEnc tafsir library with release checks and private, atomic offline downloads; keep tafsir text out of the runtime bundle.
+- [x] Expand the optional sourced tafsir library to 36 editions (11 Arabic and 25 published non-Arabic), with source/edition checks, private atomic downloads and documented source gaps; keep tafsir text out of the runtime bundle. See [tafsir sources](TAFSIR.md).
 - [x] Keep Quran source path and verse data unchanged while centering all 604 pages at equal 6% artwork margins and cropping only the empty opening-page viewBoxes.
-- [x] Add the original geometric opening frame and theme-aware reader frame/metadata/controls; persist the five app-wide color themes and their light/dark variants through the top gear sheet.
+- [x] Add the original floral opening frame and theme-aware reader frame/metadata/controls; persist the five app-wide color themes and their light/dark variants through the top gear sheet.
 - [x] Add immediate same-surah looping from a long-pressed ayah, an optional ending-ayah review editor, direct start/end selection on the page, and native playlist loop-all playback.
-- [x] Verify the 0.3.3 reader themes, opening pages, ayah loop selection, offline native queue transitions, and foreground playback on the Android emulator. See [reader QA](READER-COMPASS-QA.md); physical-device and native iOS checks remain pending.
+- [x] Verify the 0.3.3 reader themes, opening pages, ayah loop selection, offline native queue transitions, and foreground playback on the Android emulator. See [reader QA](READER-COMPASS-QA.md) for that historical run; later iOS simulator coverage is recorded in [iOS testing status](IOS-TESTING.md#current-status), with physical-device checks still open.
 - [x] Expand to twenty reciters with Al-Husary as the fresh default, preserving saved choices and separate per-voice offline storage.
 - [x] Add a saved audio/tafsir download manager and playback failure/reconnection recovery.
 - [x] Add full-Quran downloads with cancellation, cached-ayah continuation and job-specific retry.
 - [x] Keep library navigation visible, merge global settings and add original floral opening-page frames.
 - [x] Put shared light/dark appearance in the banner, simplify reader tools, enlarge search, and enter page/juz numbers inline.
 - [x] Keep landscape pages, turns, zoom and panning together in one book spread.
-Quran verse translations are permanently out of scope and will not be added.
 - [x] Add complete-surah recordings for continuous main-button playback and optional offline downloads; reset surah-end behavior to Stop each app session.
 - [ ] Confirm continuous full-surah playback, natural pauses and stopping on the reporting physical phone.
 - [ ] Verify Quran audio interruptions and lock-screen behavior on physical Android/iOS devices.
+
+Quran verse translations are permanently out of scope and will not be added. Interface localization and the existing sourced tafsir library remain supported.
 
 ## Prayer times and Adhan
 
@@ -48,7 +51,7 @@ Quran verse translations are permanently out of scope and will not be added.
 - [x] Persist validated location and preferences across app sessions.
 - [x] Use the phone’s calendar/timezone/DST, six calculation methods, Asr school, and optional Ramadan Isha.
 - [x] Add configurable middle/seventh/angle twilight rules and an explicit nearest-usable-latitude polar approximation, shared by schedules and alerts.
-- [x] Check Makkah and London reference schedules, winter/summer DST, and explicit polar rejection.
+- [x] Check Makkah, London, Sydney and Santiago reference schedules, northern/southern hemisphere DST boundaries, and explicit polar rejection.
 - [ ] Expand prayer reference fixtures across more regions and boundary conditions.
 - [x] Add optional Android prayer notifications with a CC0 Adhan channel sound, permission recovery and a test alert.
 - [x] Add local iOS prayer notifications, a 29-second Adhan excerpt, permission recovery and a five-second test.
@@ -68,7 +71,7 @@ Quran verse translations are permanently out of scope and will not be added.
 - [x] Keep main screens compact, with swipe navigation and tabs that hide after inactivity.
 - [x] Add device heading, true/magnetic north handling, and calibration guidance.
 - [x] User reports completing 0.5.1 real-phone compass/GPS follow-up checks; device details/logs were not recorded.
-- [ ] Verify the new animated compass on physical devices and complete native iOS checks.
+- [ ] Verify the animated compass on physical Android/iOS devices, including heading accuracy, calibration guidance and live/fixed fallback; simulator checks do not establish sensor accuracy.
 - [x] Allow optional manual location entry without requiring GPS permission.
 - [x] Create and configure the Android Quran/direction launcher and notification icons.
 - [x] Use the Quran/direction launcher icon on iOS.
