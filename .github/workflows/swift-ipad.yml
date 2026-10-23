@@ -69,6 +69,13 @@ jobs:
         run: command -v xcodegen >/dev/null || brew install xcodegen
       - name: Build and run the Swift app on an iPad simulator
         run: bash scripts/build-swift-ios.sh
+      - name: Export simulator screenshots and test summary
+        if: always()
+        run: |
+          if [ -d target/swift-port/ios-smoke.xcresult ]; then
+            xcrun xcresulttool export attachments --path target/swift-port/ios-smoke.xcresult --output-path target/swift-port/ios-screenshots
+            xcrun xcresulttool get test-results summary --path target/swift-port/ios-smoke.xcresult > target/swift-port/ios-test-summary.json
+          fi
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -76,5 +83,7 @@ jobs:
           path: |
             target/swift-port/ios-smoke.xcresult
             target/swift-port/ios-build.log
+            target/swift-port/ios-screenshots
+            target/swift-port/ios-test-summary.json
             target/swift-port/ci-project/project.json
           retention-days: 7

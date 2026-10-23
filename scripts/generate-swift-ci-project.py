@@ -151,7 +151,7 @@ def main() -> None:
                 "run": {"config": "Debug"},
                 "test": {
                     "config": "Debug",
-                    "targets": [{"target": "SwiftPortUITests", "parallelizable": False}],
+                    "targets": [{"name": "SwiftPortUITests", "parallelizable": False}],
                 },
                 "profile": {"config": "Release"},
                 "analyze": {"config": "Debug"},
