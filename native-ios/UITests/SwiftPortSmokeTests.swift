@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 final class SwiftPortSmokeTests: XCTestCase {
@@ -101,7 +102,13 @@ final class SwiftPortSmokeTests: XCTestCase {
   }
 
   private func attachScreenshot(named name: String, app: XCUIApplication) {
-    let attachment = XCTAttachment(screenshot: app.screenshot())
+    let captured = XCUIScreen.main.screenshot().image
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = captured.scale
+    let normalized = UIGraphicsImageRenderer(size: captured.size, format: format).image { _ in
+      captured.draw(in: CGRect(origin: .zero, size: captured.size))
+    }
+    let attachment = XCTAttachment(image: normalized)
     attachment.name = name
     attachment.lifetime = .keepAlways
     add(attachment)
