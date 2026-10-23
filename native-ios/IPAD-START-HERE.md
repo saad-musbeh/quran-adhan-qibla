@@ -12,7 +12,7 @@
 
 للنشر: افتح **إعدادات التطبيق** في Swift Playground، واختر حساب فريق Apple Developer ومعرّف حزمة فريداً، وتحقّق من الأيقونة المرفقة، ثم استخدم **Upload to App Store Connect**. أكمِل بيانات الخصوصية والصور والتصنيف العمري والمراجعة من App Store Connect. لا يحتوي المشروع على حساب أو بيانات توقيع خاصة بك.
 
-اختبارات الحسابات وصحة الموارد اجتازت الفحص على Linux. لم يتوفر Xcode أو iPad أثناء الإنشاء؛ بناء Apple الفعلي والتوقيع وسلوك الصوت في الخلفية والإشعارات والبوصلة على الجهاز لم تُتحقق بعد. ابدأ برفع نسخة TestFlight وتجربتها قبل النشر العام. يحتوي المشروع على `AppInfo.plist` يعلن تشغيل الصوت في الخلفية، ويحتاج استمرار هذا الإعداد بعد تعديل إعدادات المشروع إلى التحقق على iPad.
+اجتازت اختبارات الحسابات والموارد، وفحص SDK وبناء التطبيق وتثبيته وتشغيله واختبار القراءة على محاكي iPad عبر GitHub. يستخدم الاختبار مشروع Xcode مولّداً من مصدر التطبيق نفسه؛ لم يُختبر استيراد Swift Playground أو التوقيع أو الصوت في الخلفية والإشعارات والبوصلة على iPad فعلي بعد. ابدأ برفع نسخة TestFlight وتجربتها قبل النشر العام. يحتوي المشروع على `AppInfo.plist` يعلن تشغيل الصوت في الخلفية، ويحتاج استمرار هذا الإعداد بعد تعديل إعدادات المشروع إلى التحقق على iPad.
 
 ---
 
@@ -28,7 +28,9 @@ This is the complete standalone Swift source project, with Quran, Adhan, Qibla, 
 
 To publish, open **App Settings** in Swift Playground, select your Apple Developer team and a unique bundle identifier, check the supplied custom icon, and choose **Upload to App Store Connect**. Complete privacy details, screenshots, age rating and review in App Store Connect. The project contains no account credentials or personal signing configuration.
 
-Calculation tests and resource checks passed on Linux. Xcode and an iPad were unavailable during creation, so the Apple build, signing, background audio, notification delivery and physical compass remain unverified. Start with TestFlight and device testing before public release. `AppInfo.plist` declares background audio; verify that the declaration survives project-setting edits on your iPad.
+Calculation/resource checks and an actual Apple SDK build, install, launch and reader smoke test passed on GitHub’s iPad simulator. CI uses an Xcode project generated from the same app source/resources. Swift Playground import, signing, background audio, notification delivery and physical compass remain unverified on a physical iPad. Start with TestFlight and device testing before public release. `AppInfo.plist` declares background audio; verify that the declaration survives project-setting edits on your iPad.
+
+[GitHub build and simulator checks](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/40036357382).
 
 Apple's guide: https://support.apple.com/guide/playgrounds-ipad/share-a-playground-itc65b2d9a15/ipados
 

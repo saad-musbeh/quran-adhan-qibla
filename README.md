@@ -4,7 +4,7 @@
 
 This app includes an offline Arabic Quran reader with verse audio, Arabic/English menus and 38 optional testing languages, saved foreground location, shared Rust calculations for Qibla and today’s prayer times, and optional local prayer notifications on Android and iOS with bundled Adhan sounds.
 
-A separate [Swift-only iPhone/iPad source port](native-ios/README.md) is prepared as an app playground for an iPad publishing workflow. It includes all main app areas and a complete offline resource archive; Apple-target compilation and physical-device behavior remain unverified. See [the bilingual iPad opening/publishing instructions](native-ios/IPAD-START-HERE.md).
+A separate [Swift-only iPhone/iPad source port](native-ios/README.md) is prepared as an app playground for an iPad publishing workflow. It includes all main app areas and a complete offline resource archive; Apple SDK compilation, a complete simulator build, installation, launch and initial reader checks pass on GitHub. Swift Playground import/signing and physical-device behavior remain unverified. See [the bilingual iPad opening/publishing instructions](native-ios/IPAD-START-HERE.md).
 
 ## What is ready
 
