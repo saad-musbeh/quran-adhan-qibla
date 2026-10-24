@@ -1,5 +1,7 @@
 # افتح التطبيق على iPad / Open on iPad
 
+للتسجيل في برنامج المطور ورفع التطبيق ودعوة المختبرين، اتبع [دليل TestFlight بالعربية والإنجليزية](TESTFLIGHT-IPAD-AR-EN.md). For enrollment, upload and tester invitations, follow [the Arabic/English TestFlight guide](TESTFLIGHT-IPAD-AR-EN.md).
+
 تستخدم النسخة المضغوطة صفحات SVG الأصلية دون فقدان الجودة، وتحتوي على جميع الصفحات دون اتصال.
 
 هذه نسخة Swift مستقلة تضم شاشات القرآن والأذان والقبلة والأذكار والتنزيلات والإعدادات مع موارد القراءة دون اتصال. الملف مشروع مصدر لـ Swift Playground، وليس ملف تثبيت IPA أو إصداراً موقّعاً.

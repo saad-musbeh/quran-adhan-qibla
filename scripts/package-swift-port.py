@@ -19,7 +19,7 @@ with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as bun
         if not path.is_file() or any(part in excluded for part in relative.parts) or path.suffix == '.sha256':
             continue
         bundle.write(path, 'QuranAdhanQibla.swiftpm/' + relative.as_posix(), compress_type=zipfile.ZIP_STORED if path.suffix == '.svgz' else zipfile.ZIP_DEFLATED)
-    for path, label in [(root / 'native-ios/IPAD-START-HERE.md', 'START-HERE.md'), (root / 'native-ios/README.md', 'DEVELOPER-README.md'), (root / 'native-ios/ADHAN-LICENSE', 'ADHAN-LICENSE.txt')]:
+    for path, label in [(root / 'native-ios/IPAD-START-HERE.md', 'START-HERE.md'), (root / 'native-ios/README.md', 'DEVELOPER-README.md'), (root / 'native-ios/TESTFLIGHT-IPAD-AR-EN.md', 'TESTFLIGHT-IPAD-AR-EN.md'), (root / 'native-ios/ADHAN-LICENSE', 'ADHAN-LICENSE.txt')]:
         bundle.write(path, label)
 digest = hashlib.sha256(archive.read_bytes()).hexdigest()
 with zipfile.ZipFile(archive) as bundle:

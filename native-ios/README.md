@@ -1,5 +1,7 @@
 # Standalone Swift iOS/iPadOS app
 
+For enrollment, upload and external beta distribution, follow [the Arabic/English TestFlight guide](TESTFLIGHT-IPAD-AR-EN.md).
+
 `QuranAdhanQibla.swiftpm` is a separate SwiftUI app playground for iPhone and iPad, targeting iOS/iPadOS 17 or later. Its runtime is Swift source and Apple system frameworks. It has no React Native, Expo, Rust, JavaScript, CocoaPods or third-party binary requirement. The existing cross-platform app remains in the repository root.
 
 The current distribution is **1.0.2 / build 3**, `dist/swift-ios/QuranAdhanQibla-iPad-build3-compact.zip`. Follow [the bilingual iPad instructions](IPAD-START-HERE.md). Generated `OfflineContent` and icon assets are excluded from Git and included in the ZIP; downloading the raw `.swiftpm` source directory from Git without preparing resources is insufficient.
