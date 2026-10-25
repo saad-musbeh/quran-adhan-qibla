@@ -32,7 +32,7 @@ To publish, open **App Settings** in Swift Playground, select your Apple Develop
 
 Calculation/resource checks and an actual Apple SDK build, install, launch and reader smoke test passed on GitHub’s iPad simulator. CI uses an Xcode project generated from the same app source/resources. Swift Playground import, signing, background audio, notification delivery and physical compass remain unverified on a physical iPad. Start with TestFlight and device testing before public release. `AppInfo.plist` declares background audio; verify that the declaration survives project-setting edits on your iPad.
 
-[GitHub build and simulator checks](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/40036357382).
+[GitHub build and simulator checks](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/40171064962).
 
 Apple's guide: https://support.apple.com/guide/playgrounds-ipad/share-a-playground-itc65b2d9a15/ipados
 

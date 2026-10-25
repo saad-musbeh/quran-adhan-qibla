@@ -254,6 +254,6 @@ Each uploaded build can be tested for up to **90 days**. Public App Store releas
 
 ## حدود التحقق / Verification limits
 
-اجتاز المصدر بناء Apple SDK والتثبيت والتشغيل واختبار القراءة على محاكي iPad عبر [GitHub](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/40036357382). لم يُتحقق بعد من استيراد Swift Playground والتوقيع ورفع App Store Connect أو السلوك على جهاز فعلي. استخدم TestFlight للتحقق منها قبل النشر العام.
+اجتاز المصدر بناء Apple SDK والتثبيت والتشغيل واختبار القراءة على محاكي iPad عبر [GitHub](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/40171064962). لم يُتحقق بعد من استيراد Swift Playground والتوقيع ورفع App Store Connect أو السلوك على جهاز فعلي. استخدم TestFlight للتحقق منها قبل النشر العام.
 
-The source passed an Apple SDK build, installation, launch and reader checks on [GitHub's iPad simulator](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/40036357382). Swift Playground import, signing, App Store Connect upload and physical-device behavior remain unverified. Use TestFlight to verify these before public release.
+The source passed an Apple SDK build, installation, launch and reader checks on [GitHub's iPad simulator](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/40171064962). Swift Playground import, signing, App Store Connect upload and physical-device behavior remain unverified. Use TestFlight to verify these before public release.
