@@ -2,9 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { gunzipSync } from 'node:zlib';
 import { decompress } from 'fzstd';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { swiftPortIcon } from './swift-port-icon.mjs';
 
@@ -44,17 +43,17 @@ for (const country of await read('countries')) {
   cityCount += cities.length;
 }
 assert.equal(cityCount, 224763);
-const compactFixtures = path.join(root, 'target/swift-port/compact-fixtures');
-await fs.mkdir(compactFixtures, { recursive: true });
+const assetManifest = await read('swift-port-assets');
 const canonical = new Set(quran.verses.map(v => `${v.surah}:${v.number}`));
 const covered = new Set();
 for (let page = 1; page <= 606; page++) {
-  const file = path.join(resources, 'Pages', `${String(page).padStart(3, '0')}.svgz`);
-  const svg = gunzipSync(await fs.readFile(file)).toString('utf8');
+  const file = path.join(resources, 'Pages', `${String(page).padStart(3, '0')}.svg.xz`);
+  const decoded = execFileSync('xz', ['--decompress', '--stdout', file], { maxBuffer: 8 * 1024 * 1024 });
+  const svg = decoded.toString('utf8');
   const stem = String(page).padStart(3, '0');
-  if ([1, 3, 604, 606].includes(page)) await fs.writeFile(path.join(compactFixtures, `${stem}.svg`), svg);
+  assert.equal(crypto.createHash('sha256').update(decoded).digest('hex'), assetManifest.renderedSvgSha256[`${stem}.svg`]);
   const original = Buffer.from(decompress(await fs.readFile(path.join(root, 'assets/mushaf/pages', `${stem}.svg.zst`))));
-  const sourceHashes = (await read('swift-port-assets')).sourceSvgSha256;
+  const sourceHashes = assetManifest.sourceSvgSha256;
   assert.equal(crypto.createHash('sha256').update(original).digest('hex'), sourceHashes[`${stem}.svg`]);
   // Every byte except the intentional fit/crop viewBox is identical to the source.
   const normalizeBox = text => text.replace(/viewBox="[^"]+"/, 'viewBox="SOURCE"');
@@ -93,6 +92,7 @@ for (const file of (await fs.readdir(path.join(resources, 'Sounds'))).filter(f =
   assert.ok(byteRate > 0 && length / byteRate < 30, `${file}: iOS sound is shorter than 30 seconds`);
 }
 assert.equal((await fs.readdir(path.join(resources, 'Pages'))).filter(f => f.endsWith('.pdf')).length, 0, 'Compact package excludes obsolete PDFs');
+assert.equal((await fs.readdir(path.join(resources, 'Pages'))).filter(f => f.endsWith('.svgz')).length, 0, 'Compact package excludes obsolete gzip pages');
 console.log('Asset verification passed: original content bytes, all pages/verse targets, all countries/cities, and notification audio.');
 if (process.argv.includes('--assets-only')) process.exit(0);
 
@@ -110,16 +110,12 @@ if (!spawnSync('swift', ['--version'], { stdio: 'ignore' }).error) {
   run('swiftc', ['-frontend', '-parse', ...sources], project);
   run('swiftc', ['-parse-as-library', 'Sources/App/ResourceLocator.swift', '../Verification/ResourceLocatorChecks.swift', '-o', resourceCheckBinary], project);
   run(resourceCheckBinary, []);
-  const compactBinary = path.join(resourceCheckDir, 'compact-page-check');
-  run('swiftc', ['-parse-as-library', '-I', '../Verification/CZlib', 'Sources/App/CompactPageData.swift', '../Verification/CompactPageChecks.swift', '-o', compactBinary], project);
-  run(compactBinary, [path.join(resources, 'Pages'), compactFixtures]);
+  if (process.platform === 'darwin') run('bash', ['scripts/check-swift-page-decoder.sh']);
 } else if (!spawnSync('podman', ['--version'], { stdio: 'ignore' }).error) {
   const base = ['run', '--rm', '-v', `${root}:/work:z`, '-w', '/work/native-ios/QuranAdhanQibla.swiftpm', 'docker.io/library/swift:6.0'];
   run('podman', [...base, 'swift', 'test', '--jobs', '4', '--scratch-path', '/work/target/swift-port/build']);
   run('podman', [...base, 'swiftc', '-frontend', '-parse', ...sources]);
   run('podman', [...base, 'swiftc', '-parse-as-library', 'Sources/App/ResourceLocator.swift', '../Verification/ResourceLocatorChecks.swift', '-o', '/work/target/swift-port/resource-check/resource-locator-check']);
   run('podman', [...base, '/work/target/swift-port/resource-check/resource-locator-check']);
-  run('podman', [...base, 'swiftc', '-parse-as-library', '-I', '../Verification/CZlib', 'Sources/App/CompactPageData.swift', '../Verification/CompactPageChecks.swift', '-o', '/work/target/swift-port/resource-check/compact-page-check']);
-  run('podman', [...base, '/work/target/swift-port/resource-check/compact-page-check', '/work/native-ios/QuranAdhanQibla.swiftpm/Sources/App/OfflineContent/Pages', '/work/target/swift-port/compact-fixtures']);
 } else { throw new Error('Install Swift 6 or Podman to run the Swift core tests and syntax checks.'); }
-console.log('Swift core tests, source syntax, resource locator, and compact page decoder checks passed. Apple SDK typechecking and device behavior require iPad Swift Playground or macOS/Xcode.');
+console.log('Swift core tests, source syntax, resource locator and XZ asset checks passed. Apple Compression decoder checks run on macOS (including GitHub simulator CI); iOS behavior requires an Apple SDK build/device.');

@@ -1,7 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { gzipSync } from 'node:zlib';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { decompress } from 'fzstd';
@@ -43,13 +42,14 @@ for (const [src, dest] of [
   ['assets/tafsir/TAFSIR-MIRROR-LICENSE.txt', 'TAFSIR-MIRROR-LICENSE.txt'],
 ]) await fs.copyFile(path.join(root, src), path.join(resources, 'Credits', dest));
 // Preserve every verified SVG path. Only the viewBox changes to fit the original
-// artwork inside equal margins. Runtime uses system zlib and WebKit with JavaScript
+// artwork inside equal margins. Runtime uses Apple Compression and WebKit with JavaScript
 // disabled; compressed pages stay compact in both the archive and installed app.
 const svgDir = path.join(root, 'target/swift-port/svg');
 const pageDir = path.join(resources, 'Pages');
 await fs.mkdir(svgDir, { recursive: true }); await fs.mkdir(pageDir, { recursive: true });
 const manifest = JSON.parse(await fs.readFile(path.join(root, 'src/data/mushaf-manifest.json'), 'utf8'));
 const outputHashes = {};
+const renderedHashes = {};
 const hitmaps = {};
 const renderedBoxes = {};
 const openingBoundsPath = path.join(root, 'scripts/swift-opening-bounds.json');
@@ -92,18 +92,29 @@ for (let page = 1; page <= 606; page++) {
   }
   const renderedBox = [x, y, width, height];
   const rendered = svg.replace(/viewBox="[^"]+"/, `viewBox="${renderedBox.join(' ')}"`);
-  await fs.writeFile(path.join(pageDir, `${stem}.svgz`), gzipSync(Buffer.from(rendered), { level: 9 }));
+  const output = path.join(pageDir, `${stem}.svg.xz`);
+  const renderedBytes = Buffer.from(rendered);
+  renderedHashes[`${stem}.svg`] = crypto.createHash('sha256').update(renderedBytes).digest('hex');
+  // XZ/LZMA2 is supported by Apple's built-in Compression framework on iOS 17.
+  // A 1 MiB dictionary avoids the large decoder allocation implied by -9 alone.
+  // Reuse a generated page only after checking its complete decompressed bytes.
+  let existing;
+  try { existing = execFileSync('xz', ['--decompress', '--stdout', output], { maxBuffer: 8 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }); } catch {}
+  if (!existing?.equals(renderedBytes)) {
+    const compressed = execFileSync('xz', ['--stdout', '--check=crc32', '--lzma2=preset=9e,dict=1MiB'], { input: renderedBytes, maxBuffer: 2 * 1024 * 1024 });
+    await fs.writeFile(output, compressed);
+  }
   renderedBoxes[stem] = renderedBox;
   hitmaps[page] = { viewBox: renderedBox, verses };
 }
 if (remeasure) await fs.writeFile(openingBoundsPath, JSON.stringify(openingBounds, null, 2) + '\n');
 // Remove only obsolete generated page representations after all new pages exist.
 for (const name of await fs.readdir(pageDir)) {
-  if (/^\d{3}\.(pdf|sha256)$/.test(name)) await fs.unlink(path.join(pageDir, name));
+  if (/^\d{3}\.(pdf|sha256|svgz)$/.test(name)) await fs.unlink(path.join(pageDir, name));
 }
 await fs.writeFile(path.join(pageDir, 'rendering-viewboxes.json'), JSON.stringify(renderedBoxes));
 await json('page-hitmaps', hitmaps);
-await json('swift-port-assets', { schema: 1, sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), quranPages: 604, appendixPages: 2, cityCount: cities.length, sourceSvgSha256: outputHashes });
+await json('swift-port-assets', { schema: 2, sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), quranPages: 604, appendixPages: 2, cityCount: cities.length, sourceSvgSha256: outputHashes, renderedSvgSha256: renderedHashes });
 const icons = path.join(app, 'Assets.xcassets/AppIcon.appiconset');
 await fs.mkdir(icons, { recursive: true });
 // Follow the current iOS configuration, including future launcher-icon changes.

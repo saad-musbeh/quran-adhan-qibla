@@ -168,7 +168,7 @@ final class Content {
       Set(quran.verses.map(\.id)).count == 6236, reciters.count == 20,
       (1...606).allSatisfy({
         FileManager.default.fileExists(
-          atPath: root.appendingPathComponent(String(format: "Pages/%03d.svgz", $0)).path)
+          atPath: root.appendingPathComponent(String(format: "Pages/%03d.svg.xz", $0)).path)
       })
     else { throw CocoaError(.fileReadCorruptFile) }
     byPage = Dictionary(grouping: quran.verses, by: \.page)
@@ -177,7 +177,7 @@ final class Content {
   }
 
   func pageURL(_ page: Int) -> URL {
-    root.appendingPathComponent(String(format: "Pages/%03d.svgz", page))
+    root.appendingPathComponent(String(format: "Pages/%03d.svg.xz", page))
   }
   func surah(_ number: Int) -> Surah { quran.surahs[min(113, max(0, number - 1))] }
   func verses(_ page: Int) -> [Verse] { byPage[page] ?? [] }

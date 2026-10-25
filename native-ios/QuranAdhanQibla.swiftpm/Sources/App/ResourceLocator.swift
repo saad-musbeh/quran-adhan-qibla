@@ -30,7 +30,7 @@ enum ResourceLocator {
         if let resourceURL = Bundle(url: bundle)?.resourceURL { add(resourceURL) }
       }
     }
-    let required = ["quran.json", "reciters.json", "tafsir-catalogue.json", "Pages/001.svgz"]
+    let required = ["quran.json", "reciters.json", "tafsir-catalogue.json", "Pages/001.svg.xz"]
     if let found = candidates.first(where: { root in
       required.allSatisfy { fileManager.fileExists(atPath: root.appendingPathComponent($0).path) }
     }) {

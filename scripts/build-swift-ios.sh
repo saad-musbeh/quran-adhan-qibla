@@ -10,6 +10,7 @@ log_path="$output_root/ios-build.log"
 result_path="$output_root/ios-smoke.xcresult"
 
 mkdir -p "$project_dir"
+bash "$repo_root/scripts/check-swift-page-decoder.sh"
 python3 "$repo_root/scripts/generate-swift-ci-project.py" \
   --repo-root "$repo_root" --output "$spec_path"
 xcodegen generate --spec "$spec_path" --project "$project_dir"

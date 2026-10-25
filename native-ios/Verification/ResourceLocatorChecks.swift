@@ -44,7 +44,7 @@ struct ResourceLocatorChecks {
   private static func writeFixture(at root: URL) throws {
     let manager = FileManager.default
     try manager.createDirectory(at: root.appendingPathComponent("Pages", isDirectory: true), withIntermediateDirectories: true)
-    for name in ["quran.json", "reciters.json", "tafsir-catalogue.json", "Pages/001.svgz"] {
+    for name in ["quran.json", "reciters.json", "tafsir-catalogue.json", "Pages/001.svg.xz"] {
       try write("fixture", to: root.appendingPathComponent(name))
     }
   }

@@ -2,9 +2,9 @@
 
 آخر تحقق من تعليمات Apple: 24 أكتوبر 2026. / Apple instructions checked: 24 October 2026.
 
-دليل لتطبيق **قرآن · أذان · قبلة**، نسخة Swift **1.0.2 (3)**. يمكنك تنفيذ الخطوات على iPad باستخدام Swift Playground وSafari. قد تختلف أسماء الأزرار حسب لغة الواجهة وتحديثات Apple.
+دليل لتطبيق **قرآن · أذان · قبلة**، نسخة Swift **1.0.3 (4)**. يمكنك تنفيذ الخطوات على iPad باستخدام Swift Playground وSafari. قد تختلف أسماء الأزرار حسب لغة الواجهة وتحديثات Apple.
 
-Guide for **Quran · Adhan · Qibla**, Swift version **1.0.2 (3)**. Use Swift Playground and Safari on your iPad. Button names may vary with Apple's updates and your interface language.
+Guide for **Quran · Adhan · Qibla**, Swift version **1.0.3 (4)**. Use Swift Playground and Safari on your iPad. Button names may vary with Apple's updates and your interface language.
 
 - [العربية](#العربية)
 - [English](#english)
@@ -28,10 +28,10 @@ Guide for **Quran · Adhan · Qibla**, Swift version **1.0.2 (3)**. Use Swift Pl
 
 ### 2. تجهيز المشروع ومعرّف الحزمة
 
-1. فك ضغط `QuranAdhanQibla-iPad-build3-compact.zip` في مجلد جديد داخل **الملفات**.
-2. افتح `QuranAdhanQibla.swiftpm` في Swift Playground، واضغط **Run App**. تحقّق من ظهور `1.0.2 (3)` في إعدادات التطبيق.
+1. فك ضغط `QuranAdhanQibla-iPad-build4-compact.zip` في مجلد جديد داخل **الملفات**.
+2. افتح `QuranAdhanQibla.swiftpm` في Swift Playground، واضغط **Run App**. تحقّق من ظهور `1.0.3 (4)` في إعدادات التطبيق.
 3. افتح الشريط الجانبي ثم **App Settings / إعدادات التطبيق**، وسجّل الدخول إلى فريق عضويتك.
-4. تحقّق من الأيقونة الجديدة، وإصدار `1.0.2`، والبناء `3`، والحد الأدنى `17.0`، وفئة **Reference**.
+4. تحقّق من الأيقونة الجديدة، وإصدار `1.0.3`، والبناء `4`، والحد الأدنى `17.0`، وفئة **Reference**.
 5. اختر معرّف حزمة فريداً تملكه في فريقك. القيمة الحالية في المشروع هي `org.saadmusbeh.quranadhanqibla.swift`. احتفظ بها إذا كانت مسجلة لفريقك، أو استبدلها قبل أول رفع.
 
 إذا لم يظهر المعرّف في App Store Connect، سجّله أولاً:
@@ -65,7 +65,7 @@ Guide for **Quran · Adhan · Qibla**, Swift version **1.0.2 (3)**. Use Swift Pl
 3. اضغط **Upload to App Store Connect** وأكمل الخطوات التي يعرضها التطبيق.
 4. بعد نجاح الرفع، افتح سجل التطبيق في Safari ثم **TestFlight**، وانتظر انتهاء معالجة Apple للبناء.
 
-اختر `1.0.2 (3)` عند ظهوره. إذا فشل البناء داخل Swift Playground، افتح **Show Issues** واقرأ أول خطأ. [تعليمات Apple للرفع](https://support.apple.com/guide/playgrounds-ipad/share-a-playground-itc65b2d9a15/ipados)
+اختر `1.0.3 (4)` عند ظهوره. إذا فشل البناء داخل Swift Playground، افتح **Show Issues** واقرأ أول خطأ. [تعليمات Apple للرفع](https://support.apple.com/guide/playgrounds-ipad/share-a-playground-itc65b2d9a15/ipados)
 
 ### 5. إنشاء مجموعة داخلية أولاً
 
@@ -101,7 +101,7 @@ Guide for **Quran · Adhan · Qibla**, Swift version **1.0.2 (3)**. Use Swift Pl
 ### 7. المجموعة الخارجية وإضافة البناء وإرساله للمراجعة
 
 1. بجانب **External Testing** اضغط **+**، وسمِّ المجموعة `Public Beta`، ثم **Create**.
-2. افتح المجموعة → **Add Builds**، واختر iOS ثم `1.0.2 (3)` وأكّد الإضافة. [إضافة البناء إلى مجموعة](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-testers-to-builds/)
+2. افتح المجموعة → **Add Builds**، واختر iOS ثم `1.0.3 (4)` وأكّد الإضافة. [إضافة البناء إلى مجموعة](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-testers-to-builds/)
 3. أدخل **What to Test**، وأكمل أي بيانات تواصل ناقصة.
 4. فعّل **Automatically notify testers** إن أردت الإشعار التلقائي بعد القبول.
 5. اضغط **Submit Review / Submit for Review** حسب الزر الظاهر.
@@ -149,10 +149,10 @@ If in-app enrollment is unavailable in your region, follow the available route o
 
 ### 2. Prepare the project and bundle ID
 
-1. Unzip `QuranAdhanQibla-iPad-build3-compact.zip` into a fresh folder in **Files**.
-2. Open `QuranAdhanQibla.swiftpm` in Swift Playground and tap **Run App**. Confirm Settings shows `1.0.2 (3)`.
+1. Unzip `QuranAdhanQibla-iPad-build4-compact.zip` into a fresh folder in **Files**.
+2. Open `QuranAdhanQibla.swiftpm` in Swift Playground and tap **Run App**. Confirm Settings shows `1.0.3 (4)`.
 3. Open the sidebar → **App Settings**, sign in and select your developer team.
-4. Check the new custom icon, version `1.0.2`, build `3`, minimum OS `17.0`, and **Reference** category.
+4. Check the new custom icon, version `1.0.3`, build `4`, minimum OS `17.0`, and **Reference** category.
 5. Choose a unique bundle ID registered to your team. The project uses `org.saadmusbeh.quranadhanqibla.swift`; keep it if your team owns it, otherwise replace it before the first upload.
 
 If the identifier is missing from App Store Connect, register it first:
@@ -186,7 +186,7 @@ Create this record before uploading. Creating apps requires the **Account Holder
 3. Tap **Upload to App Store Connect** and complete the displayed prompts.
 4. After upload succeeds, open the app record → **TestFlight** in Safari and wait for Apple to process it.
 
-Select `1.0.2 (3)` when available. For compilation failures, open **Show Issues** in Swift Playground and read the first error. [Apple's upload instructions](https://support.apple.com/guide/playgrounds-ipad/share-a-playground-itc65b2d9a15/ipados)
+Select `1.0.3 (4)` when available. For compilation failures, open **Show Issues** in Swift Playground and read the first error. [Apple's upload instructions](https://support.apple.com/guide/playgrounds-ipad/share-a-playground-itc65b2d9a15/ipados)
 
 ### 5. Create an internal group first
 
@@ -222,7 +222,7 @@ Friends can use external testing without becoming App Store Connect team members
 ### 7. Create an external group, add the build and submit
 
 1. Tap **+** beside **External Testing**, name the group `Public Beta`, and **Create**.
-2. Open it → **Add Builds**. Select iOS and `1.0.2 (3)`; confirm. [Assign a build to a group](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-testers-to-builds/)
+2. Open it → **Add Builds**. Select iOS and `1.0.3 (4)`; confirm. [Assign a build to a group](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-testers-to-builds/)
 3. Enter **What to Test** and any missing contact details.
 4. Select **Automatically notify testers** if desired.
 5. Tap **Submit Review / Submit for Review**, as displayed.
