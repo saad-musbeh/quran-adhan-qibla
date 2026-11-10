@@ -10,6 +10,11 @@ xcrun swiftc -swift-version 5 -parse-as-library \
   "$task_root/native-ios/Verification/AudioSessionChecks.swift" \
   -o "$task_build/audio-session-check"
 "$task_build/audio-session-check"
+xcrun swiftc -swift-version 5 -parse-as-library \
+  "$task_project/Sources/App/AdhanTestRequests.swift" \
+  "$task_root/native-ios/Verification/AdhanTestChecks.swift" \
+  -o "$task_build/adhan-test-check"
+"$task_build/adhan-test-check"
 task_sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
 task_arch="$(uname -m)"
 task_target="$task_arch-apple-ios17.0-simulator"

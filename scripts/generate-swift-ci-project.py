@@ -33,7 +33,7 @@ def main() -> None:
             "CFBundleName": "QuranAdhanQibla",
             "CFBundlePackageType": "APPL",
             "CFBundleShortVersionString": "1.0.3",
-            "CFBundleVersion": "5",
+            "CFBundleVersion": "6",
             "LSRequiresIPhoneOS": True,
             "NSLocationWhenInUseUsageDescription": (
                 "نستخدم موقعك أثناء فتح التطبيق لحساب مواقيت الصلاة واتجاه القبلة "
@@ -120,7 +120,7 @@ def main() -> None:
                         "PRODUCT_BUNDLE_IDENTIFIER": "org.saadmusbeh.quranadhanqibla.swift",
                         "PRODUCT_NAME": "QuranAdhanQibla",
                         "MARKETING_VERSION": "1.0.3",
-                        "CURRENT_PROJECT_VERSION": "5",
+                        "CURRENT_PROJECT_VERSION": "6",
                         "INFOPLIST_KEY_CFBundleDisplayName": "قرآن · أذان · قبلة",
                         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
                     }

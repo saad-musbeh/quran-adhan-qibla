@@ -13,6 +13,9 @@ import SwiftUI
   let stateURL: URL
   @Published var state: PersistedState {
     didSet {
+      if oldValue.preferences.alertsEnabled && !state.preferences.alertsEnabled {
+        alerts.cancelTests()
+      }
       persist()
       refreshAlerts()
     }

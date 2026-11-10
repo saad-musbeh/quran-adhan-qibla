@@ -5,6 +5,7 @@ import Foundation
 @MainActor final class AudioSessionActivation {
   private let queue = DispatchQueue(label: "org.saadmusbeh.quran.audio-session", qos: .userInitiated)
   private var pending: UUID?
+  private var intent = UUID()
   var isPending: Bool { pending != nil }
 
   func activate(
@@ -12,6 +13,7 @@ import Foundation
     completion: @escaping @MainActor @Sendable (Result<Void, Error>) -> Void
   ) {
     let token = UUID()
+    intent = token
     pending = token
     queue.async {
       let result = Result { try operation() }
@@ -23,7 +25,17 @@ import Foundation
     }
   }
 
-  func cancel() { pending = nil }
+  func cancel() { pending = nil; intent = UUID() }
+
+  func guardCurrentIntent(
+    _ completion: @escaping @MainActor @Sendable () -> Void
+  ) -> @MainActor @Sendable () -> Void {
+    let token = intent
+    return { [weak self] in
+      guard self?.intent == token else { return }
+      completion()
+    }
+  }
 
   func deactivate(operation: @escaping @Sendable () -> Void) {
     cancel()

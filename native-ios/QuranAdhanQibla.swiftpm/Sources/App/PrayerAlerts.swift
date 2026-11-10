@@ -20,6 +20,8 @@ import UserNotifications
   private let center = UNUserNotificationCenter.current()
   private let prefix = "qaq.swift."
   private var generation = UUID()
+  private let testRequests = AdhanTestRequests()
+  private var testID: String { prefix + "test.adhan" }
 
   override init() {
     super.init()
@@ -93,7 +95,10 @@ import UserNotifications
       }.map(\.identifier))
     if !preferences.alertsEnabled {
       center.removePendingNotificationRequests(
-        withIdentifiers: existing.filter { $0.identifier.hasPrefix(prefix + "test.") }.map(
+        withIdentifiers: existing.filter {
+          $0.identifier.hasPrefix(prefix + "test.")
+            && !(testRequests.hasRequest && $0.identifier == testID)
+        }.map(
           \.identifier))
     }
     scheduledCount = 0
@@ -193,20 +198,27 @@ import UserNotifications
     }
   }
 
+  func cancelTests() {
+    testRequests.cancel { center.removePendingNotificationRequests(withIdentifiers: [testID]) }
+  }
+
   func test(prayer: PrayerID, choice: PrayerSound, arabic: Bool) async {
-    guard await requestPermission() else { return }
     let content = UNMutableNotificationContent()
     content.title = arabic ? "تجربة الأذان" : "Adhan test"
     content.body = prayer.label(arabic)
     if let sound = Self.sound(choice, prayer: prayer) {
       content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: sound))
     }
-    do {
-      try await center.add(
+    await testRequests.schedule(permission: {
+      try await self.center.requestAuthorization(options: [.alert, .sound, .badge])
+    }, add: {
+      try await self.center.add(
         UNNotificationRequest(
-          identifier: prefix + "test.adhan", content: content,
+          identifier: self.testID, content: content,
           trigger: UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)))
-    } catch { self.error = error.localizedDescription }
+    }, remove: {
+      self.center.removePendingNotificationRequests(withIdentifiers: [self.testID])
+    }, onError: { error in self.error = error.localizedDescription })
   }
 
   nonisolated func userNotificationCenter(

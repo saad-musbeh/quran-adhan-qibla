@@ -447,17 +447,18 @@ struct Reciter: Codable, Identifiable, Hashable {
     for next in queuedTracks { player.insert(self.item(for: next), after: nil) }
     activate(replacement)
     error = nil
-    let resumeAfterSeek: @Sendable (Bool) -> Void = { [weak self, weak replacement] _ in
-      Task { @MainActor in
-        guard let self, let replacement, self.player.currentItem === replacement else { return }
-        if shouldResume {
-          self.resume()
-        } else {
-          self.player.pause()
-          self.isPlaying = false
-        }
-        self.updateMetadata()
+    let finishRecovery = sessionActivation.guardCurrentIntent { [weak self, weak replacement] in
+      guard let self, let replacement, self.player.currentItem === replacement else { return }
+      if shouldResume {
+        self.resume()
+      } else {
+        self.player.pause()
+        self.isPlaying = false
       }
+      self.updateMetadata()
+    }
+    let resumeAfterSeek: @Sendable (Bool) -> Void = { _ in
+      Task { @MainActor in finishRecovery() }
     }
     if resumePosition > 0 {
       replacement.seek(

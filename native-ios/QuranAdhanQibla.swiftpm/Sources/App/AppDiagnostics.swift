@@ -21,5 +21,5 @@ import Foundation
 
 struct BuildIdentity {
   static let version = "1.0.3"
-  static let number = "5"
+  static let number = "6"
 }

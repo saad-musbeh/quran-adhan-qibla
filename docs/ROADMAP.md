@@ -1,6 +1,6 @@
 # Roadmap
 
-Current source for release: **0.7.0 / Android code 29 / iOS build 29**, including the measured mobile memory changes and the separate Swift iPad source edition 1.0.3/build 5. Checked items record implementation or the specific verification stated; physical-device validation remains separate. See [release notes](RELEASE-0.7.0.md) and [iOS testing status](IOS-TESTING.md#current-status).
+Current source for release: **0.7.0 / Android code 29 / iOS build 29**, including the measured mobile memory changes and the separate Swift iPad source edition 1.0.3/build 6. Checked items record implementation or the specific verification stated; physical-device validation remains separate. See [release notes](RELEASE-0.7.0.md) and [iOS testing status](IOS-TESTING.md#current-status).
 
 ## Foundation
 

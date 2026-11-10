@@ -29,6 +29,15 @@ private final class Events: @unchecked Sendable {
       events.append("deactivation")
     }
     precondition(!activation.isPending)
+
+    var recoveryStarts = 0
+    let delayedRecovery = activation.guardCurrentIntent { recoveryStarts += 1 }
+    activation.cancel() // Pause, route loss and interruptions invalidate the same intent.
+    delayedRecovery()
+    precondition(recoveryStarts == 0, "A delayed recovery must not override Pause")
+    let currentRecovery = activation.guardCurrentIntent { recoveryStarts += 1 }
+    currentRecovery()
+    precondition(recoveryStarts == 1, "Current recovery should still complete")
     let result: Result<Void, Error> = await withCheckedContinuation { continuation in
       activation.activate(operation: {
         precondition(!Thread.isMainThread)

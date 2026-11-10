@@ -112,6 +112,8 @@ if (!spawnSync('swift', ['--version'], { stdio: 'ignore' }).error) {
   run(resourceCheckBinary, []);
   run('swiftc', ['-swift-version', '5', '-parse-as-library', 'Sources/App/AudioSessionActivation.swift', '../Verification/AudioSessionChecks.swift', '-o', path.join(resourceCheckDir, 'audio-session-check')], project);
   run(path.join(resourceCheckDir, 'audio-session-check'), []);
+  run('swiftc', ['-swift-version', '5', '-parse-as-library', 'Sources/App/AdhanTestRequests.swift', '../Verification/AdhanTestChecks.swift', '-o', path.join(resourceCheckDir, 'adhan-test-check')], project);
+  run(path.join(resourceCheckDir, 'adhan-test-check'), []);
   if (process.platform === 'darwin') run('bash', ['scripts/check-swift-page-decoder.sh']);
 } else if (!spawnSync('podman', ['--version'], { stdio: 'ignore' }).error) {
   const base = ['run', '--rm', '-v', `${root}:/work:z`, '-w', '/work/native-ios/QuranAdhanQibla.swiftpm', 'docker.io/library/swift:6.0'];
@@ -121,5 +123,7 @@ if (!spawnSync('swift', ['--version'], { stdio: 'ignore' }).error) {
   run('podman', [...base, '/work/target/swift-port/resource-check/resource-locator-check']);
   run('podman', [...base, 'swiftc', '-swift-version', '5', '-parse-as-library', 'Sources/App/AudioSessionActivation.swift', '../Verification/AudioSessionChecks.swift', '-o', '/work/target/swift-port/resource-check/audio-session-check']);
   run('podman', [...base, '/work/target/swift-port/resource-check/audio-session-check']);
+  run('podman', [...base, 'swiftc', '-swift-version', '5', '-parse-as-library', 'Sources/App/AdhanTestRequests.swift', '../Verification/AdhanTestChecks.swift', '-o', '/work/target/swift-port/resource-check/adhan-test-check']);
+  run('podman', [...base, '/work/target/swift-port/resource-check/adhan-test-check']);
 } else { throw new Error('Install Swift 6 or Podman to run the Swift core tests and syntax checks.'); }
 console.log('Swift core tests, source syntax, resource locator and XZ asset checks passed. Apple Compression decoder checks run on macOS (including GitHub simulator CI); iOS behavior requires an Apple SDK build/device.');
