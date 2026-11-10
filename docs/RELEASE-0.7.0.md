@@ -19,6 +19,8 @@ The React Native iPhone simulator's application metric peaked at **116.5 MB** in
 
 [React Native iOS verification](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/42809589821) passed the release build and all twelve UI/performance cases. [Swift build 5 verification](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/42826951879) passed Apple SDK typechecking, serialized audio-session checks, exact offline-resource checks and an actual iPad simulator build/install/launch/reader test. Physical-device audio interruptions, sensors, notification delivery and Swift Playground import/signing remain separate checks. The reporting physical iPad must retest audio and location warnings.
 
+Final release-head checks are recorded on [release PR 33](https://github.com/saad-musbeh/quran-adhan-qibla/pull/33). Swift build 6 additionally covers the cancellation fixes found during release review.
+
 ## Downloads
 
 - `quran-adhan-qibla-v0.7.0-arm64-v8a.apk`: ARM64 Android phones.

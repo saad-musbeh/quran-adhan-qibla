@@ -325,7 +325,7 @@ struct Reciter: Codable, Identifiable, Hashable {
     duration = 0
   }
   private func activate(_ item: AVPlayerItem) {
-    guard let track = tracksByItem[ObjectIdentifier(item)] else { return }
+    guard player.currentItem === item, let track = tracksByItem[ObjectIdentifier(item)] else { return }
     currentSurah = track.surah
     currentVerse = isFullSurah ? nil : track.verse
     currentTime = max(0, item.currentTime().seconds.isFinite ? item.currentTime().seconds : 0)
@@ -343,10 +343,11 @@ struct Reciter: Codable, Identifiable, Hashable {
     }
     itemFailureObserver = NotificationCenter.default.addObserver(
       forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: .main
-    ) { [weak self] note in
+    ) { [weak self, weak item] note in
       let reason = note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
       Task { @MainActor in
-        self?.recoverOrFail(reason?.localizedDescription ?? "Audio playback failed.")
+        guard let self, let item, self.player.currentItem === item else { return }
+        self.recoverOrFail(reason?.localizedDescription ?? "Audio playback failed.")
       }
     }
     itemStallObserver = NotificationCenter.default.addObserver(
@@ -378,7 +379,7 @@ struct Reciter: Codable, Identifiable, Hashable {
     updateMetadata()
   }
   private func itemEnded(_ item: AVPlayerItem) {
-    guard player.currentItem === item, tracksByItem[ObjectIdentifier(item)] != nil else { return }
+    guard isPlaying, player.currentItem === item, tracksByItem[ObjectIdentifier(item)] != nil else { return }
     // .pause prevents AVQueuePlayer advancing before this identity-checked transition.
     if player.items().count > 1 {
       player.advanceToNextItem()
