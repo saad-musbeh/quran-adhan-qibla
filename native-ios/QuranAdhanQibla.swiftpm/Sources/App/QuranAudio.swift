@@ -300,7 +300,9 @@ struct Reciter: Codable, Identifiable, Hashable {
         }
       } catch {
         await MainActor.run {
-          if let self, self.generation == token { self.fail(error.localizedDescription) }
+          if let self, self.generation == token, self.player.currentItem === firstItem {
+            self.fail(error.localizedDescription)
+          }
         }
       }
     }
