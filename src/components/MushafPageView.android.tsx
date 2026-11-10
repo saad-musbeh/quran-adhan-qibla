@@ -49,7 +49,7 @@ function NativeLeaf({page,props,onGeometry,onHold,onPress}:{page:number;props:Pr
   const activeKeys=new Set([props.activeKey,props.loopStartKey,props.loopEndKey]);
   const action=(key:string)=>onPress(key);
   return <View testID={`native-mushaf-page-${page}`} style={[styles.leaf,{backgroundColor:paper}]} onLayout={event=>setLeafSize(event.nativeEvent.layout)}>
-    <View style={[styles.metadata,opening&&{top:'1%'},khatm&&{justifyContent:'center'}]} pointerEvents="none">
+    <View style={[styles.metadata,opening&&{top:0},khatm&&{justifyContent:'center'}]} pointerEvents="none">
       {!khatm&&<Text style={{color:ink,fontFamily:'AmiriQuran',paddingHorizontal:4,fontSize:opening?10:12}}>{juzArabic(verses[0]?.juz??1)}</Text>}
       <Text style={{color:ink,fontFamily:'AmiriQuran',paddingHorizontal:4,fontSize:khatm?18:opening?10:12}}>{khatm?bilingual(props.language,'دعاء ختم القرآن','Khatm dua'):chapterNames(verses)}</Text>
     </View>
@@ -139,4 +139,4 @@ export function MushafPageView(props:Props){
     </View>}
   </View>;
 }
-const styles=StyleSheet.create({root:{flex:1,minHeight:0,overflow:'hidden',borderRadius:6},leaf:{flex:1,height:'100%',overflow:'hidden'},metadata:{position:'absolute',top:'2%',left:'6%',right:'6%',flexDirection:'row-reverse',justifyContent:'space-between',gap:8},loading:{flex:1,justifyContent:'center',alignItems:'center'},pageNumber:{position:'absolute',bottom:'2%',left:0,right:0,textAlign:'center'},menu:{position:'absolute',bottom:8,left:8,right:8,padding:8,borderWidth:1,borderRadius:12,flexDirection:'row',flexWrap:'wrap',gap:8},menuButton:{flexGrow:1,flexBasis:'30%',minHeight:48,alignItems:'center',justifyContent:'center',padding:8,borderRadius:8}});
+const styles=StyleSheet.create({root:{flex:1,minHeight:0,overflow:'hidden',borderRadius:6},leaf:{flex:1,height:'100%',overflow:'hidden'},metadata:{position:'absolute',zIndex:1,top:'2%',left:'6%',right:'6%',flexDirection:'row-reverse',justifyContent:'space-between',gap:8},loading:{flex:1,justifyContent:'center',alignItems:'center'},pageNumber:{position:'absolute',bottom:'2%',left:0,right:0,textAlign:'center'},menu:{position:'absolute',bottom:8,left:8,right:8,padding:8,borderWidth:1,borderRadius:12,flexDirection:'row',flexWrap:'wrap',gap:8},menuButton:{flexGrow:1,flexBasis:'30%',minHeight:48,alignItems:'center',justifyContent:'center',padding:8,borderRadius:8}});
