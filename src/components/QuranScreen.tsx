@@ -7,7 +7,7 @@ import { bilingual, localizeCopy, isRTL, localeFor, type Language } from '../i18
 import { useReaderStyles } from '../quran-theme-context';
 import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, BackHandler, Modal, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { getSurah, getVerse, surahs, verses, type Verse } from '../domain/quran';
+import { getSurah, getVerse, surahs, allVerses, type Verse } from '../domain/quran';
 import { normalizeQuranSearch, searchQuran } from '../domain/quran-search';
 import { mushafSpreadPages } from '../domain/mushaf-page-turns';
 import { MushafPageView } from './MushafPageView';
@@ -193,7 +193,7 @@ function ReaderPicker({ language, visible, type, query, setQuery, quranFontLoade
   const c=localizeCopy(language, labels); const rtl=isRTL(language); const insets=useSafeAreaInsets();
   const normalizedQuery=normalizeQuranSearch(query);
   const filteredSurahs = surahs.filter(s => normalizeQuranSearch(`${s.arabicName} ${s.englishName} ${s.transliteration}`).includes(normalizedQuery));
-  const results = type==='search' ? searchQuran(query,verses,surahs,40) : [];
+  const results = type==='search' ? searchQuran(query,allVerses(),surahs,40) : [];
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
     <View style={[styles.modalRoot,{paddingTop:insets.top,paddingBottom:insets.bottom}]}>
       <View style={[styles.modalHeader,rtl&&styles.reverse]}><Text style={styles.modalTitle}>{type==='surah'?c.surah:type==='search'?c.search:c.bookmarks}</Text><Pressable accessibilityRole="button" accessibilityLabel={c.close} style={styles.close} onPress={onClose}><Text style={styles.gold}>×</Text></Pressable></View>

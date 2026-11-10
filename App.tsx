@@ -28,8 +28,6 @@ import { useLocation } from './src/use-location';
 import { AppBanner } from './src/components/AppBanner';
 import { SettingsSheet } from './src/components/SettingsSheet';
 import { SavedDataError } from './src/components/SavedDataError';
-import { QuranSettings } from './src/components/QuranScreen';
-import { QuranLibrary } from './src/components/QuranLibrary';
 import { useTafsirLibrary } from './src/use-tafsir-library';
 import { QuranAudioProvider, useQuranAudioController } from './src/quran-audio-context';
 import { restoreLanguagePreferences } from './src/domain/languages';
@@ -196,10 +194,12 @@ function Main() {
   </SafeAreaView></QuranThemeContext.Provider></TextSizeContext.Provider>;
 }
 
-function ConnectedQuranLibrary(props: Omit<React.ComponentProps<typeof QuranLibrary>, 'audio'>) {
+function ConnectedQuranLibrary(props: Omit<React.ComponentProps<typeof import('./src/components/QuranLibrary').QuranLibrary>, 'audio'>) {
+  const {QuranLibrary}=require('./src/components/QuranLibrary') as typeof import('./src/components/QuranLibrary');
   return <QuranLibrary {...props} audio={useQuranAudioController()}/>;
 }
-function ConnectedQuranSettings(props: Omit<React.ComponentProps<typeof QuranSettings>, 'audio'>) {
+function ConnectedQuranSettings(props: Omit<React.ComponentProps<typeof import('./src/components/QuranScreen').QuranSettings>, 'audio'>) {
+  const {QuranSettings}=require('./src/components/QuranScreen') as typeof import('./src/components/QuranScreen');
   return <QuranSettings {...props} audio={useQuranAudioController()}/>;
 }
 

@@ -110,7 +110,8 @@
       ],
       "./plugins/withPrayerExactAlarm.cjs",
       "./plugins/withAndroidReleaseSize.cjs",
-      "./plugins/withAndroidTextLayout.cjs"
+      "./plugins/withAndroidTextLayout.cjs",
+      "expo-sqlite"
     ],
     "backgroundColor": "#14293C"
   }

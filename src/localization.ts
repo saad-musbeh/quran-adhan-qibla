@@ -1,3 +1,4 @@
+import {createLocalization} from './domain/localization-core.ts';
 import type { Language } from './domain/languages.ts';
 import c0 from './locales/en.json' with { type: 'json' };
 import c1 from './locales/id.json' with { type: 'json' };
@@ -80,20 +81,4 @@ export const catalogs: Record<Exclude<Language, 'ar'>, Record<string, string>> =
   'ug': uyghur,
   'wo': wolof,
 };
-const messageIds = new Map(Object.entries(c0).map(([id, text]) => [text, id]));
-
-export function message(language: Language, english: string, values: Record<string, string | number> = {}): string {
-  const id = messageIds.get(english);
-  const text = id ? (catalogs[language === 'ar' ? 'en' : language]?.[id] ?? english) : english;
-  return text.replace(/\{(\w+)\}/g, (token, key: string) => values[key] === undefined ? token : String(values[key]));
-}
-/** Keep existing reviewed Arabic copy; other locales share the English message catalogue. */
-export function bilingual(language: Language, arabic: string, english: string, values: Record<string, string | number> = {}): string {
-  if (language !== 'ar') return message(language, english, values);
-  return arabic.replace(/\{(\w+)\}/g, (token, key: string) => values[key] === undefined ? token : String(values[key]));
-}
-export function localizeCopy<T extends Record<string, string> | readonly string[]>(language: Language, copies: { en: T; ar: unknown }): T {
-  if (language === 'ar') return copies.ar as T;
-  if (Array.isArray(copies.en)) return copies.en.map(text => message(language, text)) as unknown as T;
-  return Object.fromEntries(Object.entries(copies.en).map(([key, text]) => [key, message(language, text)])) as T;
-}
+export const {message,bilingual,localizeCopy}=createLocalization(catalogs);

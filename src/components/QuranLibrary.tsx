@@ -1,7 +1,7 @@
 import { Pressable } from './Pressable';
 import { Text, TextInput, useTextScale } from '../text-size';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, AppState, Modal, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { useTafsirLibrary } from '../use-tafsir-library';
 import { ScreenLayer } from './ScreenLayer';
@@ -12,7 +12,7 @@ import { SavedDataError } from './SavedDataError';
 import { getVerse, getSurah } from '../domain/quran';
 import { getMushafPageVerses, KHATM_DUA_PAGE, LAST_READER_PAGE } from '../data/mushaf';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
-import { preloadMushafResources } from './MushafPageView';
+import { preloadMushafPage } from '../mushaf-resources';
 import { bilingual, isRTL, localeFor, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import type { QuranAudioController } from '../use-quran-audio';
@@ -29,19 +29,21 @@ export function QuranLibrary(props: Props) {
   const cardWidth=(Math.min(shelfWidth,1100)-32-(columns-1)*12)/columns;
   const { books, setBooks, ready, loadFailed, retry } = useQuranBooks();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [lastId, setLastId] = useState<string | null>(null);
+  const [foreground,setForeground]=useState(AppState.currentState==='active');
+  useEffect(()=>{const subscription=AppState.addEventListener('change',state=>setForeground(state==='active'));return()=>subscription.remove();},[]);
   const [editing, setEditing] = useState<QuranBook | null>(null), [name, setName] = useState('');
   const nameOf = (book: QuranBook) => book.name || bilingual(language, 'المصحف {n}', 'Quran {n}', { n: (books.indexOf(book) + 1).toLocaleString(localeFor(language)) });
   useEffect(()=>{
     if (!ready) return;
-    const timer=setTimeout(()=>{void preloadMushafResources(MUSHAF_PAGE_ASSETS[books[0].page]).catch(()=>undefined);},60);
+    if(!active)return;
+    const timer=setTimeout(()=>{void preloadMushafPage(MUSHAF_PAGE_ASSETS[books[0].page]).catch(()=>undefined);},60);
     return()=>clearTimeout(timer);
-  },[ready]);
+  },[ready,active]);
   useEffect(() => { if (active && !selectedId) props.onReadingChromeChange(true); }, [active, selectedId, props.onReadingChromeChange]);
   useEffect(()=>{props.onBookOpenChange(Boolean(selectedId));},[selectedId,props.onBookOpenChange]);
   useEffect(() => { setSelectedId(null); setEditing(null); }, [props.homeRequest]);
-  const choose = (id: string) => { setLastId(id); setSelectedId(id); props.onReadingChromeChange(false); };
-  const saved = books.find(book => book.id === lastId);
+  const choose = (id: string) => { setSelectedId(id); props.onReadingChromeChange(false); };
+  const saved = books.find(book => book.id === selectedId);
   const updateBook = (id: string, change: (book: QuranBook) => QuranBook) => setBooks(values => values.map(book => book.id === id ? change(book) : book));
   return <View style={[styles.root,{backgroundColor:colors.appBackground}]}>
     <ScreenLayer active={!selectedId} background={colors.appBackground}>
@@ -57,7 +59,7 @@ export function QuranLibrary(props: Props) {
             ? `${bilingual(language,'دعاء ختم القرآن','Khatm dua')} · ${(book.page-KHATM_DUA_PAGE+1).toLocaleString(localeFor(language),{useGrouping:false})}/${(LAST_READER_PAGE-KHATM_DUA_PAGE+1).toLocaleString(localeFor(language),{useGrouping:false})}`
             : `${surah?.arabicName} · ${bilingual(language,'صفحة {n}','Page {n}',{n:book.page.toLocaleString(localeFor(language))})}`;
           return <View key={book.id} style={[styles.card,{width:cardWidth,maxWidth:cardWidth,flexBasis:cardWidth,flexGrow:0}]}>
-            <Pressable testID={`open-${book.id}`} accessibilityRole="button" accessibilityLabel={`${name} · ${position}`} disabled={!ready} onPressIn={()=>{void preloadMushafResources(MUSHAF_PAGE_ASSETS[book.page]).catch(()=>undefined);}} onPress={()=>choose(book.id)} style={styles.cover}>
+            <Pressable testID={`open-${book.id}`} accessibilityRole="button" accessibilityLabel={`${name} · ${position}`} disabled={!ready} onPressIn={()=>{void preloadMushafPage(MUSHAF_PAGE_ASSETS[book.page]).catch(()=>undefined);}} onPress={()=>choose(book.id)} style={styles.cover}>
               <View pointerEvents="none" style={styles.coverFrame}><Ionicons name="book-outline" size={32} color={colors.accent}/><Text numberOfLines={2} style={styles.bookName}>{name}</Text></View>
               <Text style={styles.position}>{position}</Text>
             </Pressable>
@@ -71,7 +73,7 @@ export function QuranLibrary(props: Props) {
         </View>
       </ScrollView>
     </ScreenLayer>
-    {saved&&<ScreenLayer active={Boolean(selectedId)} background={colors.appBackground}><QuranScreen {...props} onReadingChromeChange={visible=>props.onReadingChromeChange(selectedId?visible:true)} active={active&&Boolean(selectedId)} book={saved} onBookChange={change=>updateBook(saved.id,change)} onCloseBook={()=>{setSelectedId(null);props.onReadingChromeChange(true)}}/></ScreenLayer>}
+    {active&&foreground&&saved&&<QuranScreen {...props} onReadingChromeChange={visible=>props.onReadingChromeChange(selectedId?visible:true)} active={active} book={saved} onBookChange={change=>updateBook(saved.id,change)} onCloseBook={()=>{setSelectedId(null);props.onReadingChromeChange(true)}}/>}
     <Modal transparent visible={Boolean(editing)} animationType="fade" onRequestClose={()=>setEditing(null)}>
       <View style={styles.overlay}><View style={styles.editor}>
         <Text style={[styles.heading,rtl&&styles.rtl]}>{bilingual(language,'تسمية المصحف','Rename book')}</Text>

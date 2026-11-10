@@ -65,7 +65,7 @@ function addEnglish(node, source) {
 }
 
 for (const source of program.getSourceFiles()) {
-  if (!source.fileName.startsWith(root + path.sep) || source.fileName.includes('/node_modules/') || source.fileName === path.join(root, 'src/localization.ts') || /\.test\.[cm]?[jt]sx?$/.test(source.fileName)) continue;
+  if (!source.fileName.startsWith(root + path.sep) || source.fileName.includes('/node_modules/') || ['src/localization.ts','src/localization.native.ts','src/domain/localization-core.ts'].some(file=>source.fileName===path.join(root,file)) || /\.test\.[cm]?[jt]sx?$/.test(source.fileName)) continue;
   function visit(node) {
     if (ts.isCallExpression(node)) {
       const name = node.expression.getText(source).split('.').at(-1);

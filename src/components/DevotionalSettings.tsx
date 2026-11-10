@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Modal, Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SalawatReminders } from './SalawatReminders';
 import { Pressable } from './Pressable';
 import { Text, TextInput } from '../text-size';
 import { bilingual, isRTL, type Language } from '../i18n';
@@ -12,6 +11,11 @@ import { collectionTitle } from '../adhkar-i18n';
 import type { useDevotionalReminders } from '../use-devotional-reminders';
 
 type Props = { visible: boolean; onClose: () => void; language: Language; preferences: DevotionalPreferences; onChange: (value: DevotionalPreferences) => void; reminders: ReturnType<typeof useDevotionalReminders> };
+
+function SalawatReminders(props:React.ComponentProps<typeof import('./SalawatReminders').SalawatReminders>){
+  const {SalawatReminders:Component}=require('./SalawatReminders') as typeof import('./SalawatReminders');
+  return <Component {...props}/>;
+}
 
 function ClockField({ value, onChange, language, label, testID }: { value:string; onChange:(value:string)=>void; language:Language; label:string; testID:string }) {
   const { styles, colors }=useReaderStyles(baseStyles);

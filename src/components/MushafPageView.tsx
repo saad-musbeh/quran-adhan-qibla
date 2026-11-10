@@ -1,59 +1,24 @@
 import { Text, useTextScale } from '../text-size';
-import { bilingual, type Language } from '../i18n';
-import type { QuranTheme } from '../domain/quran-theme';
+import { bilingual } from '../i18n';
+import type { MushafPageProps } from './mushaf-props';
+import { preloadMushafPage, preloadMushafResources, releaseMushafResources } from '../mushaf-resources';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { Asset } from 'expo-asset';
-import * as FileSystem from 'expo-file-system/legacy';
-import { decodeMushafPage } from '../domain/mushaf-compression';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
-import type { Verse } from '../domain/quran';
 import { MUSHAF_PAGE_ASSETS } from '../data/mushaf-assets';
 import { KHATM_DUA_PAGE, LAST_READER_PAGE, MUSHAF_PAGE_COUNT } from '../data/mushaf';
 import { printedPageVerses, chapterNames, juzArabic } from '../domain/quran-reader';
 import { mushafLabels, buildMushafDocument } from './mushaf-document';
 import { MushafPageTurns } from '../domain/mushaf-page-turns';
 
-type Props = {
-  theme?:QuranTheme;
-  page: number; asset: number; verses: readonly Verse[]; surahNames: string; juzName: string;
-  language: Language; dark: boolean; activeKey: string | null; zoom?: number;
-  pageStep?: 1 | 2;
-  onTap: () => void; onPlayVerse: (key: string) => void; onPageSwipe: (delta: number, page: number) => void;
-  loopPickMode?: 'start'|'end'|null; loopStartKey?:string|null; loopEndKey?:string|null; onLoopStart?:(key:string)=>void; onLoopEnd?:(key:string)=>void; onLoopPick?:(key:string)=>void;
-  onTafsirVerse?: (key: string) => void; onBookmarkVerse?: (key: string) => void; bookmarkedKeys?: readonly string[];
-};
-const decodedPages = new Map<number, Promise<string>>();
-let metadataFont: Promise<string> | undefined;
-async function readAsset(module: number, base64 = false) {
-  const asset = Asset.fromModule(module);
-  await asset.downloadAsync();
-  if (!asset.localUri) throw new Error('Bundled Mushaf artwork unavailable');
-  return FileSystem.readAsStringAsync(asset.localUri, { encoding: base64 ? FileSystem.EncodingType.Base64 : FileSystem.EncodingType.UTF8 });
-}
-export function preloadMushafPage(module: number): Promise<string> {
-  let pending = decodedPages.get(module);
-  if (!pending) {
-    pending = readAsset(module, true).then(encoded => decodeMushafPage(Uint8Array.from(atob(encoded), character => character.charCodeAt(0))));
-    pending.catch(() => { if (decodedPages.get(module) === pending) decodedPages.delete(module); });
-  }
-  decodedPages.delete(module); decodedPages.set(module, pending);
-  while (decodedPages.size > 7) decodedPages.delete(decodedPages.keys().next().value!);
-  return pending;
-}
-export function preloadMushafResources(module:number):Promise<{svg:string;font:string}> {
-  if (!metadataFont) {
-    metadataFont=readAsset(require('../../assets/quran/AmiriQuran.ttf'),true);
-    metadataFont.catch(()=>{metadataFont=undefined;});
-  }
-  return Promise.all([preloadMushafPage(module),metadataFont]).then(([svg,font])=>({svg,font}));
-}
+type Props = MushafPageProps;
 function pageDescriptor(page: number) {
   const verses = printedPageVerses(page);
   return {page, asset:MUSHAF_PAGE_ASSETS[page], verses, surahNames:chapterNames(verses), juzName:page>KHATM_DUA_PAGE-1?'':juzArabic(verses[0]?.juz??1)};
 }
 
 export function MushafPageView(props: Props) {
+  useEffect(()=>()=>releaseMushafResources(),[]);
   const textScale = useTextScale();
   const latestTextScale = useRef(textScale); latestTextScale.current = textScale;
   const web = useRef<WebView>(null);
