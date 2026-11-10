@@ -172,12 +172,14 @@ jobs:
         run: ruby scripts/prepare-ios-ui-tests.rb
       - name: Compile the bundled simulator app and UI tests once
         id: build
+        # Both destinations use the runner architecture; avoid also compiling Intel slices.
         run: |
           set -o pipefail
           xcodebuild build-for-testing -workspace ios/QuranAdhanQibla.xcworkspace \
             -scheme QuranAdhanQibla -configuration Release \
             -sdk iphonesimulator -destination "platform=iOS Simulator,id=$QURAN_SIMULATOR" \
-            -derivedDataPath target/ios-build CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath target/ios-build -showBuildTimingSummary \
+            CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES \
             2>&1 | tee target/ios-build.log | xcbeautify
       - name: Package simulator app
         run: |

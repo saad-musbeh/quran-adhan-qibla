@@ -35,9 +35,9 @@ CPU samples during Al-Fatiha playback were 7% and 13% of one virtual core after 
 
 ## Verification and remaining work
 
-`npm run check` passes: dependency security checks, TypeScript, localization audit, 217 application tests, seven iOS harness tests and 20 Rust tests. `npm run export:mobile` exports both platforms. ARM64 and x86_64 Android release APKs build successfully. Android checks include city search, opening/regular pages, long-press actions, page turns, light/dark rendering, playback, immediate Stop/Play and orientation changes. Screen-reader action overlays are implemented but physical TalkBack behavior is unverified.
+`npm run check` passes: dependency security checks, TypeScript, localization audit, 217 application tests, eight iOS harness tests and 20 Rust tests. `npm run export:mobile` exports both platforms. ARM64 and x86_64 Android release APKs build successfully. Android checks include city search, opening/regular pages, long-press actions, page turns, light/dark rendering, playback, immediate Stop/Play and orientation changes. Screen-reader action overlays are implemented but physical TalkBack behavior is unverified.
 
-iOS retains its WebView renderer. Its native runtime, SQLite asset installation and memory behavior have **not** been verified on an Apple device in this change. This work does not establish iOS memory savings or a universal memory ceiling.
+iOS retains its WebView renderer. Its release simulator build, seven functional UI checks and five performance checks subsequently passed on GitHub (details below). Physical-iPhone behavior and iOS city-search interaction remain unverified. This work does not establish iOS memory savings or a universal memory ceiling.
 
 Raw baseline logs are in `/home/saad/.t3/scratch/quran-ram-baseline-2026-11-10`; optimized logs and `samples.json` are in `/home/saad/.t3/scratch/quran-ram-optimized-2026-11-10`. Final measured APK SHA-256 values:
 
@@ -51,3 +51,21 @@ The budgets remain open work. Next investigation should separately profile retai
 The `iOS native build` workflow also runs a `performance` suite on its release iPhone simulator app. Each stage gets a fresh installation: cold Home idle, Al-Fatiha reading, Al-Fatiha playback, longer Al-Imran playback with the page open, and Home after stopping playback. Sourced local recordings keep network download work out of the measured windows. Each measurement has a five-second settling interval and three recorded five-second windows, plus XCTest's warm-up iteration. UI polling and screenshots stay outside the timed blocks.
 
 The `ios-performance` artifact contains raw `xcresulttool` JSON for `XCTMemoryMetric(application:)`, `XCTCPUMetric(application:)` and the elapsed clock metric. CPU time divided by elapsed time and multiplied by 100 gives average usage as a percentage of one simulator-host CPU core. Keep metric units from Xcode when interpreting the memory values. These are application metrics; they are not claimed to include every separately hosted WebKit service and must not be presented as proof of the whole-app 150 MB budget. Apple simulator results are also not physical-iPhone measurements. A successful UI test alone does not imply the memory budget passes.
+
+### Verified simulator results — 2026-11-10
+
+[GitHub run 42809589821](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/42809589821) passed its release build and all 12 native UI/performance tests at commit `3540fde240d4ed7914cb59f80c3156347ad21763`. The performance destination was an ARM64 iPhone 17 Pro simulator running iOS 26.5, built with Xcode 26.6. The iPad Pro 13-inch (M5) portrait/landscape test also passed.
+
+| State | Application peak physical memory | Average application CPU | CPU range across windows |
+| --- | ---: | ---: | ---: |
+| Cold Home idle | 67.9 MB | reported 0.00% | reported zero in all three windows |
+| Al-Fatiha page open | 109.6 MB | 0.012% | 0.002–0.020% |
+| Al-Fatiha page open + audio | 107.3 MB | 1.66% | 1.60–1.73% |
+| Al-Imran page open + audio | 116.5 MB | 1.79% | 1.64–2.05% |
+| Home after Stop | 103.3 MB | 0.34% | 0.32–0.35% |
+
+Memory is the maximum of the three `physical_peak` values; Xcode's decimal kB values are divided by 1,000 for MB. CPU is computed for each matched CPU-time/clock-time pair, then averaged. Idle's zero means the metric recorded no CPU time in these windows, not proof of zero CPU consumption. The lower short-playback value than reading reflects separate fresh-process runs and sampling variation; it does not mean audio uses negative memory. Neither an isolated audio allocation nor the whole app plus WebKit is measured here. Launch/page-transition peaks outside the steady measurement windows are not included.
+
+These figures establish **67.9 MB cold idle and a 116.5 MB sampled playback peak for the application metric only**. They do not validate the requested 150 MB whole-app ceiling, the 70 MB audio allocation or physical-iPhone limits. Raw reports, test summaries, build log and the calculated `summary.json` are saved under `/home/saad/.t3/scratch/quran-ios-profile-2026-11-10/`.
+
+The Xcode compilation step took 16 minutes 13 seconds. Its log contains ARM64 and x86_64 compilation although both tested simulators were ARM64. The subsequent workflow update uses `ONLY_ACTIVE_ARCH=YES` and prints a build timing summary to remove that redundant architecture work and make future delays diagnosable. That CI adjustment has not yet been timed on GitHub. Expo modules still build from source to preserve the pinned audio patch; changing to selective source builds is separate work.
