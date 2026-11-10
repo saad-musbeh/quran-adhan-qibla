@@ -4,7 +4,8 @@ import { createRequire } from 'node:module';
 import test from 'node:test';
 
 (globalThis as typeof globalThis & { require: NodeRequire }).require = createRequire(import.meta.url);
-const { getPageVerses, getSurah, getVerse, quranManifest, surahs, verses, versesForSurah } = await import('./quran.ts');
+const { getPageVerses, getSurah, getVerse, quranManifest, surahs, allVerses, versesForSurah } = await import('./quran.ts');
+const verses=allVerses();
 
 test('bundled text and official Tanzil metadata cover the complete Quran', () => {
   assert.equal(surahs.length, 114);

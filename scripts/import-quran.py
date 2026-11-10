@@ -103,6 +103,7 @@ def main() -> None:
     }
     destination = ROOT / "src/data/quran.json"
     destination.write_text(json.dumps({"attribution": copyright_notice, "surahs": output_suras, "verses": output_verses}, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    (ROOT / "src/data/quran-metadata.json").write_text(json.dumps({"attribution": copyright_notice, "surahs": output_suras}, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     (ROOT / "src/data/quran-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {len(output_suras)} surahs and {len(output_verses)} verses to {destination}")
     print(f"Text SHA-256: {manifest['textSha256']}\nMetadata SHA-256: {manifest['metadataSha256']}")

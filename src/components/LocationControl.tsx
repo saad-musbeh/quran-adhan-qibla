@@ -1,9 +1,10 @@
 import { Pressable } from './Pressable';
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text } from '../text-size';
-import { prayerLocationLabel } from '../domain/cities';
+import { formatLocationLabel } from '../domain/cities';
+import { prayerLocationLabel } from '../city-database';
 import { bilingual, isRTL, translations, type Language } from '../i18n';
 import { useReaderStyles } from '../quran-theme-context';
 import type { useLocation } from '../use-location';
@@ -14,7 +15,13 @@ export function LocationControl({ language, state, onPress, testID }: {
 }) {
   const { styles, colors } = useReaderStyles(baseStyles);
   const rtl = isRTL(language), t = translations[language];
-  const label = useMemo(() => state.location ? prayerLocationLabel(state.location, language) : t.useLocation, [state.location, language, t.useLocation]);
+  const [resolved,setResolved]=useState<{location:typeof state.location;language:Language;label:string}|null>(null);
+  const label=resolved?.location===state.location&&resolved.language===language?resolved.label:state.location?formatLocationLabel(state.location,language,null):t.useLocation;
+  useEffect(()=>{
+    let alive=true;const location=state.location;
+    if(location)void prayerLocationLabel(location,language).then(label=>{if(alive)setResolved({location,language,label});}).catch(()=>{/* Coordinates remain usable if catalogue access fails. */});
+    return()=>{alive=false;};
+  },[state.location,language]);
   return <Pressable testID={testID} accessibilityRole="button"
     accessibilityLabel={`${bilingual(language, 'تغيير الموقع', 'Change location')}: ${label}`} onPress={onPress}
     style={[styles.strip, rtl && styles.reverse]}>

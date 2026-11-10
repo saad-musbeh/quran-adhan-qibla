@@ -77,4 +77,5 @@ const ar: typeof en = {
   language: 'اللغة',
 };
 
-export const translations = Object.fromEntries(LANGUAGES.map(({ id }) => [id, localizeCopy(id, { ar, en })])) as Record<Language, typeof en>;
+const cachedTranslations = new Map<Language,typeof en>();
+export const translations = Object.defineProperties({},Object.fromEntries(LANGUAGES.map(({id})=>[id,{enumerable:true,get:()=>{let copy=cachedTranslations.get(id);if(!copy){copy=localizeCopy(id,{ar,en});cachedTranslations.set(id,copy);}return copy;}}]))) as Record<Language,typeof en>;

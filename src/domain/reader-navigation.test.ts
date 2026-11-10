@@ -3,8 +3,9 @@ import test from 'node:test';
 import { createRequire } from 'node:module';
 (globalThis as typeof globalThis & {require: NodeRequire}).require = createRequire(new URL('./quran.ts', import.meta.url));
 const {readerNavigationTarget} = await import('./reader-navigation.ts');
-const {verses} = await import('./quran.ts');
+const {allVerses} = await import('./quran.ts');
 const {getMushafPageVerses} = await import('../data/mushaf.ts');
+const verses=allVerses();
 
 test('direct page entry accepts native digits and preserves exact valid boundaries', () => {
   assert.equal(readerNavigationTarget('page', '١'), 1);

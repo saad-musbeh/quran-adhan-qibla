@@ -4,7 +4,11 @@
 
 This app includes an offline Arabic Quran reader with verse audio, Arabic/English menus and 38 optional testing languages, saved foreground location, shared Rust calculations for Qibla and today’s prayer times, and optional local prayer notifications on Android and iOS with bundled Adhan sounds.
 
+A separate [Swift-only iPhone/iPad source port](native-ios/README.md) is prepared as an app playground for an iPad publishing workflow. It includes all main app areas and a complete offline resource archive; Apple SDK compilation, a complete simulator build, installation, launch and initial reader checks pass on GitHub. Swift Playground import/signing and physical-device behavior remain unverified. See [the bilingual iPad opening/publishing instructions](native-ios/IPAD-START-HERE.md).
+
 ## What is ready
+
+- **0.7.0:** the mobile city catalogue is queried from disk, Android Quran pages use native vectors, and closed/background readers release their drawing surfaces. Audio starts its native player on demand and releases it on Stop. The release also includes the separate Swift iPad source project, version 1.0.3/build 6, with background audio-session operations and callback-driven location authorization. See [release notes](docs/RELEASE-0.7.0.md) and [memory measurements](docs/MEMORY.md); the 80 MB idle / 150 MB whole-app budgets remain unverified or unmet, as documented.
 
 - **0.6.5:** protects saved books/settings after failed reads, fixes stale audio queues and partial-download cleanup, stops Android audio on task removal, retries failed location fixes, and cancels pending test alerts when Adhan is disabled. The iOS follow-up fixes and seven passing simulator UI tests are merged into `main`; physical-device checks remain open. See [release notes and verification limits](docs/RELEASE-0.6.5.md).
 - **0.6.4:** main Play starts one complete surah recording, removing per-ayah file transitions; offline downloads include that full recording alongside ayah files. Surah-end behavior starts at Stop each app session. All twenty Al-Fatiha sources received a machine-assisted review; source-specific ends address closing responses in five full recordings and Shuraym’s final-ayah file, including offline and repeated playback. Physical-phone confirmation remains pending. See [verification and limitations](docs/RELEASE-0.6.4.md).
@@ -100,7 +104,7 @@ See [Android APK size and validation](docs/ANDROID-SIZE.md) for measured before/
 ## iOS development build
 
 Use macOS with Xcode 26.4+ and CocoaPods, plus Rust and Node.js 22 on your PATH.
-Use `main` for the current 0.6.5 / build 28 source, including the merged iOS test-harness and foreground-download fixes. This includes continuous-surah playback and native, source-specific ending limits; iOS device listening remains unverified. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
+Use `main` for the current 0.7.0 / build 29 source, including the merged iOS test-harness and foreground-download fixes. This includes continuous-surah playback and native, source-specific ending limits; iOS device listening remains unverified. The friend’s original 0.3.6 baseline remains on `codex/reader-polish`. See [the Mac/iPhone testing guide](docs/IOS-TESTING.md) for setup, signing, standalone builds and checks for a tester.
 
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios

@@ -6,6 +6,7 @@ import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import ts from 'typescript';
 import type { QuranAudioController, QuranAudioTiming } from '../use-quran-audio';
+import type { AudioPlaylistStatus } from 'expo-audio';
 
 const require = createRequire(import.meta.url);
 (globalThis as typeof globalThis & { require: NodeRequire; IS_REACT_ACT_ENVIRONMENT: boolean }).require = require;
@@ -14,6 +15,7 @@ const modules = Object.fromEntries(await Promise.all(['quran','quran-audio','qur
   .map(async name => [`./domain/${name}`, await import(`./${name}.ts`)])));
 modules['./data/reciters'] = await import('../data/reciters.ts');
 modules['./data/surah-recitations'] = await import('../data/surah-recitations.ts');
+modules['./use-deferred-audio-playlist'] = await import('../use-deferred-audio-playlist.ts');
 const compiled = ts.transpileModule(readFileSync(new URL('../use-quran-audio.ts',import.meta.url),'utf8'),{
   compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true},
 }).outputText;
@@ -24,12 +26,17 @@ async function playerHarness(localFiles: string[] = [], timingRows: unknown = []
   const tracks: string[] = [], requested: string[] = [];
   let status = {currentTime:0,duration:0,currentIndex:0,trackCount:0,isLoaded:false,isBuffering:false,playing:false,didJustFinish:false};
   let plays = 0;
+  let released=false;
   let trackEnds: Record<string, number> = {};
   let errorListener: (message:string,uri?:string,time?:number)=>void = ()=>{};
   let remoteListener: (command:string,nativeHandled:boolean)=>void = ()=>{};
+  const statusListeners=new Set<(status:AudioPlaylistStatus)=>void>();
   const playlist = {
+    get currentStatus(){return {...status,id:'test-player',muted:false,volume:1,playbackRate:1,loop:'none' as const};},
+    addListener(_event:string,listener:(status:AudioPlaylistStatus)=>void){statusListeners.add(listener);return {remove(){statusListeners.delete(listener);}};},
+    release(){released=true;},
     playbackRate:1,loop:'none',
-    pause(){ status={...status,playing:false}; },
+    pause(){ if(released)throw new Error('Released player');status={...status,playing:false}; },
     clear(){ tracks.length=0; status={...status,trackCount:0,currentTime:0,didJustFinish:false,isLoaded:false}; },
     add(source:{uri:string}){ tracks.push(source.uri); status={...status,trackCount:tracks.length}; },
     play(){ plays++; },
@@ -57,7 +64,7 @@ async function playerHarness(localFiles: string[] = [], timingRows: unknown = []
     ...modules,
     react:require('react'),
     '@react-native-async-storage/async-storage':{async multiGet(){return [['preferences',JSON.stringify({reciter:'ghamdi',surahEnd:'next',playbackRate:1.25})],['downloads',null]];},async setItem(){}},
-    'expo-audio':{useAudioPlaylist:()=>playlist,useAudioPlaylistStatus:()=>status,async setAudioModeAsync(){}},
+    'expo-audio':{createAudioPlaylist:()=>{released=false;return playlist;},async setAudioModeAsync(){}},
     'expo-file-system/legacy':fs,
     'expo-network':{async getNetworkStateAsync(){return {isConnected:true,isInternetReachable:true};},addNetworkStateListener:()=>({remove(){}})},
     'react-native':{AppState:{addEventListener:()=>({remove(){}})}},
@@ -79,7 +86,7 @@ async function playerHarness(localFiles: string[] = [], timingRows: unknown = []
   return {
     get controller(){return controller;},get plays(){return plays;},get time(){return status.currentTime;},get trackEnds(){return trackEnds;},get loop(){return playlist.loop;},tracks,requested,files,fs,
     async command(fn:()=>unknown){ await act(async()=>{await fn();}); },
-    async tick(next:Partial<typeof status>){await act(async()=>{status={...status,...next};root.update(createElement(Probe));});},
+    async tick(next:Partial<typeof status>){await act(async()=>{status={...status,...next};for(const listener of statusListeners)listener(playlist.currentStatus);root.update(createElement(Probe));});},
     async fail(message:string,time:number){await act(async()=>{errorListener(message,tracks[status.currentIndex],time);});},
     async remote(command:string){await act(async()=>{remoteListener(command,false);});},
     async close(){await act(async()=>root.unmount());globalThis.fetch=previousFetch;},
@@ -372,4 +379,16 @@ test('source timings highlight and navigate ayahs within the same continuous rec
     assert.equal(h.controller.repeatRange,null);
     assert.equal(h.controller.fullSurah,112);
   } finally {await h.close();}
+});
+
+test('Stop followed by immediate playback never accesses the released native player',async()=>{
+  const h=await playerHarness();
+  try{
+    await h.command(()=>h.controller.playVerse(112,1));
+    const before=h.plays;
+    await h.command(async()=>{const controls=h.controller;controls.stop();await controls.playVerse(113,1);});
+    assert.equal(h.plays,before+1);
+    assert.equal(h.controller.fullSurah,113);
+    assert.equal(h.tracks.length,1);
+  }finally{await h.close();}
 });

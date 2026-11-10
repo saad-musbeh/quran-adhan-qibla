@@ -4,7 +4,8 @@ import { createRequire } from 'node:module';
 import { normalizeQuranSearch, searchQuran } from './quran-search.ts';
 
 globalThis.require = createRequire(import.meta.url);
-const { surahs, verses } = await import('./quran.ts');
+const { surahs, allVerses } = await import('./quran.ts');
+const verses=allVerses();
 // Use a small subset of the verified corpus with unrelated chapters as decoys.
 const chapters = surahs.filter(surah => [1, 112, 114].includes(surah.number));
 const data = verses.filter(verse => [1, 112, 114].includes(verse.surah));

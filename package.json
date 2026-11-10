@@ -1,6 +1,6 @@
 {
   "name": "quran-adhan-qibla",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "description": "Open-source Quran, Adhan, and Qibla app for iOS and Android, built with React Native and Rust",
   "license": "MIT",
   "repository": {
@@ -28,6 +28,7 @@
     "expo-location": "~57.0.21",
     "expo-network": "~57.0.2",
     "expo-notifications": "~57.0.23",
+    "expo-sqlite": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
     "fflate": "^0.8.3",
@@ -35,6 +36,7 @@
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4",
     "react-native-webview": "13.16.1"
   },
   "devDependencies": {
@@ -53,6 +55,9 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --import ./src/test-support/native-mocks-register.mjs --test src/domain/*.test.ts src/components/map-assets/*.test.ts src/*.test.ts",
     "test:reader": "node --experimental-strip-types scripts/check-mushaf-renderer.mjs",
+    "swift:prepare": "node --experimental-strip-types scripts/prepare-swift-port.mjs",
+    "swift:check": "node scripts/check-swift-port.mjs",
+    "swift:package": "node scripts/check-swift-port.mjs --assets-only && python3 scripts/package-swift-port.py",
     "rust:test": "cargo test --workspace --locked",
     "rust:check": "cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings",
     "rust:android": "node scripts/build-native.mjs android",
