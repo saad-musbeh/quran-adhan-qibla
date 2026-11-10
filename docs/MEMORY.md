@@ -45,3 +45,9 @@ Raw baseline logs are in `/home/saad/.t3/scratch/quran-ram-baseline-2026-11-10`;
 - ARM64: `58f240e5e256f45dfdd526dafc62af89d6ed0e92288ce696442d18bf5d8eaae9`
 
 The budgets remain open work. Next investigation should separately profile retained native vector objects, Hermes allocations and Media3 buffers on the target physical phone. A strict 80 MB idle requirement may require moving more of the interface and page drawing into native platform code; this run cannot establish that such a rewrite would meet the limit.
+
+## GitHub iOS profiling
+
+The `iOS native build` workflow also runs a `performance` suite on its release iPhone simulator app. Each stage gets a fresh installation: cold Home idle, Al-Fatiha reading, Al-Fatiha playback, longer Al-Imran playback with the page open, and Home after stopping playback. Sourced local recordings keep network download work out of the measured windows. Each measurement has a five-second settling interval and three recorded five-second windows, plus XCTest's warm-up iteration. UI polling and screenshots stay outside the timed blocks.
+
+The `ios-performance` artifact contains raw `xcresulttool` JSON for `XCTMemoryMetric(application:)`, `XCTCPUMetric(application:)` and the elapsed clock metric. CPU time divided by elapsed time and multiplied by 100 gives average usage as a percentage of one simulator-host CPU core. Keep metric units from Xcode when interpreting the memory values. These are application metrics; they are not claimed to include every separately hosted WebKit service and must not be presented as proof of the whole-app 150 MB budget. Apple simulator results are also not physical-iPhone measurements. A successful UI test alone does not imply the memory budget passes.

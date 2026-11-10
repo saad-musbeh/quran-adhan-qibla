@@ -202,6 +202,11 @@ jobs:
           set -o pipefail
           xcrun simctl ui "$QURAN_SIMULATOR" appearance dark
           node scripts/ios-ui-tests.mjs "$QURAN_SIMULATOR" iphone 2>&1 | xcbeautify
+      - name: Measure iPhone simulator CPU and application memory
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          node scripts/ios-ui-tests.mjs "$QURAN_SIMULATOR" performance 2>&1 | xcbeautify
       - name: Emulate iPad portrait and landscape
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
@@ -215,11 +220,12 @@ jobs:
       - name: Export UI summaries and screenshots
         if: always()
         run: |
-          mkdir -p target/ios-screenshots
+          mkdir -p target/ios-screenshots target/ios-performance
           for result in target/ios-ui-results/*/*.xcresult; do
             if [ ! -d "$result" ]; then continue; fi
             name="$(basename "$(dirname "$result")")-$(basename "$result" .xcresult)"
             xcrun xcresulttool get test-results summary --path "$result" > "target/$name-summary.json" || true
+            xcrun xcresulttool get test-results metrics --path "$result" > "target/ios-performance/$name.json"
             xcrun xcresulttool export attachments --path "$result" --output-path "target/ios-screenshots/$name" || true
             xcrun xcresulttool export diagnostics --path "$result" --output-path "target/ios-diagnostics/$name" || true
           done
@@ -232,6 +238,13 @@ jobs:
             target/ios-screenshots
             target/ios-diagnostics
             target/*-summary.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ios-performance
+          path: target/ios-performance
           if-no-files-found: ignore
           retention-days: 14
       - uses: actions/upload-artifact@v6

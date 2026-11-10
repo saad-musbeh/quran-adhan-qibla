@@ -11,6 +11,26 @@ async function temporaryResults(t) {
   return directory;
 }
 
+test('performance stages use fresh installs and playback fixtures, with the long recording only where needed', async t => {
+  const seeded = [], tested = [], installs = [];
+  await runSuite('phone', 'performance', {
+    resultsRoot: await temporaryResults(t),
+    run: async (program, args) => {
+      if (program === 'xcodebuild') tested.push(args.find(arg => arg.startsWith('-only-testing:')));
+      if (args[1] === 'install') installs.push(args);
+      return '/fresh-container';
+    },
+    seed: async (container, options) => seeded.push({container, ...options}),
+  });
+  assert.equal(installs.length, 5);
+  assert.equal(tested.length, 5);
+  assert.deepEqual(seeded, [
+    {container:'/fresh-container',longSurah:false},
+    {container:'/fresh-container',longSurah:true},
+    {container:'/fresh-container',longSurah:false},
+  ]);
+});
+
 test('each iPhone check gets a fresh app; audio fixtures precede tests on the same simulator', async t => {
   const events = [];
   const run = async (program, args) => {
