@@ -17,7 +17,12 @@ export type Verse = {
 };
 
 declare const require: (path: string) => unknown;
-const data = require('../data/quran.json') as { attribution: string; surahs: Surah[]; verses: Verse[] };
+const data = require('../data/quran-metadata.json') as { attribution: string; surahs: Surah[] };
+let loadedVerses:Verse[]|undefined;
+export function allVerses():Verse[]{
+  if(!loadedVerses)loadedVerses=(require('../data/quran.json') as {verses:Verse[]}).verses;
+  return loadedVerses;
+}
 export const quranTextAttribution = data.attribution;
 export const quranManifest = require('../data/quran-manifest.json') as {
   textSource: string;
@@ -31,33 +36,26 @@ export const quranManifest = require('../data/quran-manifest.json') as {
   licenseNotice: string;
 };
 export const surahs = data.surahs;
-export const verses = data.verses;
+
 
 const surahsByNumber = new Map(surahs.map((surah) => [surah.number, surah]));
-const versesByKey = new Map(verses.map((verse) => [`${verse.surah}:${verse.number}`, verse]));
-const versesBySurah = new Map<number, Verse[]>();
-const versesByPage = new Map<number, Verse[]>();
-for (const verse of verses) {
-  const chapter = versesBySurah.get(verse.surah) ?? [];
-  chapter.push(verse);
-  versesBySurah.set(verse.surah, chapter);
-  const page = versesByPage.get(verse.page) ?? [];
-  page.push(verse);
-  versesByPage.set(verse.page, page);
-}
+const offsets=new Map<number,number>();
+let offset=0;for(const surah of surahs){offsets.set(surah.number,offset);offset+=surah.verseCount;}
 
 export function getSurah(number: number): Surah | undefined {
   return surahsByNumber.get(number);
 }
 
 export function versesForSurah(number: number): Verse[] {
-  return versesBySurah.get(number) ?? [];
+  const chapter=getSurah(number);if(!chapter)return [];
+  const start=offsets.get(number)!;return allVerses().slice(start,start+chapter.verseCount);
 }
 
 export function getVerse(surah: number, verse: number): Verse | undefined {
-  return versesByKey.get(`${surah}:${verse}`);
+  const chapter=getSurah(surah);if(!chapter||!Number.isInteger(verse)||verse<1||verse>chapter.verseCount)return undefined;
+  return allVerses()[offsets.get(surah)!+verse-1];
 }
 
 export function getPageVerses(page: number): Verse[] {
-  return versesByPage.get(page) ?? [];
+  return allVerses().filter(verse=>verse.page===page);
 }

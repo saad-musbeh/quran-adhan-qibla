@@ -9,6 +9,7 @@ final class QuranUITests: XCTestCase {
     app.launch()
     let quran = app.buttons["menu-quran"]
     XCTAssertTrue(quran.waitForExistence(timeout: 45), "The home menu did not finish loading")
+    if name.contains("testPerformanceIdle") { return }
     quran.tap()
     XCTAssertTrue(app.buttons["open-book-1"].waitForExistence(timeout: 45))
   }
@@ -36,6 +37,73 @@ final class QuranUITests: XCTestCase {
     let scroll = app.descendants(matching: .any)["overall-settings"]
     XCTAssertTrue(scroll.waitForExistence(timeout: 10))
     return scroll
+  }
+
+  // Measure the application, not the XCTest runner. Keep UI queries outside
+  // the timed window so accessibility polling does not dominate the CPU data.
+  private func measureSteadyState() {
+    Thread.sleep(forTimeInterval: 5)
+    let options = XCTMeasureOptions()
+    options.iterationCount = 3
+    measure(metrics: [XCTMemoryMetric(application: app), XCTCPUMetric(application: app), XCTClockMetric()], options: options) {
+      Thread.sleep(forTimeInterval: 5)
+    }
+  }
+
+  private func startPerformancePlayback(longSurah: Bool = false) {
+    app.buttons["open-book-1"].tap()
+    revealReader()
+    if longSurah {
+      app.buttons["السورة"].tap()
+      let surah = app.descendants(matching: .any)["reader-surah-3"]
+      XCTAssertTrue(surah.waitForExistence(timeout: 10))
+      surah.tap()
+      expectSpread("50")
+    }
+    app.buttons["reader-audio-play-pause"].tap()
+    let pause = app.buttons["reader-audio-play-pause"]
+    let playing = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "إيقاف مؤقت"), object: pause)
+    XCTAssertEqual(XCTWaiter.wait(for: [playing], timeout: 30), .completed)
+    let elapsed = app.staticTexts["reader-audio-time"]
+    let advancing = XCTNSPredicateExpectation(predicate: NSPredicate { _,_ in
+      let current = elapsed.label.split(separator: "/", maxSplits: 1).first ?? ""
+      return current.compactMap { $0.wholeNumberValue }.contains { $0 > 0 }
+    }, object: elapsed)
+    XCTAssertEqual(XCTWaiter.wait(for: [advancing], timeout: 15), .completed)
+  }
+
+  func testPerformanceIdle() {
+    XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 10))
+    measureSteadyState()
+  }
+
+  func testPerformanceReader() {
+    app.buttons["open-book-1"].tap()
+    XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 30))
+    expectSpread("1")
+    measureSteadyState()
+  }
+
+  func testPerformancePlayback() {
+    startPerformancePlayback()
+    measureSteadyState()
+    XCTAssertEqual(app.buttons["reader-audio-play-pause"].label, "إيقاف مؤقت", "Playback ended during measurement")
+    app.buttons["reader-audio-stop"].tap()
+  }
+
+  func testPerformanceLongSurahPlayback() {
+    startPerformancePlayback(longSurah: true)
+    measureSteadyState()
+    XCTAssertEqual(app.buttons["reader-audio-play-pause"].label, "إيقاف مؤقت", "Playback ended during measurement")
+    app.buttons["reader-audio-stop"].tap()
+  }
+
+  func testPerformanceHomeAfterPlayback() {
+    startPerformancePlayback()
+    app.buttons["reader-audio-stop"].tap()
+    app.buttons["open-main-menu"].tap()
+    XCTAssertTrue(app.buttons["menu-quran"].waitForExistence(timeout: 10))
+    measureSteadyState()
   }
 
   func testAdhkarCollectionsAndReminders() {

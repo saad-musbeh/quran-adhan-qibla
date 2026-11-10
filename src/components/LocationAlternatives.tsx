@@ -1,11 +1,11 @@
 import { Pressable } from './Pressable';
 import { Text, TextInput } from '../text-size';
-import { useDeferredValue, useMemo, useState } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
-import { countries, searchCities, cityLabel, countryLabel } from '../domain/cities';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
+import { countries, cityLabel, countryLabel, type CitySearchResult } from '../domain/cities';
+import { cityCatalogue } from '../city-database';
 import { parseCoordinate } from '../domain/coordinates';
 import { bilingual, isRTL, localeFor, localizeCopy, type Language } from '../i18n';
-import { LocationMap } from './LocationMap';
 import { useReaderStyles } from '../quran-theme-context';
 
 type Coordinates = { latitude: number; longitude: number };
@@ -14,6 +14,11 @@ type Props = {
   language: Language; disabled?: boolean; coordinates?: Coordinates;
   onSelect: (value: Selection) => void;
 };
+
+function LocationMap(props:React.ComponentProps<typeof import('./LocationMap').LocationMap>){
+  const {LocationMap:Component}=require('./LocationMap') as typeof import('./LocationMap');
+  return <Component {...props}/>;
+}
 
 export function LocationAlternatives({ language, disabled = false, coordinates, onSelect }: Props) {
   const { styles, colors } = useReaderStyles(baseStyles);
@@ -24,7 +29,6 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
   const [showCountryFilter, setShowCountryFilter] = useState(false);
   const [countryShown, setCountryShown] = useState(8);
   const [cityQuery, setCityQuery] = useState('');
-  const searchQuery = useDeferredValue(cityQuery);
   const [shown, setShown] = useState(8);
   const [selectedCity, setSelectedCity] = useState<number | null>(null);
   const [latitude, setLatitude] = useState('');
@@ -35,7 +39,17 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
     const q = countryQuery.trim().toLocaleLowerCase();
     return countries.filter(item => !q || `${countryLabel(item,language)} ${item.name} ${item.arabicName ?? ''} ${item.code}`.toLocaleLowerCase().includes(q));
   }, [countryQuery,language]);
-  const matches = useMemo(() => searchCities(searchQuery, countryCode), [searchQuery, countryCode]);
+  const [result,setResult]=useState<CitySearchResult>({cities:[],total:0});
+  const [searching,setSearching]=useState(false);
+  const [searchFailed,setSearchFailed]=useState(false);
+  const [searchAttempt,setSearchAttempt]=useState(0);
+  const matches=result.cities;
+  useEffect(()=>{
+    if(open!=='city'){setResult({cities:[],total:0});return;}
+    let alive=true;setResult({cities:[],total:0});setSearching(true);setSearchFailed(false);
+    const timer=setTimeout(()=>{void cityCatalogue().then(catalogue=>catalogue.search(cityQuery,countryCode,shown)).then(value=>{if(alive){setResult(value);setSearching(false);}}).catch(()=>{if(alive){setResult({cities:[],total:0});setSearching(false);setSearchFailed(true);}});},200);
+    return()=>{alive=false;clearTimeout(timer);};
+  },[open,cityQuery,countryCode,shown,searchAttempt]);
   const copies = {
   ar: {
     title: 'خيارات أخرى للموقع', hint: 'لا تحتاج هذه الخيارات إلى إذن الموقع.',
@@ -98,7 +112,9 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
             {countryShown < countryMatches.length && <Pressable accessibilityRole="button" disabled={disabled} onPress={() => setCountryShown(value => value + 10)}><Text style={styles.link}>{bilingual(language, 'عرض المزيد من الدول', 'Show more countries')}</Text></Pressable>}
 
           </>}
-          {matches.length === 0 ? <Text accessibilityRole="text" style={[styles.hint, alignment]}>{cityQuery.trim() ? txt.noResults : countryCode ? txt.noResults : txt.searchPrompt}</Text> : <>
+          {searching&&<ActivityIndicator accessibilityLabel={txt.citySearch} color={colors.accent}/>}
+          {searchFailed&&<Pressable accessibilityRole="button" onPress={()=>setSearchAttempt(value=>value+1)}><Text style={styles.link}>{bilingual(language,'إعادة المحاولة','Retry')}</Text></Pressable>}
+          {!searching&&!searchFailed&&matches.length === 0 ? <Text accessibilityRole="text" style={[styles.hint, alignment]}>{cityQuery.trim() ? txt.noResults : countryCode ? txt.noResults : txt.searchPrompt}</Text> : <>
             {matches.slice(0, shown).map(city => {
               const nation = countries.find(item => item.code === city.countryCode);
               return <Pressable key={city.id} accessibilityRole="radio" accessibilityState={{ checked: selectedCity === city.id, disabled }} disabled={disabled} style={[styles.cityRow, selectedCity === city.id && styles.selectedCity]} onPress={() => setSelectedCity(city.id)}>
@@ -106,8 +122,8 @@ export function LocationAlternatives({ language, disabled = false, coordinates, 
                 <Text style={[styles.hint, alignment]}>{nation ? countryLabel(nation, language) : city.countryCode}</Text>
               </Pressable>;
             })}
-            <Text style={[styles.hint, alignment]}>{bilingual(language,'عرض {shown} من {total}','Showing {shown} of {total}',{shown:Math.min(shown,matches.length).toLocaleString(localeFor(language)),total:matches.length.toLocaleString(localeFor(language))})}</Text>
-            {shown < matches.length && <Pressable accessibilityRole="button" disabled={disabled} onPress={() => setShown(n => n + 8)}><Text style={styles.link}>{bilingual(language, 'عرض المزيد', 'Show more')}</Text></Pressable>}
+            <Text style={[styles.hint, alignment]}>{bilingual(language,'عرض {shown} من {total}','Showing {shown} of {total}',{shown:matches.length.toLocaleString(localeFor(language)),total:result.total.toLocaleString(localeFor(language))})}</Text>
+            {shown < result.total && <Pressable accessibilityRole="button" disabled={disabled||searching} onPress={() => setShown(n => n + 8)}><Text style={styles.link}>{bilingual(language, 'عرض المزيد', 'Show more')}</Text></Pressable>}
             {selectedCity && matches.some(city => city.id === selectedCity) && <Pressable accessibilityRole="button" disabled={disabled} style={[styles.apply, disabled && styles.disabled]} onPress={() => {
               const city = matches.find(item => item.id === selectedCity)!;
               const nation = countries.find(item => item.code === city.countryCode);

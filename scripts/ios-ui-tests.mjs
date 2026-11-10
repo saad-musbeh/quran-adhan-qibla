@@ -11,6 +11,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const bundle = 'org.saadmusbeh.quranadhanqibla';
 const app = path.join(root, 'target/ios-build/Build/Products/Release-iphonesimulator/QuranAdhanQibla.app');
 export const suites = {
+  performance: ['testPerformanceIdle', 'testPerformanceReader', 'testPerformancePlayback',
+    'testPerformanceLongSurahPlayback', 'testPerformanceHomeAfterPlayback'],
   polish: ['testPolishLanguageMenuAndRepeatControls', 'testAdhkarCollectionsAndReminders'],
   ipad: ['testTabletMainMenuAndLandscapeReading'],
   iphone: ['testBooksKeepIndependentPagesAndNames', 'testDefaultVoiceAndNativePlaybackControls',
@@ -38,7 +40,7 @@ async function command(program, args, { allowFailure = false, log } = {}) {
 
 // Use the application's documented sources; never synthesize Quran audio.
 // Cache only under ignored target/, then copy into each fresh app container.
-export async function seedAudio(container) {
+export async function seedAudio(container, { longSurah = false } = {}) {
   for (const id of ['ghamdi', 'husary']) {
     const reciter = RECITERS.find(reciter => reciter.id === id);
     const destination = path.join(container, 'Documents/quran-audio', id, '001');
@@ -78,6 +80,20 @@ export async function seedAudio(container) {
     }
     await copyFile(timingCache, path.join(destination, 'timings.json'));
   }
+  if (longSurah) {
+    const folder = path.join(container, 'Documents/quran-audio/husary/003');
+    const cache = path.join(root, 'target/ios-test-audio/husary/003-surah.mp3');
+    await mkdir(folder, { recursive: true });
+    if (!(await readFile(cache).catch(() => null))?.length) {
+      const url = `${SURAH_RECITATIONS.husary.server}003.mp3`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+      if (!response.ok) throw new Error(`Audio fixture ${url}: HTTP ${response.status}`);
+      const data = Buffer.from(await response.arrayBuffer());
+      if (!data.length || /text|json|html/i.test(response.headers.get('content-type') ?? '')) throw new Error(`Audio fixture ${url} is empty or is not audio`);
+      await writeFile(cache, data);
+    }
+    await copyFile(cache, path.join(folder, 'surah.mp3'));
+  }
 }
 
 async function launchTimedOut(run, result, method) {
@@ -95,7 +111,7 @@ async function launchTimedOut(run, result, method) {
 }
 
 export async function runSuite(device, suite, { run = command, seed = seedAudio, resultsRoot = path.join(root, 'target/ios-ui-results') } = {}) {
-  if (!device || !Object.hasOwn(suites, suite)) throw new Error('Usage: node scripts/ios-ui-tests.mjs <simulator-UDID> <polish|iphone|ipad>');
+  if (!device || !Object.hasOwn(suites, suite)) throw new Error('Usage: node scripts/ios-ui-tests.mjs <simulator-UDID> <polish|iphone|ipad|performance>');
   await mkdir(resultsRoot, { recursive: true });
   // Xcode refuses to overwrite even an empty .xcresult directory. Preserve
   // previous diagnostics while giving every invocation fresh result paths.
@@ -112,9 +128,10 @@ export async function runSuite(device, suite, { run = command, seed = seedAudio,
           const existing = await run('xcrun', ['simctl', 'get_app_container', device, bundle, 'data'], { allowFailure: true });
           if (existing !== null) await run('xcrun', ['simctl', 'uninstall', device, bundle]);
           await run('xcrun', ['simctl', 'install', device, app]);
-          if (['testDefaultVoiceAndNativePlaybackControls', 'testLocalPrayerAlertsAndDownloadManager'].includes(method)) {
+          if (['testDefaultVoiceAndNativePlaybackControls', 'testLocalPrayerAlertsAndDownloadManager',
+            'testPerformancePlayback', 'testPerformanceLongSurahPlayback', 'testPerformanceHomeAfterPlayback'].includes(method)) {
             const container = await run('xcrun', ['simctl', 'get_app_container', device, bundle, 'data']);
-            await seed(container);
+            await seed(container, { longSurah: method === 'testPerformanceLongSurahPlayback' });
           }
           started = true;
           await run('xcodebuild', ['test-without-building', '-workspace', 'ios/QuranAdhanQibla.xcworkspace',
@@ -148,7 +165,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const main = async () => {
     if (process.argv[2] === '--prepare-fixtures') {
       const container = await mkdtemp(path.join(tmpdir(), 'quran-ios-fixture-check-'));
-      try { await seedAudio(container); }
+      try { await seedAudio(container, { longSurah: true }); }
       finally { await rm(container, { recursive: true, force: true }); }
       console.log('Sourced iOS audio fixtures are ready');
     } else await runSuite(process.argv[2], process.argv[3]);
