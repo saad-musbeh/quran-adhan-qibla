@@ -13,10 +13,12 @@ import IslamicCore
   private let manager = CLLocationManager()
   private var timeout: Task<Void, Never>?
   private var wantsFix = false
+  private var authorizationReady = false
+  private var mayPrompt = true
   private var compassActive = false
 
   override init() {
-    authorization = manager.authorizationStatus
+    authorization = .notDetermined
     super.init()
     manager.delegate = self
     manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -25,17 +27,21 @@ import IslamicCore
 
   func request(prompt: Bool = true) {
     error = nil
-    guard CLLocationManager.locationServicesEnabled() else {
-      error = "services"
-      return
-    }
-    switch manager.authorizationStatus {
+    wantsFix = true
+    mayPrompt = prompt
+    continueRequest()
+  }
+
+  private func continueRequest() {
+    // CLLocationManager delivers initial and changed authorization via its
+    // delegate. Avoid a synchronous location-services IPC query on the UI actor.
+    guard authorizationReady, wantsFix else { return }
+    switch authorization {
     case .notDetermined:
-      guard prompt else { return }
-      wantsFix = true
+      guard mayPrompt else { wantsFix = false; return }
       manager.requestWhenInUseAuthorization()
     case .authorizedAlways, .authorizedWhenInUse:
-      wantsFix = true
+      guard !locating else { return }
       locating = true
       timeout?.cancel()
       timeout = Task { [weak self] in
@@ -47,9 +53,17 @@ import IslamicCore
         self.error = "timeout"
       }
       manager.requestLocation()
-    case .denied, .restricted: error = "permission"
-    @unknown default: error = "permission"
+    case .denied, .restricted: denyRequest()
+    @unknown default: denyRequest()
     }
+  }
+
+  private func denyRequest() {
+    wantsFix = false
+    locating = false
+    timeout?.cancel()
+    manager.stopUpdatingLocation()
+    error = "permission"
   }
 
   func setCompass(active: Bool) {
@@ -65,15 +79,8 @@ import IslamicCore
 
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
     authorization = manager.authorizationStatus
-    if wantsFix {
-      if authorization == .authorizedWhenInUse || authorization == .authorizedAlways {
-        request(prompt: false)
-      } else if authorization == .denied || authorization == .restricted {
-        wantsFix = false
-        locating = false
-        error = "permission"
-      }
-    }
+    authorizationReady = true
+    continueRequest()
   }
 
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {

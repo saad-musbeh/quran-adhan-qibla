@@ -11,7 +11,10 @@ resources = project / 'Sources/App/OfflineContent'
 assert len(list((resources / 'Pages').glob('*.svg.xz'))) == 606, 'Run npm run swift:prepare first'
 destination = root / 'dist/swift-ios'
 destination.mkdir(parents=True, exist_ok=True)
-archive = destination / 'QuranAdhanQibla-iPad-build4-compact.zip'
+package_text = (project / 'Package.swift').read_text()
+version = re.search(r'displayVersion:\s*"([^"]+)"', package_text)[1]
+build = re.search(r'bundleVersion:\s*"([^"]+)"', package_text)[1]
+archive = destination / f'QuranAdhanQibla-iPad-build{build}-compact.zip'
 excluded = {'.build', '.swiftpm', '.DS_Store'}
 with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
     for path in sorted(project.rglob('*')):
@@ -28,8 +31,7 @@ with zipfile.ZipFile(archive) as bundle:
     assert sum(name.endswith('.svg.xz') for name in names) == 606
     assert not any(name.endswith(('.svgz', '.pdf')) for name in names)
     assert not any('/.build/' in name or '/.swiftpm/' in name or name.endswith('.partial') for name in names)
-package_text = (project / 'Package.swift').read_text()
-manifest = {'archive': archive.name, 'version': re.search(r'displayVersion:\s*"([^"]+)"', package_text)[1], 'build': re.search(r'bundleVersion:\s*"([^"]+)"', package_text)[1], 'bytes': archive.stat().st_size, 'sha256': digest, 'quranPages': 604, 'appendixPages': 2}
+manifest = {'archive': archive.name, 'version': version, 'build': build, 'bytes': archive.stat().st_size, 'sha256': digest, 'quranPages': 604, 'appendixPages': 2}
 (destination / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
 (destination / (archive.name + '.sha256')).write_text(digest + '  ' + archive.name + '\n')
 print(f'{archive}\n{archive.stat().st_size / 1024 / 1024:.1f} MiB · SHA-256 {digest}')

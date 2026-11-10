@@ -5,6 +5,11 @@ task_root="$(cd "$(dirname "$0")/.." && pwd)"
 task_project="$task_root/native-ios/QuranAdhanQibla.swiftpm"
 task_build="$task_root/target/swift-port/apple-typecheck"
 mkdir -p "$task_build"
+xcrun swiftc -swift-version 5 -parse-as-library \
+  "$task_project/Sources/App/AudioSessionActivation.swift" \
+  "$task_root/native-ios/Verification/AudioSessionChecks.swift" \
+  -o "$task_build/audio-session-check"
+"$task_build/audio-session-check"
 task_sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
 task_arch="$(uname -m)"
 task_target="$task_arch-apple-ios17.0-simulator"
