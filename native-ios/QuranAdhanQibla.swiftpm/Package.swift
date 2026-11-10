@@ -15,7 +15,7 @@ import PackageDescription
         targets: ["AppModule"],
         bundleIdentifier: "org.saadmusbeh.quranadhanqibla.swift",
         displayVersion: "1.0.3",
-        bundleVersion: "4",
+        bundleVersion: "5",
         appIcon: .asset("AppIcon"),
         accentColor: .presetColor(.green),
         supportedDeviceFamilies: [.pad, .phone],

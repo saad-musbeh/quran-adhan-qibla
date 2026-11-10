@@ -61,6 +61,7 @@ struct Reciter: Codable, Identifiable, Hashable {
   let verseCounts: [Int]
 
   private let player = AVQueuePlayer()
+  private let sessionActivation = AudioSessionActivation()
   private var periodic: Any?
   private var currentItemObservation: NSKeyValueObservation?
   private var itemEndObserver: NSObjectProtocol?
@@ -86,7 +87,6 @@ struct Reciter: Codable, Identifiable, Hashable {
     selectedReciterID =
       reciters.first(where: { $0.id == "husary" })?.id ?? reciters.first?.id ?? "husary"
     downloads = AudioDownloads(root: root)
-    configureAudioSession()
     player.actionAtItemEnd = .pause
     periodic = player.addPeriodicTimeObserver(
       forInterval: CMTime(seconds: 0.2, preferredTimescale: 600), queue: .main
@@ -109,13 +109,13 @@ struct Reciter: Codable, Identifiable, Hashable {
       Task { @MainActor in
         guard let self else { return }
         if type == .began {
-          self.shouldResumeAfterInterruption = self.isPlaying
-          self.player.pause()
-          self.isPlaying = false
-          self.updateMetadata()
-        } else if self.shouldResumeAfterInterruption && options.contains(.shouldResume) {
+          let shouldResume = self.isPlaying || self.sessionActivation.isPending
+          self.pause()
+          self.shouldResumeAfterInterruption = shouldResume
+        } else {
+          let shouldResume = self.shouldResumeAfterInterruption && options.contains(.shouldResume)
           self.shouldResumeAfterInterruption = false
-          self.resume()
+          if shouldResume { self.resume() }
         }
       }
     }
@@ -139,12 +139,6 @@ struct Reciter: Codable, Identifiable, Hashable {
   }
 
   private var activeReciter: Reciter? { reciters.first { $0.id == selectedReciterID } }
-  private func configureAudioSession() {
-    do {
-      try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
-      try AVAudioSession.sharedInstance().setActive(true)
-    } catch { self.error = error.localizedDescription }
-  }
   private func addRemoteTarget(
     _ command: MPRemoteCommand,
     _ action: @escaping (MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus
@@ -289,9 +283,7 @@ struct Reciter: Codable, Identifiable, Hashable {
     currentTime = 0
     duration = first.end ?? 0
     activate(firstItem)
-    player.playImmediately(atRate: rate)
-    isPlaying = player.currentItem != nil
-    updateMetadata()
+    resume()
     Task { [weak self, weak firstItem] in
       guard let firstItem else { return }
       do {
@@ -314,6 +306,8 @@ struct Reciter: Codable, Identifiable, Hashable {
     }
   }
   private func clearQueue() {
+    sessionActivation.cancel()
+    shouldResumeAfterInterruption = false
     player.pause()
     player.removeAllItems()
     tracksByItem.removeAll()
@@ -421,6 +415,7 @@ struct Reciter: Codable, Identifiable, Hashable {
     updateMetadata()
   }
   private func fail(_ message: String) {
+    sessionActivation.cancel()
     player.pause()
     isPlaying = false
     error = message
@@ -439,7 +434,8 @@ struct Reciter: Codable, Identifiable, Hashable {
     let resumePosition =
       position.isFinite
       ? min(max(0, position), oldDuration.isFinite && oldDuration > 0 ? oldDuration : position) : 0
-    let shouldResume = isPlaying
+    let shouldResume = isPlaying || sessionActivation.isPending
+    sessionActivation.cancel()
     let queuedTracks =
       player.items().dropFirst().compactMap { tracksByItem[ObjectIdentifier($0)] } + remainingTracks
     remainingTracks.removeAll()
@@ -455,8 +451,7 @@ struct Reciter: Codable, Identifiable, Hashable {
       Task { @MainActor in
         guard let self, let replacement, self.player.currentItem === replacement else { return }
         if shouldResume {
-          self.player.playImmediately(atRate: self.rate)
-          self.isPlaying = true
+          self.resume()
         } else {
           self.player.pause()
           self.isPlaying = false
@@ -473,21 +468,36 @@ struct Reciter: Codable, Identifiable, Hashable {
     }
   }
   private func resume() {
-    guard player.currentItem != nil else {
+    guard let item = player.currentItem else {
       error = error ?? "No recording is selected."
       return
     }
-    do {
-      try AVAudioSession.sharedInstance().setActive(true)
-      player.playImmediately(atRate: rate)
-      isPlaying = true
-      error = nil
-      updateMetadata()
-    } catch { fail(error.localizedDescription) }
+    let token = generation
+    sessionActivation.activate(operation: {
+      // The async activate/deactivate API requires iOS 27. This serial worker
+      // also supports the app's iOS 17 minimum and older Playgrounds SDKs.
+      let session = AVAudioSession.sharedInstance()
+      try session.setCategory(.playback, mode: .spokenAudio, options: [])
+      try session.setActive(true)
+    }) { [weak self, weak item] result in
+      guard let self, let item, self.generation == token, self.player.currentItem === item else {
+        return
+      }
+      switch result {
+      case .success:
+        self.player.playImmediately(atRate: self.rate)
+        self.isPlaying = true
+        self.error = nil
+        self.updateMetadata()
+      case .failure(let error): self.fail(error.localizedDescription)
+      }
+    }
   }
-  func toggle() { isPlaying ? pause() : resume() }
+  func toggle() { (isPlaying || sessionActivation.isPending) ? pause() : resume() }
   func toggle(surah: Int) { if player.currentItem == nil { playSurah(surah) } else { toggle() } }
   func pause() {
+    sessionActivation.cancel()
+    shouldResumeAfterInterruption = false
     player.pause()
     isPlaying = false
     updateMetadata()
@@ -498,6 +508,9 @@ struct Reciter: Codable, Identifiable, Hashable {
     currentVerse = nil
     error = nil
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    sessionActivation.deactivate {
+      try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
   }
 
   func playSurah(_ surah: Int) {
