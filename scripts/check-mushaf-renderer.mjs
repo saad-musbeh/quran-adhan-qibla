@@ -29,8 +29,10 @@ try {
   await page.setContent(html.replace('<script>', '<script>window.bridgeEvents=[];window.ReactNativeWebView={postMessage:value=>window.bridgeEvents.push(JSON.parse(value))};'));
   await page.waitForFunction(() => window.bridgeEvents.some(e => e.type==='ready'));
   assert.equal(await page.locator('#stage .ayahPolygon').count(), pages[599].verseKeys.length);
-  for (const n of [599,601,598,602]) await page.evaluate(info => window.cachePage(info), descriptor(n));
-  assert.equal(await page.locator('.panel').count(), 5);
+  assert.equal(await page.locator('script').count(),0,'startup script no longer retains serialized page artwork');
+  assert.equal(await page.evaluate(()=>initial.svg),undefined,'prepared DOM releases startup SVG source');
+  for (const n of [599,601]) await page.evaluate(info => window.cachePage(info), descriptor(n));
+  assert.equal(await page.locator('.panel').count(), 3);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),390,'prepared pages cannot expand the RTL viewport');
   for(const n of [600,601]){const margin=await page.locator('.panel[data-page="'+n+'"] .page-art').evaluate(node=>[node.style.left,node.style.right]);assert.deepEqual(margin,['6%','6%'],'odd/even artwork is centered');}
   const state = {language:'en',dark:false,activeKey:null,bookmarkedKeys:[]};
@@ -46,7 +48,7 @@ try {
   }
   await settled();
   assert.equal(await page.locator('#stage .panel').count(),1,'rapid transitions clean up old pages');
-  assert.equal(await page.locator('.panel').count(),5,'pool stays bounded through eviction');
+  assert.equal(await page.locator('.panel').count(),3,'pool stays bounded through eviction');
   assert.equal(await page.locator('#stage .ayahPolygon').count(),15);
   const palettes = [
     ['green','#214D3B','#17382B','#FAF7EF','#17382B','#DBAB68'],
@@ -151,7 +153,7 @@ try {
   await page.evaluate(()=>window.zoomPage(1));
   await page.evaluate(info=>window.cachePage(info),descriptor(300));
   await page.evaluate(()=>window.activatePage(300,{language:'ar',dark:true,activeKey:null,loopPickMode:null},false));
-  for(const n of [299,301,298,302])await page.evaluate(info=>window.cachePage(info),descriptor(n));
+  for(const n of [299,301])await page.evaluate(info=>window.cachePage(info),descriptor(n));
   const touch=async(kind,x,y)=>page.evaluate(({kind,x,y})=>{
     if(kind==='touchstart')window.gestureTarget=document.querySelector('#stage .page-art');
     const target=window.gestureTarget;
@@ -169,6 +171,7 @@ try {
   await page.evaluate(()=>window.activatePage(301,{language:'ar',dark:true}));
   await settled();
   assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'301','more than half up turns to next page');
+  await page.evaluate(info=>window.cachePage(info),descriptor(302));
   await touch('touchstart',50,300);await touch('touchmove',320,300);await touch('touchend',320,300);await settled();
   assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'302','horizontal drag remains available');
   await touch('touchstart',320,300);await touch('touchmove',50,300);await touch('touchcancel',50,300);await settled();
@@ -216,18 +219,18 @@ try {
   // page 58 after turning to 59, permanently blocking the reverse gesture.
   await page.evaluate(info=>window.cachePage(info),descriptor(58));
   await page.evaluate(()=>window.activatePage(58,{},false));
-  for(const n of [57,59,56,60])await page.evaluate(info=>window.cachePage(info),descriptor(n));
+  for(const n of [57,59])await page.evaluate(info=>window.cachePage(info),descriptor(n));
   for(let i=0;i<4;i++){
     await flick(140,310,100,0);
     const staleTurn=await page.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').at(-1).turn);
-    for(const n of [58,60,57,61])await page.evaluate(info=>window.cachePage(info),descriptor(n));
+    for(const n of [58,60])await page.evaluate(info=>window.cachePage(info),descriptor(n));
     assert.ok(await page.evaluate(()=>cache.has(58)),'native preloading keeps the immediately previous page available');
     await flick(240,310,-100,0);
     await page.evaluate(turn=>window.activatePage(59,{},true,turn),staleTurn);
     assert.equal(await page.locator('#stage .panel').getAttribute('data-page'),'58','native neighbor refresh permits repeated 58/59 page turns');
     assert.equal(await page.locator('#stage .panel').count(),1,'a delayed native acknowledgement cannot roll back a newer turn');
-    for(const n of [57,59,56,60])await page.evaluate(info=>window.cachePage(info),descriptor(n));
-    assert.equal(await page.locator('.panel').count(),5,'neighbor refresh keeps the DOM pool bounded');
+    for(const n of [57,59])await page.evaluate(info=>window.cachePage(info),descriptor(n));
+    assert.equal(await page.locator('.panel').count(),3,'neighbor refresh keeps the DOM pool bounded');
   }
   await page.setViewportSize({width:320,height:568});
   for (const n of [1,2]) {
@@ -275,7 +278,7 @@ try {
     assert.equal(boxes[0].width,boxes[1].width);
     assert.equal(boxes[0].height,boxes[1].height);
   };
-  for(const n of [55,59,53,61])await tablet.evaluate(info=>window.cachePage(info),spreadDescriptor(n));
+  for(const n of [55,59])await tablet.evaluate(info=>window.cachePage(info),spreadDescriptor(n));
   await assertSpread(57);
   assert.equal(await tablet.locator('#stage .ayahPolygon').count(),pages[56].verseKeys.length+pages[57].verseKeys.length,'the book contains the complete source verses of both pages');
   const tabletInput=await tablet.context().newCDPSession(tablet);
@@ -293,11 +296,11 @@ try {
   await assertSpread(59);
   assert.equal(await tablet.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').at(-1).delta),1,'tablet bridge sends one spread step');
   const staleTabletTurn=await tablet.evaluate(()=>window.bridgeEvents.filter(e=>e.type==='swipe').at(-1).turn);
-  for(const n of [57,61,55,63])await tablet.evaluate(info=>window.cachePage(info),spreadDescriptor(n));
+  for(const n of [57,61])await tablet.evaluate(info=>window.cachePage(info),spreadDescriptor(n));
   await tabletSwipe(400,-100);
   await tablet.evaluate(turn=>window.activatePage(59,{},true,turn),staleTabletTurn);
   await assertSpread(57);
-  assert.equal(await tablet.evaluate(()=>cache.size),5,'spread cache remains bounded while retaining both leaves');
+  assert.equal(await tablet.evaluate(()=>cache.size),3,'spread cache remains bounded while retaining both leaves');
 
   // Interrupt animation while repeatedly alternating gestures between leaves.
   for(let i=0;i<8;i++)await tabletSwipe(i%2?400:800,i%2?-100:100,20);

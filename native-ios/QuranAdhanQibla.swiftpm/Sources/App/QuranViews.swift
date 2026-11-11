@@ -91,6 +91,7 @@ struct BookSettingsView: View {
 }
 
 struct QuranReaderView: View {
+  @Environment(\.scenePhase) private var scenePhase
   @EnvironmentObject private var store: AppStore
   @EnvironmentObject private var audio: QuranAudio
   @EnvironmentObject private var tafsir: TafsirLibrary
@@ -104,6 +105,9 @@ struct QuranReaderView: View {
   @State private var selectedVerse: Verse?
   @State private var inputError = false
   @State private var zoom: Double?
+  @State private var pageCache = PageSourceCache(read: { try CompactPageData.decode(contentsOf: $0) })
+  @State private var previousPage: Int?
+  @State private var preloadDirection = 1
   private var book: QuranBook? { store.book(bookID) }
   private var page: Int { book?.page ?? 1 }
   private var firstVerse: Verse? { store.content.verses(page).first }
@@ -116,7 +120,22 @@ struct QuranReaderView: View {
           let leafPages = visiblePages(spread: spread)
           VStack(spacing: 8) {
             readerPageTools
-            readerLeaves(leafPages, spread: spread)
+            if scenePhase != .background {
+              readerLeaves(leafPages, spread: spread)
+                .task(id: leafPages) {
+                  if let previousPage, previousPage != page {
+                    preloadDirection = page > previousPage ? 1 : -1
+                  }
+                  previousPage = page
+                  for leaf in PageSourceCache.window(visible: leafPages, direction: preloadDirection) {
+                    guard !Task.isCancelled else { return }
+                    _ = try? await pageCache.load(store.content.pageURL(leaf))
+                  }
+                }
+                .onDisappear { Task { await pageCache.clear() } }
+            } else {
+              Color.clear.frame(maxHeight: .infinity)
+            }
             ReaderPageNavigation(page: page, spread: spread) { turn(by: $0) }
             ReaderPageJumpFields(pageInput: $pageInput, juzInput: $juzInput) { value, isJuz in
               jump(value, juz: isJuz)
@@ -175,6 +194,7 @@ struct QuranReaderView: View {
   private func readerLeaf(_ leaf: Int, spread: Bool) -> some View {
     SVGLeaf(
       url: store.content.pageURL(leaf),
+      cache: pageCache,
       hitmapURL: store.content.root.appendingPathComponent("page-hitmaps.json"),
       pageNumber: leaf, scale: zoom ?? store.scale,
       highlightedKey: audio.currentVerse.map { "\(audio.currentSurah):\($0)" },

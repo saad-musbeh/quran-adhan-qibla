@@ -2,6 +2,25 @@
 
 The requested budgets are **80 MB idle and 150 MB total with a Quran page open during playback**, allowing roughly 70 MB for audio-related work. These are acceptance targets. This change does **not** meet them yet.
 
+## Three-slot page preloading — follow-up
+
+The React Native Android reader and the separate Swift reader retain at most three decoded **leaves**. In portrait they prepare the current page and its immediate neighbours. A two-page spread occupies two slots; the remaining slot prepares the adjacent leaf in the last reading direction. At the beginning and end of the book fewer slots may be needed. Only visible leaves get native drawing surfaces or Swift WebKit views.
+
+The React Native iOS WebView retains three rendered **reading positions**, reduced from five. Each position is a single page or a complete two-page spread, so landscape can retain six leaves. A spread remains one unit for gestures and zoom. Only immediate neighbours are prepared; the second-neighbour and special appendix preload batches are removed. Appendix navigation still uses the existing individual-sheet rules.
+
+Additional memory changes:
+
+- React Native reads compressed pages directly as bytes, removing the base64 string and binary-string conversion from every page load.
+- Its decoded source cache has a conservative 5 MiB string budget and serializes reads. Evicted queued requests do not start decoding, and completion after release cannot repopulate the cache.
+- The WebView consumes source strings instead of retaining a second decoded-source cache alongside its rendered panels. Startup SVG objects and the script element containing their serialized source are released after DOM construction. The React Native WebView source document remains retained for its lifecycle.
+- The Swift source cache also has a 5 MiB data budget. Decoding runs on a serial actor outside the main actor; cancelled page tasks cannot update a recycled view. Backgrounding or closing the Swift reader removes its WebKit views and releases source data and the shared verse hitmap.
+
+These limits apply to the caches, **not total process memory**. Visible source references, vector trees, WebKit, temporary decode buffers and garbage collection still contribute to RAM. Android's source slot count increases from two to three, and Swift gains a source cache; zero peak-memory increase is not established by these changes. There is no new before/after RAM measurement yet.
+
+Validation: `npm run check` passes with 225 application tests, including eviction, byte limits, stale requests, retry and all-page preload-window coverage. Both mobile exports and the browser reader gesture suite pass. The Android x86_64 release APK builds and opens pages on the API 36 emulator using direct binary reads. Apple SDKs are unavailable on this Linux host: the Swift source cache's standalone checks are wired into `scripts/check-swift-ios.sh`, but those checks and native iOS compilation/runtime verification remain pending.
+
+The next independent opportunity is `CityIndex` in the Swift port's `Content.swift`: a global search currently retains decoded arrays for every visited country. A disk-backed index, as used by the React Native app, would avoid retaining the whole catalogue. A bounded country cache is a smaller interim change but would require rereading countries during global searches. Native vector allocations and long-recording audio buffers also remain profiling targets from the measurements below.
+
 ## Android measurements
 
 Measured on 2026-11-10 with a standalone release APK, Android 16/API 36 x86_64 emulator, four virtual CPUs and host GPU rendering. Saved Arabic preferences, Riyadh location and Mishary Alafasy reciter were retained. These are emulator results, not physical-phone or iOS measurements.

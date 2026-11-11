@@ -26,6 +26,7 @@ private struct SVGPageHitmap: Decodable {
 /// Verse selection and highlighting stay native and use the page's existing hitmap.
 struct SVGLeaf: UIViewRepresentable {
   let url: URL
+  let cache: PageSourceCache
   let hitmapURL: URL
   let pageNumber: Int
   let scale: Double
@@ -105,6 +106,13 @@ struct SVGLeaf: UIViewRepresentable {
     coordinator.applyRequestedScale()
   }
 
+  static func dismantleUIView(_ scroll: UIScrollView, coordinator: Coordinator) {
+    coordinator.releaseResources()
+    coordinator.webView?.stopLoading()
+    coordinator.webView?.navigationDelegate = nil
+    scroll.delegate = nil
+  }
+
   @MainActor
   final class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate,
     WKNavigationDelegate
@@ -117,6 +125,7 @@ struct SVGLeaf: UIViewRepresentable {
     weak var failureLabel: UILabel?
     private var hitmap: SVGPageHitmap?
     private var activeNavigation: WKNavigation?
+    var loadTask: Task<Void, Never>?
     private var isLayingOut = false
     private var requestedURL: URL?
     private var highlightedKey: String?
@@ -125,8 +134,24 @@ struct SVGLeaf: UIViewRepresentable {
     private var viewBox = CGRect.zero
     private var baseSize = CGSize.zero
     private static var maps: [String: SVGPageHitmap]?
+    private static var activeLeaves = 0
+    private var released = false
 
-    init(parent: SVGLeaf) { self.parent = parent }
+    init(parent: SVGLeaf) {
+      self.parent = parent
+      super.init()
+      Self.activeLeaves += 1
+    }
+
+    func releaseResources() {
+      guard !released else { return }
+      released = true
+      loadTask?.cancel()
+      loadTask = nil
+      hitmap = nil
+      Self.activeLeaves -= 1
+      if Self.activeLeaves == 0 { Self.maps = nil }
+    }
 
     func installGestures(on scroll: UIScrollView) {
       let longPress = UILongPressGestureRecognizer(target: self, action: #selector(longPressed(_:)))
@@ -149,18 +174,24 @@ struct SVGLeaf: UIViewRepresentable {
       activeNavigation = nil
       webView?.stopLoading()
       loadHitmap()
-      do {
-        let data = try CompactPageData.decode(contentsOf: parent.url)
-        guard let source = String(data: data, encoding: .utf8),
-          let svgStart = source.range(of: "<svg", options: .caseInsensitive)
-        else { throw CocoaError(.fileReadCorruptFile) }
-        let svg = String(source[svgStart.lowerBound...])
-        let document = """
-          <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'"><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent;-webkit-user-select:none;-webkit-touch-callout:none}body{display:flex;align-items:center;justify-content:center}svg{display:block;width:100%;height:100%;max-width:100%;max-height:100%;overflow:hidden}</style></head><body>\(svg)</body></html>
-          """
-        activeNavigation = webView?.loadHTMLString(document, baseURL: nil)
-      } catch {
-        showFailure()
+      loadTask?.cancel()
+      let url = parent.url, cache = parent.cache
+      loadTask = Task { [weak self] in
+        do {
+          let data = try await cache.load(url)
+          guard !Task.isCancelled, let self, self.requestedURL == url else { return }
+          guard let source = String(data: data, encoding: .utf8),
+            let svgStart = source.range(of: "<svg", options: .caseInsensitive)
+          else { throw CocoaError(.fileReadCorruptFile) }
+          let svg = String(source[svgStart.lowerBound...])
+          let document = """
+            <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'"><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent;-webkit-user-select:none;-webkit-touch-callout:none}body{display:flex;align-items:center;justify-content:center}svg{display:block;width:100%;height:100%;max-width:100%;max-height:100%;overflow:hidden}</style></head><body>\(svg)</body></html>
+            """
+          self.activeNavigation = self.webView?.loadHTMLString(document, baseURL: nil)
+        } catch {
+          guard !Task.isCancelled, let self, self.requestedURL == url else { return }
+          self.showFailure()
+        }
       }
     }
 

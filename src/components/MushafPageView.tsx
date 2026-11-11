@@ -1,7 +1,7 @@
 import { Text, useTextScale } from '../text-size';
 import { bilingual } from '../i18n';
 import type { MushafPageProps } from './mushaf-props';
-import { preloadMushafPage, preloadMushafResources, releaseMushafResources } from '../mushaf-resources';
+import { consumeMushafPage, preloadMushafResources, releaseMushafResources } from '../mushaf-resources';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -10,6 +10,7 @@ import { KHATM_DUA_PAGE, LAST_READER_PAGE, MUSHAF_PAGE_COUNT } from '../data/mus
 import { printedPageVerses, chapterNames, juzArabic } from '../domain/quran-reader';
 import { mushafLabels, buildMushafDocument } from './mushaf-document';
 import { MushafPageTurns } from '../domain/mushaf-page-turns';
+import { mushafNeighbors } from '../domain/mushaf-preload';
 
 type Props = MushafPageProps;
 function pageDescriptor(page: number) {
@@ -24,6 +25,7 @@ export function MushafPageView(props: Props) {
   const web = useRef<WebView>(null);
   const latest = useRef(props); latest.current = props;
   const cached = useRef(new Set<number>());
+  const previousPage = useRef(props.page), direction = useRef(1);
   const turns = useRef(new MushafPageTurns(props.page,props.pageStep??1));
   const [html, setHtml] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -37,8 +39,12 @@ export function MushafPageView(props: Props) {
     setError(false); setReady(false); setHtml(null); cached.current.clear();
     void (async () => {
       const {svg,font} = await preloadMushafResources(initial.asset);
-      const companion = initial.pageStep === 2 && initial.page < MUSHAF_PAGE_COUNT ? {...pageDescriptor(initial.page + 1), svg:await preloadMushafPage(MUSHAF_PAGE_ASSETS[initial.page + 1])} : undefined;
-      if (alive) setHtml(buildMushafDocument({...initial,companion,textScale:latestTextScale.current}, svg, font));
+      if (!alive) return;
+      const companion = initial.pageStep === 2 && initial.page < MUSHAF_PAGE_COUNT ? {...pageDescriptor(initial.page + 1), svg:await consumeMushafPage(MUSHAF_PAGE_ASSETS[initial.page + 1])} : undefined;
+      if (alive) {
+        setHtml(buildMushafDocument({...initial,companion,textScale:latestTextScale.current}, svg, font));
+        releaseMushafResources(); // The document now owns the source and embedded font.
+      }
     })().catch(() => { if (alive) setError(true); });
     return () => { alive=false; };
   }, [attempt, props.pageStep]);
@@ -50,6 +56,8 @@ export function MushafPageView(props: Props) {
     if (!ready) return;
     let alive = true;
     const page = props.page;
+    if (page !== previousPage.current) direction.current = page > previousPage.current ? 1 : -1;
+    previousPage.current = page;
     const scheduled = new Set(cached.current);
     const activate = () => {
       const sequence=turns.current.request(page);
@@ -59,8 +67,9 @@ export function MushafPageView(props: Props) {
       if (scheduled.has(n)) return;
       scheduled.add(n);
       const info = n===page ? {...pageDescriptor(n),asset:props.asset,verses:props.verses,surahNames:props.surahNames,juzName:props.juzName} : pageDescriptor(n);
-      const svg = await preloadMushafPage(info.asset);
-      const companion = props.pageStep === 2 && n < MUSHAF_PAGE_COUNT ? {...pageDescriptor(n + 1), svg:await preloadMushafPage(MUSHAF_PAGE_ASSETS[n + 1])} : undefined;
+      const svg = await consumeMushafPage(info.asset);
+      if (!alive) return;
+      const companion = props.pageStep === 2 && n < MUSHAF_PAGE_COUNT ? {...pageDescriptor(n + 1), svg:await consumeMushafPage(MUSHAF_PAGE_ASSETS[n + 1])} : undefined;
       if (!alive) return;
       web.current?.injectJavaScript(`window.cachePage(${JSON.stringify({...info,svg,companion})});true;`);
     };
@@ -70,12 +79,7 @@ export function MushafPageView(props: Props) {
         if (!alive) return;
         activate();
       } catch { if (alive) setError(true); return; }
-      if (page === KHATM_DUA_PAGE) await Promise.allSettled([prepare(603),prepare(606)]);
-      if (page === LAST_READER_PAGE) await Promise.allSettled([prepare(605),prepare(603)]);
-      const step=props.pageStep??1;
-      const offsets = page >= KHATM_DUA_PAGE ? (page === LAST_READER_PAGE ? [-1,1,-2,2,-3] : [-1,1,-2,2]) : [-step,step,-2*step,2*step];
-      for (const offset of offsets) {
-        const n=page+offset;
+      for (const n of mushafNeighbors(page,props.pageStep===2,direction.current)) {
         if (!alive) break;
         if (n<1||n>LAST_READER_PAGE) continue;
         try { await prepare(n); } catch { /* Neighbor failures never hide the current page. */ }
@@ -91,7 +95,7 @@ export function MushafPageView(props: Props) {
     try {
       const data = JSON.parse(event.nativeEvent.data) as { type?:string; key?:string; delta?:number; page?:number; pages?:unknown; turn?:number };
       if (data.type==='ready') { setReady(true); return; }
-      if (data.type==='cache' && Array.isArray(data.pages) && data.pages.length<=5 && data.pages.every(n=>Number.isInteger(n)&&n>=1&&n<=LAST_READER_PAGE)) {
+      if (data.type==='cache' && Array.isArray(data.pages) && data.pages.length<=3 && data.pages.every(n=>Number.isInteger(n)&&n>=1&&n<=LAST_READER_PAGE)) {
         cached.current=new Set(data.pages as number[]); return;
       }
       const current=latest.current;

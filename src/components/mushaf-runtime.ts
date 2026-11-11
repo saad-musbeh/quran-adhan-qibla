@@ -192,16 +192,16 @@ function settle() {
 }
 window.cachePage = item => {
   if (cache.has(item.page)) return;
+  while (cache.size >= 3) {
+    // Make room before allocating another SVG tree. Protect the active gesture.
+    const candidates=[...cache.keys()].filter(n=>n!==shownPage&&n!==item.page&&n!==drag?.target);
+    const victim=candidates.reduce((furthest,n)=>furthest===undefined||Math.abs(n-shownPage)>Math.abs(furthest-shownPage)?n:furthest,undefined);
+    if (victim === undefined) return;
+    cache.get(victim).remove(); cache.delete(victim);
+  }
   const panel = makePanel(item);
   updatePanel(panel);
   cache.set(item.page,panel);
-  while (cache.size > 5) {
-    // Keep the immediate neighbors when native preparation adds the +/-2 pages.
-    const candidates=[...cache.keys()].filter(n=>n!==shownPage&&n!==item.page&&n!==drag?.target);
-    const victim=candidates.reduce((furthest,n)=>furthest===undefined||Math.abs(n-shownPage)>Math.abs(furthest-shownPage)?n:furthest,undefined);
-    if (victim === undefined) break;
-    cache.get(victim).remove(); cache.delete(victim);
-  }
   acknowledge();
 };
 window.activatePage = (page, state, animate = true, acknowledgedTurn = turnSequence) => {
@@ -381,5 +381,9 @@ document.addEventListener('click', event => {
 window.cachePage(initial);
 window.activatePage(initial.page,initial,false);
 window.zoomPage(initial.zoom ?? 1);
+// Prepared DOM owns the artwork now; drop the startup JSON and script text.
+delete initial.svg; delete initial.companion; delete initial.verses;
+delete window.readerInitial;
+document.currentScript?.remove();
 if (document.fonts?.ready) document.fonts.ready.then(() => { layoutVisiblePanels(); send({type:'ready'}); }); else send({type:'ready'});
 `;
