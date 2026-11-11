@@ -133,24 +133,12 @@ struct SVGLeaf: UIViewRepresentable {
     private var isProgrammaticZoom = false
     private var viewBox = CGRect.zero
     private var baseSize = CGSize.zero
-    private static var maps: [String: SVGPageHitmap]?
-    private static var activeLeaves = 0
-    private var released = false
-
-    init(parent: SVGLeaf) {
-      self.parent = parent
-      super.init()
-      Self.activeLeaves += 1
-    }
+    init(parent: SVGLeaf) { self.parent = parent }
 
     func releaseResources() {
-      guard !released else { return }
-      released = true
       loadTask?.cancel()
       loadTask = nil
       hitmap = nil
-      Self.activeLeaves -= 1
-      if Self.activeLeaves == 0 { Self.maps = nil }
     }
 
     func installGestures(on scroll: UIScrollView) {
@@ -196,10 +184,9 @@ struct SVGLeaf: UIViewRepresentable {
     }
 
     func loadHitmap() {
-      if Self.maps == nil, let data = try? Data(contentsOf: parent.hitmapURL) {
-        Self.maps = try? JSONDecoder().decode([String: SVGPageHitmap].self, from: data)
+      hitmap = (try? Data(contentsOf: parent.hitmapURL)).flatMap {
+        try? JSONDecoder().decode(SVGPageHitmap.self, from: $0)
       }
-      hitmap = Self.maps?[String(parent.pageNumber)]
       if let values = hitmap?.viewBox, values.count == 4,
         values.allSatisfy({ $0.isFinite }), values[2] > 0, values[3] > 0
       {

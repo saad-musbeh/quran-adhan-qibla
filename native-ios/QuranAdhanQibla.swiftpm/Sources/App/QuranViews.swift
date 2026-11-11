@@ -195,7 +195,7 @@ struct QuranReaderView: View {
     SVGLeaf(
       url: store.content.pageURL(leaf),
       cache: pageCache,
-      hitmapURL: store.content.root.appendingPathComponent("page-hitmaps.json"),
+      hitmapURL: store.content.root.appendingPathComponent(String(format: "Hitmaps/%03d.json", leaf)),
       pageNumber: leaf, scale: zoom ?? store.scale,
       highlightedKey: audio.currentVerse.map { "\(audio.currentSurah):\($0)" },
       onTurn: { turn(by: $0 * (spread ? 2 : 1)) },
