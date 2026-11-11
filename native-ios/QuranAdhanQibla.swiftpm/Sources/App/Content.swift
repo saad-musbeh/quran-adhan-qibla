@@ -50,16 +50,7 @@ struct Country: Codable, Identifiable {
   func label(_ arabic: Bool) -> String { arabic ? arabicName : name }
 }
 
-struct City: Codable, Identifiable, Sendable {
-  let id: Int
-  let name: String
-  let arabicName: String?
-  let asciiName: String?
-  let countryCode: String
-  let latitude: Double
-  let longitude: Double
-  let timeZone: String?
-  func label(_ arabic: Bool) -> String { arabic ? arabicName ?? name : name }
+extension City {
   var point: GeoPoint { GeoPoint(latitude: latitude, longitude: longitude) }
 }
 
@@ -188,16 +179,7 @@ final class Content {
       quran.verses.lazy.filter { Self.normalized($0.text).contains(term) || $0.id == term }.prefix(
         150))
   }
-  static func normalized(_ value: String) -> String {
-    value.folding(
-      options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "ar")
-    )
-    .replacingOccurrences(
-      of: "[\\u064B-\\u065F\\u0670\\u06D6-\\u06ED]", with: "", options: .regularExpression
-    )
-    .replacingOccurrences(of: "[أإآٱ]", with: "ا", options: .regularExpression)
-    .replacingOccurrences(of: "ى", with: "ي")
-  }
+  static func normalized(_ value: String) -> String { SearchText.normalized(value) }
   static func number(_ text: String) -> Double? {
     let value = text.unicodeScalars.map { scalar -> String in
       if let numeric = scalar.properties.numericValue, numeric >= 0, numeric <= 9,
@@ -211,44 +193,5 @@ final class Content {
     }.joined().trimmingCharacters(in: .whitespacesAndNewlines)
     guard let number = Double(value), number.isFinite else { return nil }
     return number
-  }
-}
-
-actor CityIndex {
-  let root: URL
-  let codes: [String]
-  private var cache: [String: [City]] = [:]
-  init(root: URL, codes: [String]) {
-    self.root = root
-    self.codes = codes
-  }
-  func search(_ query: String, country: String) throws -> [City] {
-    let term = Content.normalized(query.trimmingCharacters(in: .whitespacesAndNewlines))
-    guard !term.isEmpty || !country.isEmpty else { return [] }
-    var exact: [City] = []
-    var prefix: [City] = []
-    var partial: [City] = []
-    for code in country.isEmpty ? codes : [country] {
-      try Task.checkCancellation()
-      let cities: [City]
-      if let saved = cache[code] {
-        cities = saved
-      } else {
-        cities = try JSONDecoder().decode(
-          [City].self, from: Data(contentsOf: root.appendingPathComponent("Cities/\(code).json")))
-        cache[code] = cities
-      }
-      for city in cities {
-        let names = [city.name, city.arabicName ?? "", city.asciiName ?? ""].map(Content.normalized)
-        if term.isEmpty || names.contains(term) {
-          if exact.count < 80 { exact.append(city) }
-        } else if names.contains(where: { $0.hasPrefix(term) }) {
-          if prefix.count < 80 { prefix.append(city) }
-        } else if names.contains(where: { $0.contains(term) }) {
-          if partial.count < 80 { partial.append(city) }
-        }
-      }
-    }
-    return Array((exact + prefix + partial).prefix(80))
   }
 }

@@ -7,6 +7,7 @@ import {bilingual} from '../i18n';
 import {getQuranTheme} from '../domain/quran-theme';
 import {sourcePoint,pointInVerse,verseFocusRect,type VersePolygon} from '../domain/mushaf-native';
 import {mushafPageTurnTarget} from '../domain/mushaf-page-turns';
+import {mushafPreloadLeaves} from '../domain/mushaf-preload';
 import {printedPageVerses,chapterNames,juzArabic} from '../domain/quran-reader';
 import {MUSHAF_PAGE_ASSETS} from '../data/mushaf-assets';
 import {MUSHAF_PAGE_COUNT,LAST_READER_PAGE} from '../data/mushaf';
@@ -75,6 +76,20 @@ function NativeLeaf({page,props,onGeometry,onHold,onPress}:{page:number;props:Pr
 /** Native vectors share the app process; opening a page never starts Chromium. */
 export function MushafPageView(props:Props){
   const latest=useRef(props);latest.current=props;
+  const previousPage=useRef(props.page),direction=useRef(1);
+  useEffect(()=>{
+    if(props.page!==previousPage.current)direction.current=props.page>previousPage.current?1:-1;
+    previousPage.current=props.page;
+    let alive=true;
+    // Visible leaves load first; never mount offscreen vectors to preload them.
+    const timer=setTimeout(()=>{void (async()=>{
+      for(const page of mushafPreloadLeaves(props.page,props.pageStep===2,direction.current)){
+        if(!alive)return;
+        try{await preloadMushafPage(MUSHAF_PAGE_ASSETS[page]);}catch{/* Visible leaves own retry UI. */}
+      }
+    })();},150);
+    return()=>{alive=false;clearTimeout(timer);};
+  },[props.page,props.pageStep]);
   const [size,setSize]=useState({width:0,height:0}),[selected,setSelected]=useState<string|null>(null);
   const root=useRef<View>(null),origin=useRef({x:0,y:0}),scroll=useRef({x:0,y:0});
   const reduceMotion=useRef(false);

@@ -6,6 +6,7 @@ import { decompress } from 'fzstd';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { swiftPortIcon } from './swift-port-icon.mjs';
+import { DatabaseSync } from 'node:sqlite';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const project = path.join(root, 'native-ios/QuranAdhanQibla.swiftpm');
@@ -24,7 +25,10 @@ assert.ok(appleBranch.includes('.iOSApplication('), 'The Apple branch declares a
 assert.ok(!appleBranch.includes('.testTarget('), 'Host tests must stay out of the app playground build graph');
 const read = async name => JSON.parse(await fs.readFile(path.join(resources, `${name}.json`), 'utf8'));
 const quran = await read('quran');
-const hits = await read('page-hitmaps');
+const hits = {};
+for (let page = 1; page <= 606; page++) {
+  hits[page] = JSON.parse(await fs.readFile(path.join(resources, 'Hitmaps', `${String(page).padStart(3, '0')}.json`)));
+}
 assert.equal(quran.surahs.length, 114);
 assert.equal(quran.verses.length, 6236);
 assert.equal(new Set(quran.verses.map(v => `${v.surah}:${v.number}`)).size, 6236);
@@ -35,14 +39,17 @@ assert.equal((await read('swift-port-assets')).cityCount, 224763);
 for (const name of ['quran', 'quran-manifest', 'mushaf-manifest', 'adhkar', 'countries']) {
   assert.deepEqual(await fs.readFile(path.join(resources, `${name}.json`)), await fs.readFile(path.join(root, `src/data/${name}.json`)), `${name} preserves its verified source bytes`);
 }
-let cityCount = 0;
-for (const country of await read('countries')) {
-  const cities = JSON.parse(await fs.readFile(path.join(resources, 'Cities', `${country.code}.json`)));
-  assert.equal(cities.length, country.cityCount);
-  assert.ok(cities.every(c => c.countryCode === country.code && Math.abs(c.latitude) <= 90 && Math.abs(c.longitude) <= 180));
-  cityCount += cities.length;
-}
-assert.equal(cityCount, 224763);
+const cityAsset = await fs.readFile(path.join(root, 'src/data/city-database-asset.ts'), 'utf8');
+const cityDatabase = cityAsset.match(/CITY_DATABASE_NAME = '([^']+)'/)[1];
+assert.deepEqual(await fs.readFile(path.join(resources, 'cities.db')),
+  await fs.readFile(path.join(root, 'assets/cities', cityDatabase)), 'Swift uses the verified mobile catalogue unchanged');
+const cities = new DatabaseSync(path.join(resources, 'cities.db'), {readOnly:true});
+try {
+  assert.equal(cities.prepare('SELECT count(*) AS total FROM cities').get().total, 224763);
+  for (const country of await read('countries')) {
+    assert.equal(cities.prepare('SELECT count(*) AS total FROM cities WHERE countryCode=?').get(country.code).total, country.cityCount);
+  }
+} finally { cities.close(); }
 const assetManifest = await read('swift-port-assets');
 const canonical = new Set(quran.verses.map(v => `${v.surah}:${v.number}`));
 const covered = new Set();

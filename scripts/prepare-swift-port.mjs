@@ -19,9 +19,10 @@ for (const name of ['quran', 'quran-manifest', 'mushaf-pages', 'mushaf-manifest'
   await fs.copyFile(path.join(root, `src/data/${name}.json`), path.join(resources, `${name}.json`));
 }
 const cities = JSON.parse(await fs.readFile(path.join(root, 'src/data/cities.json'), 'utf8')).flat();
-const grouped = Object.groupBy(cities, city => city.countryCode);
-await fs.mkdir(path.join(resources, 'Cities'), { recursive: true });
-for (const [country, rows] of Object.entries(grouped)) await fs.writeFile(path.join(resources, 'Cities', `${country}.json`), JSON.stringify(rows));
+const cityAsset = await fs.readFile(path.join(root, 'src/data/city-database-asset.ts'), 'utf8');
+const cityDatabase = cityAsset.match(/CITY_DATABASE_NAME = '([^']+)'/)[1];
+await fs.copyFile(path.join(root, 'assets/cities', cityDatabase), path.join(resources, 'cities.db'));
+await fs.rm(path.join(resources, 'Cities'), { recursive: true, force: true });
 await json('reciters', RECITERS.map(r => ({ ...r, ...SURAH_RECITATIONS[r.id], fullEnds: FULL_SURAH_ENDS[r.id] ?? {}, verseEnds: VERSE_RECORDING_ENDS[r.id] ?? {} })));
 await json('tafsir-catalogue', TAFSIR_BOOKS);
 await fs.copyFile(path.join(root, 'assets/mushaf/pages-src/khatm-dua.json'), path.join(resources, 'khatm-dua.json'));
@@ -113,7 +114,11 @@ for (const name of await fs.readdir(pageDir)) {
   if (/^\d{3}\.(pdf|sha256|svgz)$/.test(name)) await fs.unlink(path.join(pageDir, name));
 }
 await fs.writeFile(path.join(pageDir, 'rendering-viewboxes.json'), JSON.stringify(renderedBoxes));
-await json('page-hitmaps', hitmaps);
+await fs.mkdir(path.join(resources, 'Hitmaps'), { recursive: true });
+for (const [page, hitmap] of Object.entries(hitmaps)) {
+  await fs.writeFile(path.join(resources, 'Hitmaps', `${String(page).padStart(3, '0')}.json`), JSON.stringify(hitmap));
+}
+await fs.rm(path.join(resources, 'page-hitmaps.json'), { force: true });
 await json('swift-port-assets', { schema: 2, sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), quranPages: 604, appendixPages: 2, cityCount: cities.length, sourceSvgSha256: outputHashes, renderedSvgSha256: renderedHashes });
 const icons = path.join(app, 'Assets.xcassets/AppIcon.appiconset');
 await fs.mkdir(icons, { recursive: true });
