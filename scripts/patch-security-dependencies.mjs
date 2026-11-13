@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
-// Temporary fixes for GHSA-vfj7-8cjw-p6xm and GHSA-86w9-cpqp-85rv.
+// Temporary fix for GHSA-vfj7-8cjw-p6xm. Forge now uses its fixed upstream release.
 // Keep registry versions intact so npm audit still reports the upstream advisories.
 // See docs/DEPENDENCY-SECURITY.md for provenance and removal conditions.
 const depthCheck = "    if (depth > 128) {\n      throw new RangeError('braces nesting exceeds security limit (128)');\n    }\n";
@@ -37,13 +37,6 @@ const patches = [
     replacements: [
       ['  const stringify = (node, parent = {}) => {\n', '  const stringify = (node, parent = {}, depth = 0) => {\n' + depthCheck],
       ['output += stringify(child);', 'output += stringify(child, {}, depth + 1);'],
-    ],
-  },
-  {
-    package: 'node-forge', version: '1.4.0', file: 'lib/rsa.js', hash: 'fd4740238145ec26470eb3f06a627c72039538ce1307dbdce40521f94dfd0a50',
-    replacements: [
-      ['            obj.value.length !== 2) {',
-        "            obj.value.length !== 2 ||\n            obj.value[0].value.length !==\n              (('parameters' in capture) ? 2 : 1)) {"],
     ],
   },
 ];
@@ -79,7 +72,7 @@ export async function patchSecurityDependencies(root = repoRoot) {
     if (patched !== current) pending.push({ path, patched });
   }
   for (const { path, patched } of pending) await writeFile(path, patched);
-  console.log('Verified security patches: braces 3.0.3 and node-forge 1.4.0');
+  console.log('Verified security patch: braces 3.0.3');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

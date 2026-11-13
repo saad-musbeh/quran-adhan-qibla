@@ -1,37 +1,32 @@
-# Dependency security follow-up — 21 October 2026
+# Dependency security follow-up — 13 November 2026
 
-The fresh npm audit reported three underlying advisories, propagated through 22 package entries (15 high, seven moderate). These packages are inherited from Expo/Metro and Xcode project tooling. This follow-up fixes `uuid` with a published release and applies local mitigations for the other two advisories, which have no patched npm release as of this review.
+The current dependency set stays on **Expo SDK 57**. A fresh `npm ci` and `npm audit` report **zero known npm advisories**. This is an inventory result, not a guarantee that all dependencies are secure. The source-verified `braces` nesting guard and Expo Audio patch remain enabled.
 
-## Fixes
+## Current fixes
 
-- **uuid:** Scope an npm override to `xcode`'s dependency, changing 7.0.3 to **11.1.1**, the patched CommonJS-compatible release for [GHSA-w5hq-g745-h8pq](https://github.com/advisories/GHSA-w5hq-g745-h8pq). Xcode uses the supported `uuid.v4()` API. The regression generates project identifiers, adds a native target, writes and reparses the project, and checks rejection of an undersized UUID output buffer.
-- **braces 3.0.3:** [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) concerns stack exhaustion from deeply nested patterns. Add a fixed nesting limit of 128 in the parser and recursive compile/expand/stringify walkers. Guard both parentheses and braces before pushing parser blocks, including unclosed patterns. Walker guards also cover callers that supply an AST directly. These are local guards based on the failure described in [upstream issue 70](https://github.com/micromatch/braces/issues/70), not a published upstream fix. Ordinary globs, ranges, escaped literals and nested patterns retain regression coverage; unusually deep inputs now throw a controlled `RangeError`.
-- **node-forge 1.4.0:** [GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv) concerns extra elements in the nested RSA DigestAlgorithm sequence. Backport the element-count condition proposed in [upstream pull request 1152](https://github.com/digitalbazaar/forge/pull/1152), retaining the existing outer sequence check. Valid SHA-256 signatures with present or omitted NULL parameters pass. Correctly signed malformed DigestInfo structures containing extra nested elements are rejected, including with a low-exponent RSA key. This is a local backport of an upstream proposal, not a released upstream security update.
+- **Expo 57.0.33 / CLI 57.0.34:** update within the existing SDK. Its updated tooling removes the affected `zod` and `deepmerge` copies and uses `glob` 14.0.6. React Native and the exact Expo Audio version remain unchanged.
+- **node-forge 1.4.3:** use the published upstream security release through Expo's existing compatible dependency range. Remove our former `lib/rsa.js` backport; retain the valid and malformed RSA DigestInfo regressions. See [Forge's changelog](https://github.com/digitalbazaar/forge/blob/main/CHANGELOG.md).
+- **Xcode 4.0.0:** Expo config plugins now use the upstream parser that generates project identifiers through Node's `crypto.randomUUID()`. Remove the old `xcode → uuid` override. The regression still creates a native target and verifies identifier generation, serialization and reparsing.
+- **minimatch 11.0.8:** scope an override to `@expo/fingerprint`, whose current release still requests major 10. Its only runtime consumer is the fingerprint path helper, using `Minimatch`, `pattern`, `negate` and `match()`. It does not use the APIs removed in [minimatch 11](https://github.com/isaacs/minimatch/blob/main/changelog.md). Compatibility checks exercise actual fingerprint path/directory filters, ordered excludes and included children, dotfiles, parent-relative node_modules paths and brace patterns. Other packages use their own supported dependency ranges; this is not a global major-version override.
+- **braces 3.0.3:** retain the local 128-level nesting limit in parser and recursive compile/expand/stringify walkers. Both brace and parenthesis blocks, unclosed patterns and direct AST entry points are covered. Exact package-version and source-hash checks prevent an unexpected release/source from being patched silently. Ordinary globs/ranges retain behavioral coverage. This local guard was introduced for [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm); the current registry audit does not report it, and the latest published braces version checked for this follow-up remains 3.0.3. Do not remove the guard solely because the registry result is clean.
+
+These changes concern Node build/development tooling, not Quran source data or the app's prayer calculations. No framework SDK migration or audio-engine version change is included.
 
 ## Installation and checks
 
-`npm ci` runs `scripts/patch-security-dependencies.mjs` before the existing Expo Audio patch. The security script checks exact package versions and SHA-256 hashes of the original source, validates all files before writing, and accepts an already-patched installation. Changed versions or unexpected source fail installation for review. Do not use `--ignore-scripts`; `npm run check` includes the security behavior checks and fails against unpatched dependencies.
-
-The regression suite is also available separately:
-
 ```sh
-npm run test:security
+npm ci
+npm run check
+npm run export:mobile
 npm audit
 ```
 
-After the UUID update, npm audit reports **15 high package entries**, all propagated from the two upstream advisories without published fixes. Package versions and advisory reporting are deliberately preserved: the local patches do not produce a clean npm audit or prove the entire dependency tree secure. The audit's suggested Expo 44 / React Native 0.72 downgrades are not compatible fixes for this SDK 57 application.
+Install scripts apply the remaining `braces` source guard followed by the existing iOS Expo Audio patch. Do not use `--ignore-scripts` for the final installation. The security patch validates every source before writing, accepts an already-patched installation and rejects changed versions/hashes for review. `npm run test:security` runs the security/compatibility regressions separately.
 
-The patches affect Node build/development tooling, not the app's prayer calculations or Quran content. Their safety checks and regression suite must remain enabled in CI. Recheck the dependency inventory when updating Expo or Metro so an additional nested copy cannot bypass the patches.
+Verification for this follow-up includes a clean install, nine security checks, the full project checks and both mobile exports. Native project generation and available native-build results are recorded in [the audit follow-up](AUDIT-2026-11-13.md). Linux host Swift checks cannot establish an Apple SDK app build or physical-device behavior.
 
-## Verification
+## Earlier mitigation and removal conditions
 
-- Fresh `npm ci` applied both the security patches and the existing Expo Audio patch.
-- All eight security checks pass, including lockfile copy inventory, normal behavior, malicious inputs, repeat application and rejection of unexpected source/version changes. The nesting and nested RSA element regressions failed against the original dependencies before patching.
-- `npm run check` passed: TypeScript, localization, 213 application tests, seven iOS harness tests, Rust formatting/Clippy and 20 Rust tests. The final added lockfile-inventory check also passed in `npm run test:security`.
-- `npm run export:mobile` exported Android and iOS bundles.
-- Expo prebuild generated both native projects in an isolated ignored directory using the actual app configuration and plugins; the root generated projects were not regenerated. Native app binaries and physical-device behavior were not revalidated in this tooling-only follow-up.
-- A repeated npm audit still reports only the two locally mitigated root advisories through 15 high entries, with no moderate or critical entries. It remains an upstream follow-up, not a clean audit.
+The 21 October follow-up overrode Xcode's old UUID dependency and patched `braces` and Forge locally. The November audit found additional advisories beyond those covered by the old patches. The SDK 57 patch update now supplies the upstream Forge/Xcode replacements, so their temporary patch/override have been removed.
 
-## Removing the temporary fixes
-
-When patched upstream releases become available, update the compatible parent dependencies or override to the fixed release, remove the corresponding local source patch after review, and retain its behavioral regressions. Remove the Xcode UUID override when its upstream dependency range includes a patched version. Run a fresh audit, `npm run check`, mobile exports and native project generation before claiming the roadmap's upstream replacement item complete.
+Remove the fingerprint override when its compatible upstream dependency range includes a fixed minimatch release. Remove the `braces` source patch only after the upstream code has equivalent protection against the covered malicious inputs. For either change, keep the relevant behavioral tests, inspect every lockfile copy, perform a fresh install/audit, run the full checks and exports, regenerate native projects and build the platforms available to the verification host. Avoid the audit command's suggested framework downgrade as a substitute for checking compatibility.

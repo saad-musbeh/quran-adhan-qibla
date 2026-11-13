@@ -14,9 +14,9 @@ const braces = require('braces');
 const forge = require('node-forge');
 const depthError = { name: 'RangeError', message: 'braces nesting exceeds security limit (128)' };
 
-test('the lockfile has no additional unpatched braces or node-forge copies', async () => {
+test('the lockfile has no additional unpatched braces or outdated Forge copies', async () => {
   const lock = JSON.parse(await readFile(join(root, 'package-lock.json'), 'utf8'));
-  for (const [name, version] of [['braces', '3.0.3'], ['node-forge', '1.4.0']]) {
+  for (const [name, version] of [['braces', '3.0.3'], ['node-forge', '1.4.3']]) {
     const copies = Object.entries(lock.packages).filter(([path]) => path.endsWith(`/node_modules/${name}`) || path === `node_modules/${name}`);
     assert.deepEqual(copies.map(([path, entry]) => [path, entry.version]), [[`node_modules/${name}`, version]]);
   }
@@ -89,7 +89,7 @@ test('RSA verification rejects unconsumed nested DigestAlgorithm elements', () =
   assert.throws(() => publicKey.verify(digest, signedDigestInfo({ outer: [primitive(asn1.Type.NULL, '')] })), /valid RSASSA-PKCS1-v1_5 DigestInfo/);
 });
 
-test('Xcode project generation and round-trip parsing work with the patched uuid dependency', async () => {
+test('upstream Xcode tooling generates identifiers and round-trips projects without the old uuid dependency', async () => {
   const xcode = require('xcode');
   const parser = require('xcode/lib/parser/pbxproj');
   const project = xcode.project('security-check.pbxproj');
@@ -131,24 +131,38 @@ test('Xcode project generation and round-trip parsing work with the patched uuid
   const reloaded = xcode.project('round-trip.pbxproj');
   reloaded.hash = parser.parse(output);
   assert.equal(reloaded.pbxNativeTargetSection()[target.uuid].name, '"SecurityCheck"');
-  const xcodeRequire = createRequire(require.resolve('xcode'));
-  assert.equal(xcodeRequire('uuid/package.json').version, '11.1.1');
-  assert.throws(() => xcodeRequire('uuid').v5('test', xcodeRequire('uuid').v5.DNS, new Uint8Array(8)), RangeError);
+  const xcodeManifest = require('xcode/package.json');
+  assert.equal(xcodeManifest.version, '4.0.0');
+  assert.equal(xcodeManifest.dependencies.uuid, undefined, 'upstream uses Node crypto identifiers');
 });
 
 test('patches are idempotent and fail closed on changed source or versions', async t => {
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'quran-security-'));
   t.after(() => rm(temporaryRoot, { recursive: true, force: true }));
-  for (const name of ['braces', 'node-forge']) {
-    await cp(join(root, 'node_modules', name), join(temporaryRoot, 'node_modules', name), { recursive: true });
-  }
+  await cp(join(root, 'node_modules/braces'), join(temporaryRoot, 'node_modules/braces'), { recursive: true });
   await patchSecurityDependencies(temporaryRoot);
   await patchSecurityDependencies(temporaryRoot);
-  const rsa = join(temporaryRoot, 'node_modules/node-forge/lib/rsa.js');
-  const source = await readFile(rsa, 'utf8');
-  await writeFile(rsa, source + '\n// changed source\n');
+  const compile = join(temporaryRoot, 'node_modules/braces/lib/compile.js');
+  const source = await readFile(compile, 'utf8');
+  await writeFile(compile, source + '\n// changed source\n');
   await assert.rejects(patchSecurityDependencies(temporaryRoot), /Unexpected source/);
-  await writeFile(rsa, source);
+  await writeFile(compile, source);
   await writeFile(join(temporaryRoot, 'node_modules/braces/package.json'), '{"version":"3.0.4"}');
   await assert.rejects(patchSecurityDependencies(temporaryRoot), /Re-review security patch/);
+});
+
+test('Expo fingerprint ignore matching remains compatible with fixed minimatch', () => {
+  const fingerprintRequire = createRequire(require.resolve('@expo/fingerprint'));
+  assert.equal(fingerprintRequire('minimatch/package.json').version, '11.0.8');
+  const { buildPathMatchObjects, buildDirMatchObjects, isIgnoredPathWithMatchObjects } = require('@expo/fingerprint/build/utils/Path');
+  const paths = buildPathMatchObjects(['**/node_modules/**', 'assets/**', '!assets/keep/**', '**/*.{log,tmp}']);
+  for (const path of ['../node_modules/expo/index.js', 'assets/.cache/page.svg', 'target/build.log']) {
+    assert.equal(isIgnoredPathWithMatchObjects(path, paths), true, path);
+  }
+  for (const path of ['src/App.tsx', 'assets/keep/page.svg', 'src/catalog.json']) {
+    assert.equal(isIgnoredPathWithMatchObjects(path, paths), false, path);
+  }
+  const directories = buildDirMatchObjects(paths);
+  assert.equal(isIgnoredPathWithMatchObjects('node_modules', directories), true);
+  assert.equal(isIgnoredPathWithMatchObjects('assets', directories), false, 'an included child prevents pruning its parent');
 });
