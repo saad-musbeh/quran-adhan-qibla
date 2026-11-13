@@ -27,7 +27,9 @@ export function QuranLibrary(props: Props) {
   const [shelfWidth,setShelfWidth]=useState(window.width);
   const columns=shelfWidth>=720?3:2;
   const cardWidth=(Math.min(shelfWidth,1100)-32-(columns-1)*12)/columns;
-  const { books, setBooks, ready, loadFailed, retry } = useQuranBooks();
+  const { books, setBooks, ready, loadFailed, retry, saveFailed, retrySave } = useQuranBooks();
+  const [saveNoticeHeight, setSaveNoticeHeight] = useState(0);
+  const headerHeight = (props.headerHeight ?? Math.max(48,48*textScale)) + (saveFailed ? saveNoticeHeight : 0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [foreground,setForeground]=useState(AppState.currentState==='active');
   useEffect(()=>{const subscription=AppState.addEventListener('change',state=>setForeground(state==='active'));return()=>subscription.remove();},[]);
@@ -47,7 +49,7 @@ export function QuranLibrary(props: Props) {
   const updateBook = (id: string, change: (book: QuranBook) => QuranBook) => setBooks(values => values.map(book => book.id === id ? change(book) : book));
   return <View style={[styles.root,{backgroundColor:colors.appBackground}]}>
     <ScreenLayer active={!selectedId} background={colors.appBackground}>
-      <ScrollView onLayout={event=>setShelfWidth(event.nativeEvent.layout.width)} contentContainerStyle={[styles.shelf,{paddingTop:(props.headerHeight??Math.max(48,48*textScale))+10,paddingBottom:Math.max(80,80*textScale,(props.navigationHeight??64)+16)}]}>
+      <ScrollView onLayout={event=>setShelfWidth(event.nativeEvent.layout.width)} contentContainerStyle={[styles.shelf,{paddingTop:headerHeight+10,paddingBottom:Math.max(80,80*textScale,(props.navigationHeight??64)+16)}]}>
         <Text style={[styles.heading,rtl&&styles.rtl]}>{bilingual(language,'مكتبتي القرآنية','My Quran library')}</Text>
         {loadFailed ? <SavedDataError language={language} onRetry={retry}/> : !ready && <ActivityIndicator color={colors.accent}/>}
         <View style={[styles.grid,rtl&&styles.reverse]}>{books.map(book => {
@@ -73,7 +75,8 @@ export function QuranLibrary(props: Props) {
         </View>
       </ScrollView>
     </ScreenLayer>
-    {active&&foreground&&saved&&<QuranScreen {...props} onReadingChromeChange={visible=>props.onReadingChromeChange(selectedId?visible:true)} active={active} book={saved} onBookChange={change=>updateBook(saved.id,change)} onCloseBook={()=>{setSelectedId(null);props.onReadingChromeChange(true)}}/>}
+    {active&&foreground&&saved&&<QuranScreen {...props} headerHeight={headerHeight} onReadingChromeChange={visible=>props.onReadingChromeChange(selectedId?visible:true)} active={active} book={saved} onBookChange={change=>updateBook(saved.id,change)} onCloseBook={()=>{setSelectedId(null);props.onReadingChromeChange(true)}}/>}
+    {saveFailed && <View onLayout={event=>setSaveNoticeHeight(event.nativeEvent.layout.height)} style={{position:'absolute',top:props.headerHeight??Math.max(48,48*textScale),left:0,right:0,zIndex:4,paddingHorizontal:16,backgroundColor:colors.appSurface}}><SavedDataError language={language} onRetry={retrySave} saving/></View>}
     <Modal transparent visible={Boolean(editing)} animationType="fade" onRequestClose={()=>setEditing(null)}>
       <View style={styles.overlay}><View style={styles.editor}>
         <Text style={[styles.heading,rtl&&styles.rtl]}>{bilingual(language,'تسمية المصحف','Rename book')}</Text>

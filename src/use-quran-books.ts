@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { usePersistentWrite } from './use-persistent-write';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createQuranBooks, readQuranBooks, readLegacyQuranBooks, LEGACY_QURAN_KEYS, QURAN_BOOKS_KEY } from './domain/quran-books';
 
@@ -8,7 +9,7 @@ export function useQuranBooks() {
   const [ready, setReady] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const writes = useRef(Promise.resolve());
+  const { save, saveFailed, retrySave } = usePersistentWrite((json: string) => AsyncStorage.setItem(QURAN_BOOKS_KEY, json));
   const retry = useCallback(() => setAttempt(value => value + 1), []);
   useEffect(() => {
     let alive = true;
@@ -31,8 +32,7 @@ export function useQuranBooks() {
   useEffect(() => {
     if (!ready) return;
     const json = JSON.stringify(books);
-    writes.current = writes.current.catch(() => undefined).then(() => AsyncStorage.setItem(QURAN_BOOKS_KEY, json));
-    void writes.current.catch(() => undefined);
-  }, [books, ready]);
-  return { books, setBooks, ready, loadFailed, retry };
+    save(json);
+  }, [books, ready, save]);
+  return { books, setBooks, ready, loadFailed, retry, saveFailed, retrySave };
 }

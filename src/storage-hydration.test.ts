@@ -7,11 +7,13 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import ts from 'typescript';
 import type { usePreferences } from './use-preferences';
 import type { useQuranBooks } from './use-quran-books';
+import { usePersistentWrite } from './use-persistent-write.ts';
+import type { useQuranTheme } from './use-quran-theme';
 
 const require = createRequire(new URL('./domain/quran.ts', import.meta.url));
 (globalThis as typeof globalThis & { require: NodeRequire; IS_REACT_ACT_ENVIRONMENT: boolean }).require = require;
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-const domains = Object.fromEntries(await Promise.all(['quran-books', 'languages', 'prayers', 'adhan-voices', 'app-startup', 'devotional-reminders']
+const domains = Object.fromEntries(await Promise.all(['quran-books', 'quran-theme', 'languages', 'prayers', 'adhan-voices', 'app-startup', 'devotional-reminders']
   .map(async name => [`./domain/${name}`, await import(`./domain/${name}.ts`)])));
 const preferencesKey = 'app-preferences-v1';
 const booksKey = 'quran.reader.books.v1';
@@ -46,6 +48,7 @@ function hook<T>(name: string, io: ReturnType<typeof storage>): () => T {
     react: require('react'),
     '@react-native-async-storage/async-storage': io,
     './text-size': { DEFAULT_TEXT_SIZE: 22, MIN_TEXT_SIZE: 16, MAX_TEXT_SIZE: 32 },
+    './use-persistent-write': { usePersistentWrite },
   };
   const output = { exports: {} as Record<string, () => T> };
   new Function('require', 'module', 'exports', compiled)((id: string) => {
@@ -180,4 +183,63 @@ test('a delayed library read after unmount cannot save the default shelf', async
   await h.close();
   await act(async () => loading.resolve(JSON.stringify(savedBooks)));
   assert.equal(io.writes.length, 0);
+});
+
+test('failed preference saves are visible and retry the current settings without reloading old data', async () => {
+  const io = storage();
+  const h = await mount(hook<ReturnType<typeof usePreferences>>('use-preferences', io));
+  try {
+    const write = io.setItem;
+    io.setItem = async () => { throw Error('Disk full'); };
+    await h.change(() => h.value.setPreferences(value => ({ ...value, language: 'en' })));
+    assert.equal(h.value.saveFailed, true);
+    assert.equal(h.value.preferences.language, 'en');
+    assert.equal(JSON.parse(io.values.get(preferencesKey)!).language, 'ar');
+    // Keep accepting edits while the disk is unavailable; retry must save the latest one.
+    await h.change(() => h.value.setPreferences(value => ({ ...value, reader: { ...value.reader, fontSize: 30 } })));
+    io.setItem = write;
+    await h.change(() => h.value.retrySave());
+    assert.equal(h.value.saveFailed, false);
+    assert.equal(h.value.loadFailed, false);
+    const stored = JSON.parse(io.values.get(preferencesKey)!);
+    assert.equal(stored.language, 'en');
+    assert.equal(stored.reader.fontSize, 30);
+  } finally { await h.close(); }
+});
+
+test('book save retry preserves the latest page, name and bookmarks through relaunch', async () => {
+  const io = storage({ [booksKey]: JSON.stringify(savedBooks) });
+  const h = await mount(hook<ReturnType<typeof useQuranBooks>>('use-quran-books', io));
+  try {
+    const write = io.setItem;
+    io.setItem = async () => { throw Error('Disk full'); };
+    await h.change(() => h.value.setBooks(books => books.map((book, i) => i ? book : {
+      ...book, page: 400, name: 'My reading', bookmarks: [...book.bookmarks, 400],
+    })));
+    assert.equal(h.value.saveFailed, true);
+    io.setItem = write;
+    await h.change(() => h.value.retrySave());
+    assert.equal(h.value.saveFailed, false);
+    const expected = h.value.books;
+    const relaunched = await mount(hook<ReturnType<typeof useQuranBooks>>('use-quran-books', io));
+    try { assert.deepEqual(relaunched.value.books, expected); }
+    finally { await relaunched.close(); }
+  } finally { await h.close(); }
+});
+
+test('theme save failures remain visible until retry saves the latest appearance', async () => {
+  const key = 'quran-reader-theme-v2';
+  const io = storage({ [key]: JSON.stringify({ themeId: 'green', mode: 'light' }) });
+  const h = await mount(hook<ReturnType<typeof useQuranTheme>>('use-quran-theme', io));
+  try {
+    const write = io.setItem;
+    io.setItem = async () => { throw Error('Disk full'); };
+    await h.change(() => h.value.setMode('dark'));
+    assert.equal(h.value.saveFailed, true);
+    await h.change(() => h.value.setThemeId('maroon'));
+    io.setItem = write;
+    await h.change(() => h.value.retrySave());
+    assert.equal(h.value.saveFailed, false);
+    assert.deepEqual(JSON.parse(io.values.get(key)!), {themeId: 'maroon', mode: 'dark'});
+  } finally { await h.close(); }
 });

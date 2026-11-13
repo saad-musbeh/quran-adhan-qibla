@@ -23,13 +23,13 @@ type Props = {
   language: Language; visible: boolean;
   onClose: () => void; prayer: PrayerSettings; onPrayerChange: (value: PrayerSettings) => void;
   timezone: string; compassMode: 'live' | 'north'; onCompassModeChange: (mode: 'live' | 'north') => void;
-  quran: ReactNode; notifications: ReactNode; devotional?: ReactNode; testing?: ReactNode;
+  quran: ReactNode; notifications: ReactNode; devotional?: ReactNode; testing?: ReactNode; storageNotice?: ReactNode;
   textSize: number; onTextSizeChange: (size:number)=>void;
   testingLanguages: boolean; onTestingLanguagesChange: (enabled: boolean) => void;
   mainMenuOnPhones: boolean; onMainMenuChange: (enabled: boolean) => void;
 };
 
-export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChange, timezone, compassMode, onCompassModeChange, quran, notifications, devotional, testing, textSize, onTextSizeChange, mainMenuOnPhones, onMainMenuChange, testingLanguages, onTestingLanguagesChange }: Props) {
+export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChange, timezone, compassMode, onCompassModeChange, quran, notifications, devotional, testing, storageNotice, textSize, onTextSizeChange, mainMenuOnPhones, onMainMenuChange, testingLanguages, onTestingLanguagesChange }: Props) {
   const { styles } = useReaderStyles(baseStyles);
   const { theme, themeId, setThemeId, mode, setMode } = useReaderTheme();
   const [testingVisible,setTestingVisible]=useState(false);
@@ -54,6 +54,7 @@ export function SettingsSheet({ language, visible, onClose, prayer, onPrayerChan
         <Pressable accessibilityRole="button" testID="settings-close" accessibilityLabel={c.close} onPress={onClose} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable>
       </View>
       <ScrollView testID="overall-settings" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {storageNotice}
         <TextSizeSetting language={language} size={textSize} onChange={onTextSizeChange}/>
         <QuranThemePicker visible={themePickerVisible} language={language} themeId={themeId} mode={mode} onModeChange={setMode} onChoose={setThemeId} onClose={() => setThemePickerVisible(false)} />
         <Pressable accessibilityRole="button" accessibilityLabel={bilingual(language, 'لون التطبيق', 'App color')} style={[styles.choice, rtl && styles.reverse]} onPress={() => setThemePickerVisible(true)}>

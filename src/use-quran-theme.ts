@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePersistentWrite } from './use-persistent-write';
 import {
   getQuranTheme,
   readQuranThemePreference,
@@ -17,14 +18,11 @@ export function useQuranTheme() {
   const [ready, setReady] = useState(false);
   const readyRef = useRef(false);
   const pendingChoice = useRef<Partial<QuranThemePreference>>({});
-  const writes = useRef<Promise<void>>(Promise.resolve());
+  const { save, saveFailed, retrySave } = usePersistentWrite((json: string) => AsyncStorage.setItem(STORAGE_KEY, json));
 
   const persist = useCallback((value: QuranThemePreference) => {
-    writes.current = writes.current
-      .catch(() => undefined)
-      .then(() => AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(value)));
-    void writes.current.catch(() => undefined);
-  }, []);
+    save(JSON.stringify(value));
+  }, [save]);
 
   useEffect(() => {
     let live = true;
@@ -60,5 +58,5 @@ export function useQuranTheme() {
   const setMode = useCallback((mode: QuranThemeMode) => update({ mode }), [update]);
 
   const theme = useMemo(() => getQuranTheme(preference.themeId, preference.mode), [preference.themeId, preference.mode]);
-  return { ...preference, theme, setThemeId, setMode, ready };
+  return { ...preference, theme, setThemeId, setMode, ready, saveFailed, retrySave };
 }

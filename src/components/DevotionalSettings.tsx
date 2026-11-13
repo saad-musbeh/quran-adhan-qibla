@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import type { ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable } from './Pressable';
@@ -10,7 +11,7 @@ import { formatClock, normalizeDevotionalPreferences, parseClock, type Devotiona
 import { collectionTitle } from '../adhkar-i18n';
 import type { useDevotionalReminders } from '../use-devotional-reminders';
 
-type Props = { visible: boolean; onClose: () => void; language: Language; preferences: DevotionalPreferences; onChange: (value: DevotionalPreferences) => void; reminders: ReturnType<typeof useDevotionalReminders> };
+type Props = { visible: boolean; onClose: () => void; language: Language; preferences: DevotionalPreferences; onChange: (value: DevotionalPreferences) => void; reminders: ReturnType<typeof useDevotionalReminders>; storageNotice?: ReactNode };
 
 function SalawatReminders(props:React.ComponentProps<typeof import('./SalawatReminders').SalawatReminders>){
   const {SalawatReminders:Component}=require('./SalawatReminders') as typeof import('./SalawatReminders');
@@ -25,7 +26,7 @@ function ClockField({ value, onChange, language, label, testID }: { value:string
   return <View style={styles.clockField}><TextInput testID={testID} accessibilityLabel={label} value={text} onChangeText={value=>{setText(value);setInvalid(false)}} onBlur={save} onSubmitEditing={save} placeholder="HH:MM" maxLength={5} autoCorrect={false} autoCapitalize="none" selectTextOnFocus keyboardType="numbers-and-punctuation" placeholderTextColor={colors.appMuted} style={[styles.input,{color:colors.appText,borderColor:invalid?'#C56D56':colors.appBorder}]} />{invalid&&<Text accessibilityRole="alert" style={styles.error}>{bilingual(language,'أدخل الوقت بصيغة ٠٧:٣٠','Enter a time such as 07:30')}</Text>}</View>;
 }
 
-export function DevotionalSettings({visible,onClose,language,preferences:value,onChange,reminders}:Props){
+export function DevotionalSettings({visible,onClose,language,preferences:value,onChange,reminders,storageNotice}:Props){
   const {styles,colors}=useReaderStyles(baseStyles),rtl=isRTL(language),insets=useSafeAreaInsets();
   const [busy,setBusy]=useState(false),[feedback,setFeedback]=useState<'sent'|'failed'|null>(null);
   const align=rtl?styles.rtl:undefined;
@@ -44,6 +45,7 @@ export function DevotionalSettings({visible,onClose,language,preferences:value,o
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose}><View accessibilityViewIsModal style={[styles.root,{paddingTop:insets.top,paddingBottom:insets.bottom}]}>
     <View style={[styles.header,rtl&&styles.reverse]}><Text accessibilityRole="header" style={[styles.title,align]}>{bilingual(language,'التذكيرات','Reminders')}</Text><Pressable testID="reminders-close" accessibilityRole="button" accessibilityLabel={bilingual(language,'إغلاق','Close')} style={styles.icon} onPress={onClose}><Ionicons name="close" size={28} color={colors.accent}/></Pressable></View>
     <ScrollView testID="reminders-settings" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {storageNotice}
       {toggle(salawat,value.salawat.enabled,next=>{void enable('salawat',next)},'salawat-enabled')}
       <SalawatReminders language={language} value={value.salawat} visible={visible} onChange={salawat=>save({...value,salawat})}/>
       {toggle(bilingual(language,'تفعيل التنبيه الصوتي','Enable reminder sound'),value.salawat.style!=='silent',sound=>save({...value,salawat:{...value.salawat,style:sound?'spoken':'silent'}}),'salawat-sound-enabled')}

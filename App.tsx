@@ -45,12 +45,13 @@ function Main() {
   const insets = useSafeAreaInsets();
   const {width,height}=useWindowDimensions();
   const largeScreen=width>=720||Math.min(width,height)>=600;
-  const { preferences, setPreferences, ready: preferencesReady, loadFailed: preferencesLoadFailed, retry: retryPreferences } = usePreferences();
+  const { preferences, setPreferences, ready: preferencesReady, loadFailed: preferencesLoadFailed, retry: retryPreferences, saveFailed: preferencesSaveFailed, retrySave: retryPreferencesSave } = usePreferences();
   const { language, prayer: settings, reader, compassMode } = preferences;
   const textScale = textScaleForSize(reader.fontSize);
   const [bannerHeight,setBannerHeight] = useState(48);
+  const [storageNoticeHeight,setStorageNoticeHeight] = useState(0);
   const [dockHeight,setDockHeight] = useState(64);
-  const headerHeight = Math.max(48,48*textScale,bannerHeight);
+  const bannerSize = Math.max(48,48*textScale,bannerHeight);
   const navigationHeight = Math.max(64,64*textScale,dockHeight);
   const tafsirLibrary = useTafsirLibrary();
   const quranTheme = useQuranTheme();
@@ -77,6 +78,14 @@ function Main() {
   const [now, setNow] = useState(() => new Date());
   const locationState = useLocation((!homeVisible&&(tab === 'adhan'||tab === 'qibla')) || showLocation || preferences.prayerNotifications || (preferences.devotional.salawat.enabled&&preferences.devotional.salawat.mode==='prayers'));
   const { location } = locationState;
+  const storageIssue = preferencesSaveFailed || quranTheme.saveFailed || locationState.loadFailed || locationState.saveFailed;
+  const headerHeight = bannerSize + (storageIssue ? storageNoticeHeight : 0);
+  const retryStorage = () => {
+    if (preferencesSaveFailed) retryPreferencesSave();
+    if (quranTheme.saveFailed) quranTheme.retrySave();
+    if (locationState.loadFailed) locationState.retry();
+    if (locationState.saveFailed) locationState.retrySave();
+  };
   const t = translations[language];
   const notificationLabels = notificationCopy(language);
   const chooseSection=(next:Tab)=>{setHomeVisible(false);setTab(next);setReadingChromeVisible(false);setNow(new Date());};
@@ -147,6 +156,7 @@ function Main() {
     </View> : <>
     <AppBanner onHeightChange={setBannerHeight} language={language} top={insets.top} showHome={menuEnabled||tab==='quran'} onHome={goHome}
       onLanguages={() => setShowLanguages(true)} onSettings={() => setShowSettings(true)} />
+    {storageIssue && <View onLayout={event=>setStorageNoticeHeight(event.nativeEvent.layout.height)} style={{position:'absolute',top:insets.top+bannerSize,left:0,right:0,zIndex:6,paddingHorizontal:16,backgroundColor:quranTheme.theme.appSurface}}><SavedDataError language={language} onRetry={retryStorage} saving={preferencesSaveFailed||quranTheme.saveFailed||locationState.saveFailed}/></View>}
     <SwipeTabs onDockHeightChange={setDockHeight} hideNavigation={homeVisible||(tab === 'quran' && readingBook)} language={language} tab={tab} reading={homeVisible||(tab === 'quran' && readingBook)} chromeVisible={readingChromeVisible} onChange={chooseSection}>
       <ScreenLayer testID="screen-qibla" active={!homeVisible&&tab === 'qibla'} background={quranTheme.theme.appBackground} top={headerHeight} bottom={navigationHeight}>
         <QiblaScreen language={language} state={locationState} bearing={qibla.bearing}
@@ -173,6 +183,7 @@ function Main() {
 
     </SwipeTabs>
     <SettingsSheet language={language} visible={showSettings}
+      storageNotice={storageIssue ? <SavedDataError language={language} onRetry={retryStorage} saving={preferencesSaveFailed||quranTheme.saveFailed||locationState.saveFailed}/> : null}
       testingLanguages={preferences.testingLanguages} onTestingLanguagesChange={enabled=>setPreferences(value=>({...value,...restoreLanguagePreferences(value.language,enabled)}))}
       textSize={reader.fontSize} onTextSizeChange={fontSize=>setPreferences(value=>({...value,reader:{...value.reader,fontSize}}))}
       mainMenuOnPhones={preferences.mainMenuOnPhones} onMainMenuChange={enabled=>{setPreferences(value=>({...value,mainMenuOnPhones:enabled}));if(!largeScreen){setHomeVisible(enabled&&!readingBook);if(enabled&&!readingBook)setShowSettings(false);}}}
@@ -189,7 +200,8 @@ function Main() {
       quran={<ConnectedQuranSettings library={tafsirLibrary} language={language} />} />
     <LanguagePicker extraTesting={preferences.testingLanguages} language={language} visible={showLanguages} onChoose={language => setPreferences(value => ({ ...value, language }))} onClose={() => setShowLanguages(false)} />
     <LocationSheet language={language} visible={showLocation} state={locationState} onClose={() => setShowLocation(false)} />
-    <DevotionalSettings visible={showReminders} onClose={()=>setShowReminders(false)} language={language} preferences={preferences.devotional} onChange={devotional=>setPreferences(value=>({...value,devotional}))} reminders={devotional}/>
+    <DevotionalSettings visible={showReminders} onClose={()=>setShowReminders(false)} language={language} preferences={preferences.devotional} onChange={devotional=>setPreferences(value=>({...value,devotional}))} reminders={devotional}
+      storageNotice={preferencesSaveFailed ? <SavedDataError language={language} onRetry={retryPreferencesSave} saving/> : null}/>
     </>}
   </SafeAreaView></QuranThemeContext.Provider></TextSizeContext.Provider>;
 }

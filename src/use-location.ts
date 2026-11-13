@@ -5,6 +5,7 @@ import * as Location from 'expo-location';
 import { LocationAccessError, requestDeviceLocation, shouldRefreshLocation, type Coordinates, type DeviceLocation, type LocationFailure, type LocationProvider, type LocationSource } from './domain/location';
 import { SAVED_LOCATION_KEY, validateSavedLocation } from './domain/saved-location';
 import { hasSystemDeviceLocation, getSystemDeviceLocation } from './system-device-location';
+import { usePersistentWrite } from './use-persistent-write';
 
 export type SelectedLocation = Coordinates & { source: LocationSource; label?: string; accuracy?: number | null; timestamp: number };
 const FAILED_LOCATION_RETRY_MS = 60 * 1000;
@@ -25,6 +26,9 @@ export function useLocation(enabled: boolean) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<LocationFailure | null>(null);
   const [ready, setReady] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt(value => value + 1), []);
   const locationRef = useRef<SelectedLocation | null>(null);
   const pending = useRef(false);
   const mounted = useRef(true);
@@ -32,17 +36,13 @@ export function useLocation(enabled: boolean) {
   const retryAfter = useRef(0);
   const userSelected = useRef(false);
   const permissionCheck = useRef(false);
-  const writes = useRef<Promise<void>>(Promise.resolve());
+  const { save, saveFailed, retrySave } = usePersistentWrite((value: SelectedLocation | null) => value
+    ? AsyncStorage.setItem(SAVED_LOCATION_KEY, JSON.stringify(value))
+    : AsyncStorage.removeItem(SAVED_LOCATION_KEY));
 
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
-  }, []);
-
-  const save = useCallback((value: SelectedLocation | null) => {
-    writes.current = writes.current.catch(() => undefined).then(() => value
-      ? AsyncStorage.setItem(SAVED_LOCATION_KEY, JSON.stringify(value))
-      : AsyncStorage.removeItem(SAVED_LOCATION_KEY)).catch(() => undefined);
   }, []);
 
   const selectLocation = useCallback((value: SelectedLocation | null) => {
@@ -52,13 +52,16 @@ export function useLocation(enabled: boolean) {
 
   useEffect(() => {
     let live = true;
+    setLoadFailed(false);
     void (async () => {
       let raw: string | null = null;
-      let readSucceeded = false;
       try {
         raw = await AsyncStorage.getItem(SAVED_LOCATION_KEY);
-        readSucceeded = true;
-      } catch { /* Keep the in-memory default if storage is temporarily unavailable. */ }
+      } catch {
+        // An unread location must not become "no location" and cancel existing alarms.
+        if (live && mounted.current && !userSelected.current) setLoadFailed(true);
+        return;
+      }
 
       let restored: SelectedLocation | null = null;
       let storedWasValid = false;
@@ -81,15 +84,14 @@ export function useLocation(enabled: boolean) {
       if (!userSelected.current) {
         selectLocation(restored);
         lastFixTimestamp.current = restored?.source === 'device' ? restored.timestamp : 0;
-        if (readSucceeded && (raw !== null && (!storedWasValid || restored === null))) save(null);
+        if (raw !== null && (!storedWasValid || restored === null)) save(null);
       }
       setReady(true);
     })();
     return () => { live = false; };
-  }, [save, selectLocation]);
+  }, [save, selectLocation, attempt]);
 
   const locate = useCallback(async (allowPrompt = true) => {
-    if (allowPrompt) userSelected.current = true;
     if (pending.current) return;
     pending.current = true;
     setLoading(true);
@@ -99,10 +101,13 @@ export function useLocation(enabled: boolean) {
       const saved = validateSavedLocation({ ...fix, source: 'device' }) as SelectedLocation | null;
       if (!saved) throw new LocationAccessError('locationError');
       if (mounted.current) {
+        userSelected.current = true;
         selectLocation(saved);
         lastFixTimestamp.current = saved.timestamp;
         retryAfter.current = 0;
         save(saved);
+        setReady(true);
+        setLoadFailed(false);
       }
     } catch (failure) {
       if (mounted.current) {
@@ -157,13 +162,15 @@ export function useLocation(enabled: boolean) {
 
   function useAlternative(coordinates: Coordinates & { source: Exclude<LocationSource, 'device'>; label?: string }) {
     if (pending.current) return;
-    userSelected.current = true;
     const saved = validateSavedLocation({ ...coordinates, timestamp: Date.now() }) as SelectedLocation | null;
     if (!saved) return;
+    userSelected.current = true;
     selectLocation(saved);
     save(saved);
+    setReady(true);
+    setLoadFailed(false);
     setError(null);
   }
 
-  return { location, loading, error, locate, useAlternative, ready };
+  return { location, loading, error, locate, useAlternative, ready, loadFailed, retry, saveFailed, retrySave };
 }

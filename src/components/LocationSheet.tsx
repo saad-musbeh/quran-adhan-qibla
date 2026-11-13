@@ -8,6 +8,7 @@ import { bilingual, isRTL, localeFor, translations, type Language } from '../i18
 import type { useLocation } from '../use-location';
 import { LocationAlternatives } from './LocationAlternatives';
 import { useReaderStyles } from '../quran-theme-context';
+import { SavedDataError } from './SavedDataError';
 
 type Props = { language: Language; visible: boolean; state: ReturnType<typeof useLocation>; onClose: () => void };
 
@@ -33,7 +34,8 @@ export function LocationSheet({ language, visible, state, onClose }: Props) {
       </View>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-
+          {state.loadFailed && <SavedDataError language={language} onRetry={state.retry}/>}
+          {state.saveFailed && <SavedDataError language={language} onRetry={state.retrySave} saving/>}
           <Pressable accessibilityRole="button" accessibilityState={{ disabled: loading, ...(loading ? { busy: true } : {}) }} disabled={loading}
             style={[styles.primary, loading && styles.disabled]} onPress={() => { setSettingsError(false); void state.locate(); }}>
             {loading && <ActivityIndicator color="#102A25" />}

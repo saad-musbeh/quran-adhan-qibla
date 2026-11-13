@@ -6,6 +6,7 @@ import { normalizePrayerSettings, type PrayerSettings } from './domain/prayers';
 import { normalizePrayerSounds, type PrayerSoundSettings } from './domain/adhan-voices';
 import { normalizeMainMenuOnPhones } from './domain/app-startup';
 import { normalizeDevotionalPreferences, type DevotionalPreferences } from './domain/devotional-reminders';
+import { usePersistentWrite } from './use-persistent-write';
 
 type Preferences = {
   language: Language; prayer: PrayerSettings; compassMode: 'live' | 'north'; prayerNotifications: boolean;
@@ -30,7 +31,7 @@ export function usePreferences() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const loaded = useRef(false);
-  const writes = useRef(Promise.resolve());
+  const { save, saveFailed, retrySave } = usePersistentWrite((json: string) => AsyncStorage.setItem(key, json));
   const setPreferences = useCallback((change: SetStateAction<Preferences>) => {
     // The app's loading/retry screen keeps controls hidden until saved values are known.
     if (loaded.current) updatePreferences(change);
@@ -66,8 +67,7 @@ export function usePreferences() {
   useEffect(() => {
     if (!ready) return;
     const json = JSON.stringify(preferences);
-    writes.current = writes.current.catch(() => undefined).then(() => AsyncStorage.setItem(key, json));
-    void writes.current.catch(() => undefined);
-  }, [ready, preferences]);
-  return { preferences, setPreferences, ready, loadFailed, retry };
+    save(json);
+  }, [ready, preferences, save]);
+  return { preferences, setPreferences, ready, loadFailed, retry, saveFailed, retrySave };
 }

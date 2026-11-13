@@ -4,7 +4,11 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
 import { HookHarness } from './test-support/react-hooks.ts';
-import { AppState } from './test-support/stubs/react-native.ts';
+import { AppState, Platform } from './test-support/stubs/react-native.ts';
+import * as Notifications from './test-support/stubs/expo-notifications.ts';
+import { usePrayerNotifications } from './use-prayer-notifications.ts';
+import { PRAYER_NOTIFICATION_NAMESPACE } from './domain/prayer-notifications.ts';
+import { usePersistentWrite } from './use-persistent-write.ts';
 import * as locationDomain from './domain/location.ts';
 import * as savedLocation from './domain/saved-location.ts';
 
@@ -36,6 +40,11 @@ type HookResult = {
   loading: boolean;
   error: string | null;
   ready: boolean;
+  loadFailed: boolean;
+  saveFailed: boolean;
+  retry(): void;
+  retrySave(): void;
+  useAlternative(value: {latitude: number; longitude: number; source: 'city' | 'manual' | 'map'; label?: string}): void;
   locate(allowPrompt?: boolean): Promise<void>;
 };
 
@@ -48,6 +57,7 @@ function build(storage: StorageStub, location: LocationStub): { h: HookHarness; 
     '@react-native-async-storage/async-storage': storage,
     './domain/location': locationDomain,
     './domain/saved-location': savedLocation,
+    './use-persistent-write': { usePersistentWrite },
     './system-device-location': { hasSystemDeviceLocation: false, getSystemDeviceLocation: () => { throw new Error('unused'); } },
   };
   new Function('require', 'module', 'exports', compiled)((name: string) => {
@@ -74,7 +84,7 @@ function controllableProvider() {
   return { state, location };
 }
 
-function memoryStorage(saved: unknown) {
+function memoryStorage(saved: unknown): StorageStub {
   return {
     async getItem() { return saved === null ? null : JSON.stringify(saved); },
     async setItem() {},
@@ -186,4 +196,57 @@ test('a manual locate retries immediately even while the failure backoff is pend
     await h?.unmount();
     Date.now = realNow;
   }
+});
+
+test('a failed saved-location read preserves scheduled prayers until successful retry', async () => {
+  Platform.OS = 'ios';
+  Notifications.resetStore();
+  Notifications.store.scheduled.push({identifier: 'saved-fajr', content: {data: {namespace: PRAYER_NOTIFICATION_NAMESPACE}}, trigger: null});
+  const io = memoryStorage({latitude: 24.7, longitude: 46.7, source: 'city', timestamp: Date.now(), label: 'Riyadh'});
+  const read = io.getItem;
+  io.getItem = async () => { throw Error('Transient read failure'); };
+  const { h, result } = build(io, controllableProvider().location);
+  let prayer: HookHarness | undefined;
+  try {
+    await h.mount();
+    assert.equal(result().ready, false);
+    assert.equal(result().loadFailed, true);
+    prayer = new HookHarness(() => usePrayerNotifications({
+      ready: result().ready, enabled: true, location: result().location as never,
+      settings: {method: 0, hanafi: false, ramadan: false, highLatitudeRule: 'middle', polarRule: 'none'},
+      language: 'ar', labels: {title: 'Adhan', channelName: 'Adhan', body: () => 'Prayer'},
+    }));
+    await prayer.mount();
+    await prayer.settle();
+    assert.equal(Notifications.store.scheduled[0]?.identifier, 'saved-fajr');
+    assert.equal(Notifications.store.log.length, 0, 'unresolved hydration cannot cancel or reschedule alarms');
+    io.getItem = read;
+    await h.change(() => result().retry());
+    assert.equal(result().ready, true);
+    assert.equal(result().loadFailed, false);
+    assert.equal(result().location?.source, 'city');
+    await prayer.render();
+    await prayer.settle();
+    assert.ok(!Notifications.store.scheduled.some(item => item.identifier === 'saved-fajr'));
+    assert.ok(Notifications.store.scheduled.length > 0, 'retry reconciles a new schedule with the restored location');
+  } finally { await prayer?.unmount(); await h.unmount(); }
+});
+
+test('an explicit location can recover from a failed read and failed save without losing the new choice', async () => {
+  const io = memoryStorage(null);
+  io.getItem = async () => { throw Error('Read unavailable'); };
+  let stored = '';
+  io.setItem = async () => { throw Error('Disk full'); };
+  const { h, result } = build(io, controllableProvider().location);
+  try {
+    await h.mount();
+    await h.change(() => result().useAlternative({latitude: 24.7, longitude: 46.7, source: 'manual'}));
+    assert.equal(result().ready, true);
+    assert.equal(result().loadFailed, false);
+    assert.equal(result().saveFailed, true);
+    io.setItem = async (_key: string, value: string) => { stored = value; };
+    await h.change(() => result().retrySave());
+    assert.equal(result().saveFailed, false);
+    assert.equal(JSON.parse(stored).source, 'manual');
+  } finally { await h.unmount(); }
 });
