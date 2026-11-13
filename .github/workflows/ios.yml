@@ -50,6 +50,7 @@ jobs:
             name="$(basename "$(dirname "$result")")-$(basename "$result" .xcresult)"
             xcrun xcresulttool get test-results summary --path "$result" > "previous-diagnostics/$name-summary.json" || true
             xcrun xcresulttool export diagnostics --path "$result" --output-path "previous-diagnostics/$name" || true
+            xcrun xcresulttool export attachments --path "$result" --output-path "previous-diagnostics/$name-attachments" || true
           done < <(find previous-ui -type d -name '*.xcresult' -prune)
           python3 - <<'PY'
           import pathlib, zipfile
@@ -227,7 +228,8 @@ jobs:
             if [ ! -d "$result" ]; then continue; fi
             name="$(basename "$(dirname "$result")")-$(basename "$result" .xcresult)"
             xcrun xcresulttool get test-results summary --path "$result" > "target/$name-summary.json" || true
-            xcrun xcresulttool get test-results metrics --path "$result" > "target/ios-performance/$name.json"
+            # An interrupted result must not prevent later completed tests from exporting.
+            xcrun xcresulttool get test-results metrics --path "$result" > "target/ios-performance/$name.json" || true
             xcrun xcresulttool export attachments --path "$result" --output-path "target/ios-screenshots/$name" || true
             xcrun xcresulttool export diagnostics --path "$result" --output-path "target/ios-diagnostics/$name" || true
           done
