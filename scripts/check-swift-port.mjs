@@ -115,6 +115,8 @@ const resourceCheckBinary = path.join(resourceCheckDir, 'resource-locator-check'
 if (!spawnSync('swift', ['--version'], { stdio: 'ignore' }).error) {
   run('swift', ['test', '--jobs', '4'], project);
   run('swiftc', ['-frontend', '-parse', ...sources], project);
+  run('swiftc', ['-swift-version', '5', '-parse-as-library', 'Sources/App/LocationRequestGate.swift', '../Verification/LocationRequestChecks.swift', '-o', path.join(resourceCheckDir, 'location-request-check')], project);
+  run(path.join(resourceCheckDir, 'location-request-check'), []);
   run('swiftc', ['-parse-as-library', 'Sources/App/ResourceLocator.swift', '../Verification/ResourceLocatorChecks.swift', '-o', resourceCheckBinary], project);
   run(resourceCheckBinary, []);
   run('swiftc', ['-swift-version', '5', '-parse-as-library', 'Sources/App/AudioSessionActivation.swift', '../Verification/AudioSessionChecks.swift', '-o', path.join(resourceCheckDir, 'audio-session-check')], project);
@@ -126,6 +128,8 @@ if (!spawnSync('swift', ['--version'], { stdio: 'ignore' }).error) {
   const base = ['run', '--rm', '-v', `${root}:/work:z`, '-w', '/work/native-ios/QuranAdhanQibla.swiftpm', 'docker.io/library/swift:6.0'];
   run('podman', [...base, 'swift', 'test', '--jobs', '4', '--scratch-path', '/work/target/swift-port/build']);
   run('podman', [...base, 'swiftc', '-frontend', '-parse', ...sources]);
+  run('podman', [...base, 'swiftc', '-swift-version', '5', '-parse-as-library', 'Sources/App/LocationRequestGate.swift', '../Verification/LocationRequestChecks.swift', '-o', '/work/target/swift-port/resource-check/location-request-check']);
+  run('podman', [...base, '/work/target/swift-port/resource-check/location-request-check']);
   run('podman', [...base, 'swiftc', '-parse-as-library', 'Sources/App/ResourceLocator.swift', '../Verification/ResourceLocatorChecks.swift', '-o', '/work/target/swift-port/resource-check/resource-locator-check']);
   run('podman', [...base, '/work/target/swift-port/resource-check/resource-locator-check']);
   run('podman', [...base, 'swiftc', '-swift-version', '5', '-parse-as-library', 'Sources/App/AudioSessionActivation.swift', '../Verification/AudioSessionChecks.swift', '-o', '/work/target/swift-port/resource-check/audio-session-check']);

@@ -6,6 +6,11 @@ task_project="$task_root/native-ios/QuranAdhanQibla.swiftpm"
 task_build="$task_root/target/swift-port/apple-typecheck"
 mkdir -p "$task_build"
 xcrun swiftc -swift-version 5 -parse-as-library \
+  "$task_project/Sources/App/LocationRequestGate.swift" \
+  "$task_root/native-ios/Verification/LocationRequestChecks.swift" \
+  -o "$task_build/location-request-check"
+"$task_build/location-request-check"
+xcrun swiftc -swift-version 5 -parse-as-library \
   "$task_project/Sources/App/CityIndex.swift" \
   "$task_root/native-ios/Verification/CityIndexChecks.swift" \
   -o "$task_build/city-index-check"

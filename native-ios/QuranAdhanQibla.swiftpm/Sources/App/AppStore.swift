@@ -157,6 +157,11 @@ import SwiftUI
     refreshAlerts(force: true)
   }
 
+  func selectLocation(_ location: SavedLocation) {
+    device.cancelRequest()
+    state.location = location
+  }
+
   func refreshAlerts(force: Bool = false) {
     guard ready else { return }
     // Reading-position saves must not cancel and rebuild notification schedules.

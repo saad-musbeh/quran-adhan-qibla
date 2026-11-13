@@ -11,6 +11,7 @@ import IslamicCore
   @Published var authorization: CLAuthorizationStatus
   var onFix: ((SavedLocation) -> Void)?
   private let manager = CLLocationManager()
+  private let requests = LocationRequestGate<CLLocationManager>()
   private var timeout: Task<Void, Never>?
   private var wantsFix = false
   private var authorizationReady = false
@@ -42,27 +43,38 @@ import IslamicCore
       manager.requestWhenInUseAuthorization()
     case .authorizedAlways, .authorizedWhenInUse:
       guard !locating else { return }
+      // A distinct provider lets delegate callbacks identify the request they belong to.
+      let provider = CLLocationManager()
+      provider.delegate = self
+      provider.desiredAccuracy = kCLLocationAccuracyHundredMeters
+      requests.begin(provider)
       locating = true
       timeout?.cancel()
       timeout = Task { [weak self] in
         try? await Task.sleep(for: .seconds(30))
-        guard !Task.isCancelled, let self, self.locating else { return }
-        self.manager.stopUpdatingLocation()
-        self.locating = false
-        self.wantsFix = false
+        guard !Task.isCancelled, let self, self.requests.current === provider else { return }
+        self.cancelRequest()
         self.error = "timeout"
       }
-      manager.requestLocation()
+      provider.requestLocation()
     case .denied, .restricted: denyRequest()
     @unknown default: denyRequest()
     }
   }
 
-  private func denyRequest() {
+  func cancelRequest() {
     wantsFix = false
     locating = false
     timeout?.cancel()
-    manager.stopUpdatingLocation()
+    timeout = nil
+    if let provider = requests.cancel() {
+      provider.stopUpdatingLocation()
+      provider.delegate = nil
+    }
+  }
+
+  private func denyRequest() {
+    cancelRequest()
     error = "permission"
   }
 
@@ -78,20 +90,22 @@ import IslamicCore
   }
 
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    guard manager === self.manager else { return }
     authorization = manager.authorizationStatus
     authorizationReady = true
     continueRequest()
   }
 
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-    guard wantsFix, let fix = locations.last, fix.horizontalAccuracy >= 0,
+    guard wantsFix, requests.current === manager, let fix = locations.last, fix.horizontalAccuracy >= 0,
       abs(fix.timestamp.timeIntervalSinceNow) < 120
     else { return }
     let point = GeoPoint(latitude: fix.coordinate.latitude, longitude: fix.coordinate.longitude)
     guard point.isValid else { return }
-    wantsFix = false
-    locating = false
-    timeout?.cancel()
+    guard requests.finish(manager) else { return }
+    manager.delegate = nil
+    manager.stopUpdatingLocation()
+    cancelRequest()
     onFix?(
       SavedLocation(
         point: point, source: "device",
@@ -100,10 +114,10 @@ import IslamicCore
   }
 
   func locationManager(_ manager: CLLocationManager, didFailWithError failure: Error) {
-    guard wantsFix else { return }
-    wantsFix = false
-    locating = false
-    timeout?.cancel()
+    guard wantsFix, requests.finish(manager) else { return }
+    manager.delegate = nil
+    manager.stopUpdatingLocation()
+    cancelRequest()
     error = (failure as? CLError)?.code == .denied ? "permission" : "unavailable"
   }
 

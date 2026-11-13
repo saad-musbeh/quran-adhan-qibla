@@ -187,7 +187,7 @@ struct LocationPickerContent: View {
     ) {
       if let pending {
         Button(store.t("استخدام هذا الموقع", "Use this location")) {
-          store.state.location = pending
+          store.selectLocation(pending)
           self.pending = nil
           dismiss()
         }
