@@ -113,7 +113,9 @@ final class QuranUITests: XCTestCase {
       XCTAssertTrue(book.waitForExistence(timeout: 10))
       book.tap()
       let source = app.buttons["dhikr-source-\(id)-1"]
-      XCTAssertTrue(source.waitForExistence(timeout: 10))
+      // Arabic collection layout/font loading can outlast the first AX snapshot.
+      // A failure snapshot previously contained this exact button after the 10s wait.
+      XCTAssertTrue(source.waitForExistence(timeout: 30), app.debugDescription)
       source.tap()
       XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "حصن المسلم")).firstMatch.waitForExistence(timeout: 5))
       app.buttons["dhikr-source-close"].tap()
