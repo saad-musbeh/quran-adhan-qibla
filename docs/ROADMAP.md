@@ -10,6 +10,7 @@ Current source for release: **0.7.0 / Android code 29 / iOS build 29**, includin
 - [x] Rust Qibla calculation, validation, reference tests, and C ABI.
 - [x] Swift/Kotlin bridge source and native build scripts.
 - [x] Open-source license and automated host/bundle checks.
+- [x] Preserve scheduled prayer alerts during saved-location read failures and expose retries for failed location reads and book/settings/location/appearance saves.
 - [x] Compile an Android APK containing ARM64/x86_64 Rust libraries and bundled JavaScript.
 - [x] Verify the Android Rust bridge on an API 36 emulator.
 - [x] Compile and package a bundled Release iOS simulator app on macOS with the Rust XCFramework.
@@ -17,8 +18,8 @@ Current source for release: **0.7.0 / Android code 29 / iOS build 29**, includin
 - [x] Verify iOS book-name/relaunch and iPad landscape page turns in the 0.6.5 follow-up simulator run.
 - [x] Verify current iOS native playback and whole-Quran download start/cancel in the 0.6.5 follow-up simulator run; see [iOS testing status](IOS-TESTING.md).
 - [ ] Check RTL, accessibility, and large text on real devices.
-- [x] Update the vulnerable Xcode-tooling `uuid` dependency and apply tested install-time mitigations for the inherited `braces` and `node-forge` advisories; see [dependency security](DEPENDENCY-SECURITY.md).
-- [ ] Replace temporary dependency security patches with fixed upstream releases when available; keep upstream audit warnings visible.
+- [x] Update SDK 57 tooling to upstream Forge/Xcode security fixes, use a scoped fixed minimatch override and retain tested `braces` nesting guards; see [dependency security](DEPENDENCY-SECURITY.md).
+- [ ] Replace the remaining `braces` source patch and fingerprint minimatch override when compatible upstream releases make them unnecessary; keep fresh audit results visible.
 
 ## Quran reader
 

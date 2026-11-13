@@ -8,6 +8,8 @@ A separate [Swift-only iPhone/iPad source port](native-ios/README.md) is prepare
 
 ## What is ready
 
+- **Unreleased source follow-up:** failed saved-location reads preserve scheduled prayer alerts until retry or an explicit replacement location. Books/settings/location/appearance expose save errors and can retry the latest changes. The Swift source rejects cancelled or replaced device-location callbacks. Dependency tooling is updated within SDK 57; see [the audit and fixes](docs/AUDIT-2026-11-13.md).
+
 - **0.7.0:** the mobile city catalogue is queried from disk, Android Quran pages use native vectors, and closed/background readers release their drawing surfaces. Audio starts its native player on demand and releases it on Stop. The release also includes the separate Swift iPad source project, version 1.0.3/build 6, with background audio-session operations and callback-driven location authorization. See [release notes](docs/RELEASE-0.7.0.md) and [memory measurements](docs/MEMORY.md); the 80 MB idle / 150 MB whole-app budgets remain unverified or unmet, as documented.
 
 - **0.6.5:** protects saved books/settings after failed reads, fixes stale audio queues and partial-download cleanup, stops Android audio on task removal, retries failed location fixes, and cancels pending test alerts when Adhan is disabled. The iOS follow-up fixes and seven passing simulator UI tests are merged into `main`; physical-device checks remain open. See [release notes and verification limits](docs/RELEASE-0.6.5.md).
@@ -129,7 +131,7 @@ The 0.5.1 five-language addition and circular Qibla redesign pass host checks, m
 
 The 0.6.0 Adhkar & dua tab, salawat and morning/evening reminders, Short Adhan and end-of-surah playback stop have their `npm run check`, export and verification results recorded in [the 0.6.0 release notes](docs/RELEASE-0.6.0.md), including the Android code 23 / iOS build 23 artifacts and the checks still owed on physical devices. The Android text-clipping correction behind those layouts is documented with its Robolectric text-manager tests and browser layout harness in [TEXT-LAYOUT-QA.md](docs/TEXT-LAYOUT-QA.md); the reporting-device recheck and local emulator native runtime remain open there.
 
-The dependency security follow-up (21 October 2026) updates Xcode tooling's `uuid` dependency to patched 11.1.1 and applies source-verified install-time patches for the unpublished `braces` nesting and `node-forge` RSA validation fixes. `npm run check` includes security regressions. The remaining upstream audit warnings stay visible until patched releases are published; see [dependency security](docs/DEPENDENCY-SECURITY.md) for scope, verification and removal conditions. Run `npm ci` with install scripts enabled so both these patches and the existing Expo Audio patch are applied.
+The dependency security follow-up (13 November 2026) updates Expo within SDK 57, uses upstream Forge and Xcode fixes, and scopes a fixed minimatch override to Expo fingerprinting. The fresh npm audit reports no known advisories. The source-verified `braces` nesting guard remains, and `npm run check` includes its security regressions and fingerprint compatibility checks. See [dependency security](docs/DEPENDENCY-SECURITY.md) for scope and removal conditions. Run `npm ci` with install scripts enabled so the remaining security guard and existing Expo Audio patch are applied.
 
 ## Layout
 
