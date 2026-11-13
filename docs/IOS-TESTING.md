@@ -1,6 +1,6 @@
 # iOS testing on a Mac
 
-Use **`main`** for the current **0.6.5 / build 28** source, including the merged iOS test-harness and foreground-download fixes. This includes continuous-surah playback and native recording-end limits. Full Al-Fatiha playback, repeat and lock-screen ending behavior still require iPhone listening checks. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**.
+Use **`main`** for the current **0.7.0 / build 29** source. The unreleased storage/location/security fixes are on **`codex/history-audit-2026-11-13`**; their GitHub verification is recorded below. This includes continuous-surah playback and native recording-end limits. Full Al-Fatiha playback, repeat and lock-screen ending behavior still require iPhone listening checks. The friend’s original **0.3.6** baseline remains on **`codex/reader-polish`**.
 
 ## Requirements
 
@@ -84,6 +84,12 @@ Re-select the development team in the generated workspace for a physical iPhone.
 8. **Layout:** Arabic RTL, English, iPhone safe areas, iPad and larger text. Check Light and Dark for all five colors and saved appearance after restart. In landscape Adhan, the next prayer must stay on the right; after Isha it must show tomorrow’s separately calculated Fajr. Each salah should show a live remaining-time label, including Asr in the morning; completed prayers should show tomorrow explicitly. Check the prominent city label and tap it to change location. Fresh startup should show Home; a phone with Home disabled should open Adhan, never Quran.
 
 ## Current status
+
+The November storage/location/security follow-up passes the [complete GitHub run at `9ab7507`](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/43415552667): native app/UI-test compilation, preflight, all **12 UI/performance cases**, and result/screenshot/diagnostic exports. Coverage includes language/repeat controls, Adhkar/reminders, independent books after relaunch, native playback, prayer/download controls, repeated tab transitions, five application performance scenarios, and iPad portrait/landscape/page turns. Performance metrics come from a simulator and do not establish physical-device budgets or include separate WebKit processes.
+
+The [initial run at `2839a63`](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/43408628947) timed out finding an Adhkar Source button that was present in the failure screenshot and accessibility hierarchy; remaining cases were stopped to collect diagnostics. The harness now waits up to 30 seconds for that lookup and exports completed-result diagnostics even when another bundle is incomplete. The final run passes the Adhkar case without removing any assertions. The separate [Swift iPad run](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/43408632813) passes Apple SDK checks and an actual simulator build/install/launch with its portrait/page-turn/landscape reader test. See [the audit verification record](AUDIT-2026-11-13.md) for Android results and verification limits.
+
+### Earlier 0.6.5 verification
 
 The **0.6.5 / build 28** follow-up at commit **`6b0caac`** passed the [complete macOS simulator run](https://github.com/saad-musbeh/quran-adhan-qibla/actions/runs/39385030692) on 20 October 2026: the native app/tests compiled and all **seven UI tests** passed. Coverage includes independent book names/pages after relaunch, default Al-Husary playback and controls, Al-Ghamdi timed ayah navigation, prayer scheduling/cancellation, whole-Quran download start/cancel and saved inventory, repeated tab transitions, testing-language/repeat controls, Adhkar/reminders, and iPad portrait/landscape reading with forward/backward page turns from both leaves. Android native playback CI and host checks/mobile exports also passed on that commit.
 
